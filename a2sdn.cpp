@@ -7,6 +7,18 @@
 
 
 /**
+ * Parse the command line arguements from main().
+ *
+ * @param argc
+ * @param argv
+ * @return
+ */
+void parseArgs(int argc, char **argv){
+
+}
+
+
+/**
  * Main entry point for a2sdn.
  *
  * @param argc
