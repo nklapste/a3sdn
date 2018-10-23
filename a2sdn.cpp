@@ -11,6 +11,22 @@ using namespace std;
 const static string SWITCH_MODE = "swi";
 const static string CONTROLLER_MODE = "cont";
 
+
+/**
+ * Startup a2sdn in switch mode.
+ */
+void switchMode(){
+
+}
+
+/**
+ * Startup a2sdn in controller mode.
+ */
+void controllerMode(){
+
+}
+
+
 /**
  * Parse the command line arguements from main().
  *
@@ -50,6 +66,7 @@ int main(int argc, char **argv) {
         }
         int nSwitch = stoi(argv[2]);
         printf("Starting controller mode: nSwitch: %u", nSwitch);
+        switchMode();
     } else if (mode==SWITCH_MODE){
         if (argc!=6){
             printf("ERROR: invalid arguments for switch mode\n"
@@ -65,6 +82,7 @@ int main(int argc, char **argv) {
         unsigned int ipLow = stoul(ipRangeString.substr(0, ipRangeString.find(delimiter)));
         unsigned int ipHigh = stoul(ipRangeString.substr(ipRangeString.find(delimiter), ipRangeString.size()));
         printf("Starting switch mode: trafficFile: %s swjFlag: %s swkFlag: %s ipLow: %u ipHigh: %u", trafficFile.c_str(), swjFlag.c_str(), swkFlag.c_str(), ipLow, ipHigh);
+        controllerMode();
     } else {
         printf("ERROR: invalid mode specified %s", argv[2]);
         return 1;
