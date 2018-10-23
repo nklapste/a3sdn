@@ -23,4 +23,3 @@ tar:
 
 clean:
 	rm -f *~ out.* *.o
-
