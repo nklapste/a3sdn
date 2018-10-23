@@ -34,7 +34,9 @@ int main(int argc, char **argv) {
     // TODO: cleanup argparsing code
     // TODO: ensure input met
     if (argc<=2){
-        printf("ERROR: invalid argument format");
+        printf("ERROR: invalid argument format\n"
+               "Please follow controller mode: 'a2sdn cont nSwitch'\n"
+               "Or follow switch mode: 'a2sdn swi trafficFile [null|swj] [null|swk] IPlow-IPhig'");
         return 1;
     }
     string mode = argv[1];
@@ -42,13 +44,15 @@ int main(int argc, char **argv) {
     // TODO: maybe use switch
     if (mode==CONTROLLER_MODE){
         if (argc!=3){
-            printf("ERROR: invalid argument format");
+            printf("ERROR: invalid arguments for controller mode\n"
+                   "For controller mode: 'a2sdn cont nSwitch'");
             return 1;
         }
         int nSwitch = stoi(argv[2]);
     } else if (mode==SWITCH_MODE){
         if (argc!=6){
-            printf("ERROR: invalid argument format");
+            printf("ERROR: invalid arguments for switch mode\n"
+                   "For switch mode: 'a2sdn swi trafficFile [null|swj] [null|swk] IPlow-IPhig'");
             return 1;
         }
         string trafficFile = argv[2];
