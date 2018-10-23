@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
     if (argc<=2){
         printf("ERROR: invalid argument format\n"
                "Please follow controller mode: 'a2sdn cont nSwitch'\n"
-               "Or follow switch mode: 'a2sdn swi trafficFile [null|swj] [null|swk] IPlow-IPhig'");
+               "Or follow switch mode:         'a2sdn swi trafficFile [null|swj] [null|swk] IPlow-IPhig'");
         return 1;
     }
     string mode = argv[1];
@@ -37,6 +37,7 @@ int main(int argc, char **argv) {
             return 1;
         }
         int nSwitch = stoi(argv[2]);
+        printf("Starting controller mode: nSwitch: %u", nSwitch);
     } else if (mode==SWITCH_MODE){
         if (argc!=6){
             printf("ERROR: invalid arguments for switch mode\n"
@@ -51,6 +52,7 @@ int main(int argc, char **argv) {
         string delimiter = "-";
         unsigned int ipLow = stoul(ipRangeString.substr(0, ipRangeString.find(delimiter)));
         unsigned int ipHigh = stoul(ipRangeString.substr(ipRangeString.find(delimiter), ipRangeString.size()));
+        printf("Starting switch mode: trafficFile: %s swjFlag: %s swkFlag: %s ipLow: %u ipHigh: %u", trafficFile.c_str(), swjFlag.c_str(), swkFlag.c_str(), ipLow, ipHigh);
     } else {
         printf("ERROR: invalid mode specified %s", argv[2]);
         return 1;
