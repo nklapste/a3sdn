@@ -15,7 +15,7 @@ const static string CONTROLLER_MODE = "cont";
 /**
  * Startup a2sdn in switch mode.
  */
-void switchMode(){
+void switchMode(unsigned int nSwitch){
 
 }
 
@@ -52,9 +52,9 @@ int main(int argc, char **argv) {
                    "For controller mode: 'a2sdn cont nSwitch'");
             return 1;
         }
-        int nSwitch = stoi(argv[2]);
+        unsigned int nSwitch = stoul(argv[2]);
         printf("Starting controller mode: nSwitch: %u", nSwitch);
-        switchMode();
+        switchMode(nSwitch);
     } else if (mode==SWITCH_MODE){
         if (argc!=6){
             printf("ERROR: invalid arguments for switch mode\n"
