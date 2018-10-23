@@ -63,7 +63,21 @@ int main(int argc, char **argv) {
         }
         string trafficFile = argv[2];
         string swjFlag = argv[3];
+        if (swjFlag=="swj"){
+
+        } else if (swjFlag=="null"){
+
+        } else {
+            printf("ERROR: invalid swj Flag: %s\nFor swj flag: [null|swj]", argv[3]);
+        }
         string swkFlag = argv[4];
+        if (swjFlag=="swk"){
+
+        } else if (swjFlag=="null"){
+
+        } else {
+            printf("ERROR: invalid swk Flag: %s\nFor swk flag: [null|swk]", argv[4]);
+        }
         // parse ip range string IPlow-IPhigh
         string ipRangeString = argv[5];
         string delimiter = "-";
