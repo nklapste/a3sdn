@@ -77,6 +77,9 @@ void controllerMode(const string &trafficFile, bool swjFlag, bool swkFlag, ipRan
     }
 }
 
+////////////////////////
+// Parsing functions
+////////////////////////
 
 /**
  * Parse the ip range argument. Which follows the format ipLow-ipHigh.
@@ -139,6 +142,9 @@ bool parseswkFlag(const string &swkFlag) {
     }
 }
 
+////////////////////////
+// Main entrypoint
+////////////////////////
 
 /**
  * Parse the command line arguements from main().
