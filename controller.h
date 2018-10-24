@@ -21,19 +21,15 @@ typedef tuple<uint, uint> ipRange;
 
 class Controller {
 public:
-    Controller(int num, int max);
+    Controller(int nSwitches);
 
     int getNumSwitches();
 
-    void openConn(char id);
+    int openReadFIFO(uint id);
 
-    int openReadFIFO(int id);
+    int openWriteFIFO(uint id);
 
-    int openWriteFIFO(int id);
-
-    void addFIFO(int id);
-
-    void initConn(int id);
+    void addFIFO(uint id);
 
     const string getFIFOName(int x, int y);
 
@@ -42,6 +38,7 @@ public:
 private:
     string name;
     int nSwitches;
+    int controllerID = 0;
     Connection conns[MAX_NSW];
 };
 

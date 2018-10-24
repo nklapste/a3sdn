@@ -13,14 +13,20 @@ using namespace std;
 
 #include <string>
 #include "flowTable.h"
+#include "SDNBiFIFO.h"
 
 class Switch {
 public:
     flowTable flowTable;
 
-    Switch(uint ipLow, uint ipHigh);
+    Switch(int swi, int swj, int swk, string &trafficFile, uint ipLow, uint ipHigh);
 
-    void makeFIFO(string &trafficFile);
+    uint swi; // ID of the switch itself
+    int swj; // ID of the first switch to connect to
+    int swk; // ID of the second switch to connect to
+    SDNBiFIFO swjBiFIFO = nullptr;
+    SDNBiFIFO *swkBiFIFO = nullptr;
+    string trafficFile;
 };
 
 #endif //A2SDN_SWITCH_H
