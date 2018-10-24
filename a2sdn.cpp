@@ -41,6 +41,7 @@ void switchMode(unsigned int nSwitch) {
     printf("Starting controller mode: nSwitch: %u", nSwitch);
     uint i = 1;
     for (;;) {
+        // TODO: implement
         if (i == 1) exit(0);
     }
 }
@@ -66,7 +67,7 @@ void controllerMode(const string &trafficFile, bool swjFlag, bool swkFlag, ipRan
         string line;
         ifstream trafficFileStream (trafficFile);
         for (int lineNo = 0; getline (trafficFileStream, line) && ! trafficFileStream.eof(); lineNo++){
-
+            // TODO: implement
         }
 
         /*
@@ -81,7 +82,7 @@ void controllerMode(const string &trafficFile, bool swjFlag, bool swkFlag, ipRan
         // TODO: implement properly
         string cmd;
         if (cmd==LIST_CMD){
-
+            // TODO: implement
         } else if(cmd==EXIT_CMD){
             // TODO: write above information
             exit(0);
