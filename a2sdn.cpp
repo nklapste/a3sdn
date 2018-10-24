@@ -24,6 +24,9 @@
 
 #define BOOL_STR(b) (b?"true":"false")
 
+#define LIST_CMD "list"
+#define EXIT_CMD "exit"
+
 using namespace std;
 
 typedef tuple<uint, uint> ipRange;
@@ -74,6 +77,19 @@ void controllerMode(const string &trafficFile, bool swjFlag, bool swkFlag, ipRan
         • exit: The program writes the above information and exits.
         */
         if (i == 1) exit(0);
+
+        // TODO: implement properly
+        string cmd;
+        if (cmd==LIST_CMD){
+
+        } else if(cmd==EXIT_CMD){
+            // TODO: write above information
+            exit(0);
+        } else {
+            printf("ERROR: invalid controllerMode commmand: %s\n"
+                   "\tPlease use either 'list' or 'exit'", cmd.c_str());
+            exit(1);
+        }
     }
 }
 
