@@ -79,10 +79,10 @@ void controllerMode(const string &trafficFile, bool swjFlag, bool swkFlag, ipRan
 
 
 /**
- * Parse the ip range argument. Which follows the format IPLow-IPHigh.
+ * Parse the ip range argument. Which follows the format ipLow-ipHigh.
  *
  * @param ipRangeString
- * @return
+ * @return {@code ipRange} a tuple of (ipLow, ipHigh)
  */
 ipRange parseIPRange(const string &ipRangeString) {
     string delimiter = "-";
@@ -90,7 +90,7 @@ ipRange parseIPRange(const string &ipRangeString) {
     uint ipHigh = stoul(ipRangeString.substr(ipRangeString.find(delimiter) + 1, ipRangeString.size() - 1));
     if (ipLow > ipHigh) {
         printf("ERROR: invalid ip range:\n"
-               "\tIPLow: %u greater than IPHigh: %u", ipLow, ipHigh);
+               "\tipLow: %u greater than ipHigh: %u", ipLow, ipHigh);
         exit(1);
     }
     if (ipHigh - ipLow > MAXIP) {
@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
     if (argc < 3 || argc > 6) {
         printf("ERROR: invalid argument format:\n"
                "\tPlease follow controller mode: 'a2sdn cont nSwitch'\n"
-               "\tOr follow switch mode:         'a2sdn swi trafficFile [null|swj] [null|swk] IPlow-IPhig'");
+               "\tOr follow switch mode:         'a2sdn swi trafficFile [null|swj] [null|swk] ipLow-IPhig'");
         exit(1);
     }
     string mode = argv[1];
@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
         // parse switch mode arguments
         if (argc != 6) {
             printf("ERROR: invalid arguments for switch mode:\n"
-                   "\tFor switch mode: 'a2sdn swi trafficFile [null|swj] [null|swk] IPlow-IPhig'");
+                   "\tFor switch mode: 'a2sdn swi trafficFile [null|swj] [null|swk] ipLow-IPhig'");
             exit(1);
         }
         string trafficFile = argv[2];
