@@ -33,10 +33,11 @@ using namespace std;
 Controller::Controller(uint nSwitches): nSwitches(nSwitches)  {
     if (nSwitches>MAX_SWITCHES){
         printf("ERROR: too many switches for controller: %u\n"
-               "\tMAX_SWITCHES=7", nSwitches);
+               "\tMAX_SWITCHES=7\n", nSwitches);
         exit(1);
     }
-    printf("Creating controller: nSwitches: %u", nSwitches);
+    // TODO: this is not printing well
+    printf("Creating controller: nSwitches: %u\n", nSwitches);
     // init all potential switch connections for the controller
     for (uint switch_i=0; switch_i<nSwitches; ++switch_i) {
         connections.emplace_back(CONTROLLER_ID, switch_i);
@@ -108,6 +109,10 @@ void Controller::start() {
          *    list command
          */
 
-
+        // iterate through each Connection (FIFO pair)
+        for (auto &connection : connections) {
+            connection.getReceiveFIFO();
+            connection.getSendFIFO();
+        }
     }
 }

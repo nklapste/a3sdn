@@ -41,7 +41,7 @@ uint parseSwitchId(const string &switchId) {
         return static_cast<uint>(std::stoi(matches[2], nullptr, 10));
     } else {
         // we failed to parse the switch id
-        printf("ERROR: invalid switch id argument: %s", switchId.c_str());
+        printf("ERROR: invalid switch id argument: %s\n", switchId.c_str());
         exit(1);
     }
 }
@@ -57,7 +57,7 @@ uint parseSwitchId(const string &switchId) {
  * @param ipHigh
  */
 Switch::Switch(string &switchId, string &leftSwitchId, string &rightSwitchId, string &trafficFile, uint ipLow, uint ipHigh) {
-    printf("Creating switch: %s trafficFile: %s swj: %s swk: %s ipLow: %u ipHigh: %u",
+    printf("Creating switch: %s trafficFile: %s swj: %s swk: %s ipLow: %u ipHigh: %u\n",
            switchId.c_str(), trafficFile.c_str(), leftSwitchId.c_str(), rightSwitchId.c_str(),ipLow, ipHigh);
     /*
      *   [srcIP lo= 0, srcIP hi= MAXIP, destIP lo= IPlow, destIP hi= IPhigh,
@@ -186,7 +186,9 @@ void Switch::start() {
          *
          *    In addition,  upon receiving signal USER1, the switch displays the information specified by the list command
          */
-        // TODO: implement
+        // iterate through each Connection (FIFO pair)
+        for (auto &connection : connections) {
+        }
     }
 }
 
