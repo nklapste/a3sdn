@@ -11,9 +11,13 @@
 
 #include <string>
 #include <tuple>
+#include <vector>
 #include "connection.h"
 
-#define MAX_NSW 7
+#define MAX_SWITCHES 7
+#define LIST_CMD "list"
+#define EXIT_CMD "exit"
+#define CONTROLLER_ID 0
 
 using namespace std;
 
@@ -21,25 +25,13 @@ typedef tuple<uint, uint> ipRange;
 
 class Controller {
 public:
-    Controller(int nSwitches);
-
-    int getNumSwitches();
-
-    int openReadFIFO(uint id);
-
-    int openWriteFIFO(uint id);
-
-    void addFIFO(uint id);
-
-    const string getFIFOName(int x, int y);
-
-    void makeFIFO(string &trafficFile);
-
+    Controller(uint nSwitches);
+    uint getNumSwitches();
+    Connection getConnection(uint switchId);
+    void start();
 private:
-    string name;
-    int nSwitches;
-    int controllerID = 0;
-    Connection conns[MAX_NSW];
+    uint nSwitches;
+    vector<Connection> connections;
 };
 
 #endif //A2SDN_CONTROLLER_H

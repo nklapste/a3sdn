@@ -23,7 +23,7 @@ Each IP address is `≤MAXIP(= 1000)`.
 
 Data transmissions among the switches and the controller use FIFOs. 
 
-Each SDNBiFIFO is named `fifo-x-y` where `x=/=y`, and `x=0` (or, `y=0`) for the controller, and
+Each Connection is named `fifo-x-y` where `x=/=y`, and `x=0` (or, `y=0`) for the controller, and
 `x,y∈[1,MAXNSW]` for a switch. 
 
 Thus, e.g., `sw2` sends data to the controller on `fifo-2-0`.
