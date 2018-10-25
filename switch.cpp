@@ -18,6 +18,8 @@
 #include <fcntl.h>
 #include <regex>
 #include <fstream>
+#include <unistd.h>
+#include <poll.h>
 #include "controller.h"
 
 using namespace std;
@@ -130,6 +132,7 @@ Connection Switch::getControllerConnection() {
  * Start the {@code Switch} loop.
  */
 void Switch::start() {
+    char buf[1024];
     for(;;){
        /*
         * 1.  Read and process a single line from the traffic line (if the EOF has not been reached yet). The
@@ -153,6 +156,29 @@ void Switch::start() {
          *       exit: The program writes the above information and exits.
          */
         // TODO: implement
+        struct pollfd fds;
+        int ret;
+        fds.fd = 0; /* this is STDIN */
+        fds.events = POLLIN;
+        ret = poll(&fds, 1, 0);
+        if(ret == 1) {
+            read(0, buf, 1024);
+            string cmd = string(buf);
+            // trim off all whitespace
+            while( !cmd.empty() && !std::isalpha( cmd.back() ) ) cmd.pop_back() ;
+            if (cmd == LIST_CMD) {
+                // TODO: implement
+            } else if (cmd == EXIT_CMD) {
+                // TODO: write above information
+                exit(0);
+            } else {
+                printf("ERROR: invalid Controller command: %s\n"
+                       "\tPlease use either 'list' or 'exit'\n", cmd.c_str());
+            }
+            memset(buf, 0, sizeof buf);
+        } else if(ret != 0) {
+            perror("ERROR: polling stdin");
+        }
 
         /*
          * 3. Poll the incoming FIFOs from the controller and the attached switches. The switch handles

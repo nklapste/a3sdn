@@ -75,7 +75,8 @@ int main(int argc, char **argv) {
                    "\tFor controller mode: 'a2sdn cont nSwitch'");
             exit(1);
         }
-        Controller((uint) stoi(argv[2]));
+        Controller controller = Controller((uint) stoi(argv[2]));
+        controller.start();
     } else {
         // parse switch mode arguments
         if (argc != 6) {

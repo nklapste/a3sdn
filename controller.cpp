@@ -20,6 +20,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sstream>
+#include <poll.h>
 
 
 using namespace std;
@@ -66,6 +67,7 @@ Connection Controller::getConnection(uint switchId){
  * Start the {@code Controller} loop.
  */
 void Controller::start() {
+    char buf[1024];
     for(;;){
         /*
          * 1. Poll the keyboard for a user command. The user can issue one of the following commands.
@@ -74,6 +76,29 @@ void Controller::start() {
          *             type.
          *       exit: The program writes the above information and exits.
          */
+        struct pollfd fds;
+        int ret;
+        fds.fd = 0; /* this is STDIN */
+        fds.events = POLLIN;
+        ret = poll(&fds, 1, 0);
+        if(ret == 1) {
+            read(0, buf, 1024);
+            string cmd = string(buf);
+            // trim off all whitespace
+            while( !cmd.empty() && !std::isalpha( cmd.back() ) ) cmd.pop_back() ;
+            if (cmd == LIST_CMD) {
+                // TODO: implement
+            } else if (cmd == EXIT_CMD) {
+                // TODO: write above information
+                exit(0);
+            } else {
+                printf("ERROR: invalid Controller command: %s\n"
+                       "\tPlease use either 'list' or 'exit'\n", cmd.c_str());
+            }
+            memset(buf, 0, sizeof buf);
+        } else if(ret != 0) {
+            perror("ERROR: polling stdin");
+        }
 
         /*
          * 2. Poll the incoming FIFOs from the controller and the attached switches. The switch handles
@@ -83,16 +108,6 @@ void Controller::start() {
          *    list command
          */
 
-        string cmd;
-        if (cmd == LIST_CMD) {
-            // TODO: implement
-        } else if (cmd == EXIT_CMD) {
-            // TODO: write above information
-            exit(0);
-        } else {
-            printf("ERROR: invalid Controller commmand: %s\n"
-                   "\tPlease use either 'list' or 'exit'", cmd.c_str());
-            exit(1);
-        }
+
     }
 }
