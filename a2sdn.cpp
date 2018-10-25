@@ -15,16 +15,8 @@
 #include "controller.h"
 #include "switch.h"
 
-#define MAX_NSW 7
 #define MAXIP   1000
-
-#define SWITCH_MODE "swi"
 #define CONTROLLER_MODE "cont"
-
-#define SWJ_FLAG "swj"
-#define SWK_FLAG "swk"
-#define NULL_STR "null"
-
 
 using namespace std;
 
@@ -40,8 +32,8 @@ using namespace std;
  */
 ipRange parseIPRange(const string &ipRangeString) {
     string delimiter = "-";
-    uint ipLow = stoul(ipRangeString.substr(0, ipRangeString.find(delimiter)));
-    uint ipHigh = stoul(ipRangeString.substr(ipRangeString.find(delimiter) + 1, ipRangeString.size() - 1));
+    uint ipLow = static_cast<uint>(stoi(ipRangeString.substr(0, ipRangeString.find(delimiter))));
+    uint ipHigh = static_cast<uint>(stoi(ipRangeString.substr(ipRangeString.find(delimiter) + 1, ipRangeString.size() - 1)));
     if (ipLow > ipHigh) {
         printf("ERROR: invalid ip range:\n"
                "\tipLow: %u greater than ipHigh: %u", ipLow, ipHigh);
@@ -55,43 +47,6 @@ ipRange parseIPRange(const string &ipRangeString) {
     return make_tuple(ipLow, ipHigh);
 }
 
-
-/**
- * Parse the swjFlag argument. Which follows the format [null|swj].
- *
- * @param swjFlag
- * @return {@code true} if "swj" is given, {@code false} if null is given, error and exit otherwise
- */
-bool parseswjFlag(const string &swjFlag) {
-    if (swjFlag == SWJ_FLAG) {
-        return true;
-    } else if (swjFlag == NULL_STR) {
-        return false;
-    } else {
-        printf("ERROR: invalid swj Flag: %s\n"
-               "\tFor swj flag: [null|swj]", swjFlag.c_str());
-        exit(1);
-    }
-}
-
-
-/**
- * Parse the swkFlag argument. Which follows the format [null|swk].
- *
- * @param swkFlag
- * @return {@code true} if "swk" is given, {@code false} if null is given, error and exit otherwise
- */
-bool parseswkFlag(const string &swkFlag) {
-    if (swkFlag == SWK_FLAG) {
-        return true;
-    } else if (swkFlag == NULL_STR) {
-        return false;
-    } else {
-        printf("ERROR: invalid swk Flag: %s\n"
-               "\tFor swk flag: [null|swk]", swkFlag.c_str());
-        exit(1);
-    }
-}
 
 ////////////////////////
 // Main entrypoint
@@ -108,7 +63,7 @@ int main(int argc, char **argv) {
     if (argc < 3 || argc > 6) {
         printf("ERROR: invalid argument format:\n"
                "\tPlease follow controller mode: 'a2sdn cont nSwitch'\n"
-               "\tOr follow switch mode:         'a2sdn swi trafficFile [null|swj] [null|swk] ipLow-IPhig'");
+               "\tOr follow switch mode:         'a2sdn swi trafficFile [null|swj] [null|swk] ipLow-IPhigh'");
         exit(1);
     }
     string mode = argv[1];
@@ -120,25 +75,21 @@ int main(int argc, char **argv) {
                    "\tFor controller mode: 'a2sdn cont nSwitch'");
             exit(1);
         }
-        uint nSwitch = stoul(argv[2]);
-        // TODO:
-    } else if (mode == SWITCH_MODE) {
+        Controller((uint) stoi(argv[2]));
+    } else {
         // parse switch mode arguments
         if (argc != 6) {
             printf("ERROR: invalid arguments for switch mode:\n"
                    "\tFor switch mode: 'a2sdn swi trafficFile [null|swj] [null|swk] ipLow-IPhig'");
             exit(1);
         }
+        string switchId = argv[1];
         string trafficFile = argv[2];
-        bool swjFlag = parseswjFlag(argv[3]);
-        bool swkFlag = parseswkFlag(argv[4]);
+        string leftSwitchId = argv[3];
+        string rightSwitchId = argv[4];
         ipRange ipRange1 = parseIPRange(argv[5]);
-        // TODO:
-        Controller(get<0>(ipRange1), get<1>(ipRange1));
-
-    } else {
-        printf("ERROR: invalid mode specified: %s", argv[2]);
-        exit(1);
+        Switch aSwitch = Switch(switchId, leftSwitchId, rightSwitchId, trafficFile, get<0>(ipRange1), get<1>(ipRange1));
+        aSwitch.start();
     }
     return 0;
 }
