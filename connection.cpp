@@ -14,9 +14,9 @@ using namespace std;
 void Connection::makeFIFO(string &FIFOName) {
     int status = mkfifo(FIFOName.c_str(), S_IRUSR | S_IWUSR | S_IRGRP |
                                           S_IWGRP | S_IROTH | S_IWOTH | O_NONBLOCK);
-    if (errno || status==-1){
+    if (errno || status == -1) {
         perror("ERROR: error creating FIFO connection");
-        errno=0;
+        errno = 0;
     }
 }
 
@@ -27,7 +27,7 @@ void Connection::makeFIFO(string &FIFOName) {
 int Connection::openReceiveFIFO() {
     printf("opening receiveFIFO: %s", receiveFIFOName.c_str());
     int i = open(receiveFIFOName.c_str(), O_RDONLY | O_NONBLOCK);
-    if (!i){
+    if (!i) {
         perror("ERROR: opening receive FOFO");
     }
     return i;
@@ -40,7 +40,7 @@ int Connection::openReceiveFIFO() {
 int Connection::openSendFIFO() {
     printf("opening sendFIFO: %s", receiveFIFOName.c_str());
     int i = open(sendFIFOName.c_str(), O_WRONLY | O_NONBLOCK);
-    if (!i){
+    if (!i) {
         perror("ERROR: opening send FOFO");
     }
     return i;
@@ -80,10 +80,11 @@ const string Connection::makeFIFOName(uint senderId, uint receiverId) {
  * @param dstID
  */
 Connection::Connection(uint srcID, uint dstID) {
-   sendFIFOName = makeFIFOName(srcID, dstID);
-   receiveFIFOName = makeFIFOName(dstID, srcID);
-   printf("Making Connection:\n"
-          "\tsrc: %u dst: %u sendFIFO: %s receiveFIFO: %s\n", srcID, dstID, sendFIFOName.c_str(), receiveFIFOName.c_str());
-   makeFIFO(sendFIFOName);
-   makeFIFO(receiveFIFOName);
+    sendFIFOName = makeFIFOName(srcID, dstID);
+    receiveFIFOName = makeFIFOName(dstID, srcID);
+    printf("Making Connection:\n"
+           "\tsrc: %u dst: %u sendFIFO: %s receiveFIFO: %s\n", srcID, dstID, sendFIFOName.c_str(),
+           receiveFIFOName.c_str());
+    makeFIFO(sendFIFOName);
+    makeFIFO(receiveFIFOName);
 }

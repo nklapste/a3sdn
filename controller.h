@@ -26,7 +26,9 @@ typedef tuple<uint, uint> ipRange;
 class Controller {
 public:
     Controller(uint nSwitches);
+
     void start();
+
 private:
     uint nSwitches;
     vector<Connection> connections;

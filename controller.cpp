@@ -131,7 +131,7 @@ void Controller::start() {
                 Message packetMessage = packet.getMessage();
                 printf("Parsed packet: %s\n", packet.toString().c_str());
 
-                if (packet.getType()==OPEN) {
+                if (packet.getType() == OPEN) {
                     //OPEN
                     //and
                     //ACK
@@ -162,7 +162,7 @@ void Controller::start() {
                     Packet ackPacket = Packet(ACK, Message());
                     write(connections[i - 1].openSendFIFO(), ackPacket.toString().c_str(),
                           strlen(ackPacket.toString().c_str()));
-                } else if (packet.getType()==QUERY) {
+                } else if (packet.getType() == QUERY) {
                     // When processing an incoming packet header (the header may be read from
                     //the traffic file, or relayed to the switch by one of its neighbours), if a switch does not find
                     //a matching rule in the flow table, the switch sends a
@@ -171,9 +171,10 @@ void Controller::start() {
                     //controller replies with a rule stored in a packet of type
                     // TODO:
 
-                } else if (packet.getType()==ACK || packet.getType()==ADD || packet.getType()==RELAY) {
+                } else if (packet.getType() == ACK || packet.getType() == ADD || packet.getType() == RELAY) {
                     // controller does nothing on ack, add, and relay
-                    printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), packet.toString().c_str());
+                    printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(),
+                           packet.toString().c_str());
                 } else {
                     printf("ERROR: unknown packet received: %s\n", cmd.c_str());
                 }

@@ -13,13 +13,19 @@ using namespace std;
 class Connection {
 public:
     Connection(uint srcID, uint dstID);
+
     string getSendFIFOName();
+
     string getReceiveFIFOName();
+
     int openSendFIFO();
+
     int openReceiveFIFO();
+
 private:
     string receiveFIFOName;
     string sendFIFOName;
+
     void makeFIFO(string &FIFOName);
 
     const string makeFIFOName(uint senderId, uint receiverId);

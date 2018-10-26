@@ -20,28 +20,27 @@ Packet::Packet(string &packetRaw) {
     type = parseType(typeRaw);
 
     // we have no message
-    if (packetRaw.length()==packetRaw.find(delimiter)+1){
+    if (packetRaw.length() == packetRaw.find(delimiter) + 1) {
         message = Message();
     } else {
-        string messageRaw = packetRaw.substr(packetRaw.find(delimiter)+2, packetRaw.length());
+        string messageRaw = packetRaw.substr(packetRaw.find(delimiter) + 2, packetRaw.length());
         message = parseMessage(messageRaw);
     }
 }
 
 string Packet::parseType(string &type) {
-    if (type==OPEN){
+    if (type == OPEN) {
 
-    }
-    else if (type==ACK){
+    } else if (type == ACK) {
 
-    } else if (type==QUERY){
+    } else if (type == QUERY) {
 
-    } else if (type==ADD){
+    } else if (type == ADD) {
 
-    } else if (type==RELAY){
+    } else if (type == RELAY) {
 
     } else {
-        errno=EINVAL;
+        errno = EINVAL;
         // TODO: maybe use printf
         perror("Invalid type for packet");
     }
@@ -58,13 +57,13 @@ Message Packet::parseMessage(string &messageRaw) {
     Message message;
     istringstream iss(messageRaw);
     vector<string> messageArgsRaw((istream_iterator<string>(iss)),
-                                     istream_iterator<string>());
+                                  istream_iterator<string>());
 
-    for(auto const& messageArgRaw: messageArgsRaw) {
+    for (auto const &messageArgRaw: messageArgsRaw) {
         // TODO: ensure that only one colon
         std::string delimiter = ":";
         std::string key = messageArgRaw.substr(0, messageArgRaw.find(delimiter));
-        std::string val = messageArgRaw.substr(messageArgRaw.find(delimiter)+1, messageArgRaw.length());
+        std::string val = messageArgRaw.substr(messageArgRaw.find(delimiter) + 1, messageArgRaw.length());
         MessageArg messageArg = make_tuple(key, val);
         message.emplace_back(messageArg);
     }
@@ -87,8 +86,8 @@ Packet::Packet(string type, Message message) {
  */
 string Packet::toString() {
     string str = type + ":";
-    for(auto const& MessageArg: message){
-        str.append(" "+get<0>(MessageArg)+":"+get<1>(MessageArg));
+    for (auto const &MessageArg: message) {
+        str.append(" " + get<0>(MessageArg) + ":" + get<1>(MessageArg));
     }
     return str;
 }
