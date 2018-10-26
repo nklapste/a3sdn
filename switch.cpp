@@ -57,7 +57,7 @@ uint parseSwitchId(const string &switchId) {
  * The program writes all entries in the flow table, and for each transmitted or received
  * packet type, the program writes an aggregate count of handled packets of this type
  */
-void Switch::list(){
+void Switch::list() {
     uint counter = 0;
     printf("listing active flow table rules for switch: sw%u \n", switchId);
     for (auto const &flowEntry: flowTable) {
@@ -133,15 +133,15 @@ Switch::Switch(string &switchId, string &leftSwitchId, string &rightSwitchId, st
  * @param trafficFileLine {@code std::string}
  * @return {@code trafficItem}
  */
-trafficFileItem parseTrafficItem(string &trafficFileLine){
+trafficFileItem parseTrafficItem(string &trafficFileLine) {
     istringstream iss(trafficFileLine);
-    vector<string> trafficFileItems ((istream_iterator<string>(iss)),
-                                     istream_iterator<string>());
+    vector<string> trafficFileItems((istream_iterator<string>(iss)),
+                                    istream_iterator<string>());
     uint switchId = parseSwitchId(trafficFileItems.at(0));
     uint srcIP = static_cast<uint>(stoi(trafficFileItems.at(1)));
     uint dstIP = static_cast<uint>(stoi(trafficFileItems.at(2)));
     printf("Parsed trafficFileItem: switchId: %u srcIP: %u dst: %u\n",
-            switchId, srcIP, dstIP);
+           switchId, srcIP, dstIP);
     return make_tuple(switchId, srcIP, dstIP);
 }
 
@@ -188,11 +188,11 @@ void Switch::start() {
         if (trafficFileStream.is_open()) {
             if (getline(trafficFileStream, line)) {
                 printf("read traffic file line: %s\n", line.c_str());
-                if (line.length()<1){
+                if (line.length() < 1) {
                     printf("WARNING: ignoring invalid line: %s\n", line.c_str());
-                } else if (line.substr(0,1)=="#"){
+                } else if (line.substr(0, 1) == "#") {
                     printf("ignoring comment line\n");
-                } else if (line.substr(0,3)!="sw"+to_string(Switch::switchId)){
+                } else if (line.substr(0, 3) != "sw" + to_string(Switch::switchId)) {
                     printf("ignoring line specifying another switch\n");
                 } else {
                     printf("found line specifying self: %s\n", line.c_str());
@@ -265,18 +265,19 @@ void Switch::start() {
                     //ADD
                     // The switch then stores and
                     // applies the received rule
-                    uint srcIP_lo   =   static_cast<uint>(stoi(get<1>(packetMessage[0])));
-                    uint srcIP_hi   =   static_cast<uint>(stoi(get<1>(packetMessage[1])));
-                    uint dstIP_lo   =   static_cast<uint>(stoi(get<1>(packetMessage[2])));
-                    uint dstIP_hi   =   static_cast<uint>(stoi(get<1>(packetMessage[3])));
-                    uint actionType =   static_cast<uint>(stoi(get<1>(packetMessage[4])));
-                    uint actionVal  =   static_cast<uint>(stoi(get<1>(packetMessage[5])));
-                    uint pri        =   static_cast<uint>(stoi(get<1>(packetMessage[6])));
-                    uint pktCount   =   static_cast<uint>(stoi(get<1>(packetMessage[7])));
+                    uint srcIP_lo = static_cast<uint>(stoi(get<1>(packetMessage[0])));
+                    uint srcIP_hi = static_cast<uint>(stoi(get<1>(packetMessage[1])));
+                    uint dstIP_lo = static_cast<uint>(stoi(get<1>(packetMessage[2])));
+                    uint dstIP_hi = static_cast<uint>(stoi(get<1>(packetMessage[3])));
+                    uint actionType = static_cast<uint>(stoi(get<1>(packetMessage[4])));
+                    uint actionVal = static_cast<uint>(stoi(get<1>(packetMessage[5])));
+                    uint pri = static_cast<uint>(stoi(get<1>(packetMessage[6])));
+                    uint pktCount = static_cast<uint>(stoi(get<1>(packetMessage[7])));
 
                     printf("Parse %s packet: Adding new flowTable rule:\n"
                            "\tsrcIP_lo: %u srcIP_hi: %u dstIP_lo: %u dstIP_hi: %u actionType: %u actionVal: %u pri: %u pktCount: %u\n",
-                           packetType.c_str(), srcIP_lo, srcIP_hi, dstIP_lo, dstIP_hi, actionType, actionVal, pri, pktCount);
+                           packetType.c_str(), srcIP_lo, srcIP_hi, dstIP_lo, dstIP_hi, actionType, actionVal, pri,
+                           pktCount);
 
                     flowEntry newRule = {
                             .srcIP_lo   = srcIP_lo,
@@ -327,7 +328,8 @@ void Switch::start() {
  * @param ipLow
  * @param ipHigh
  */
-Switch::Switch(uint switchId, uint neighbors, uint ipLow, uint ipHigh): switchId(switchId), neighbors(neighbors), ipLow(ipLow), ipHigh(ipHigh) {
+Switch::Switch(uint switchId, uint neighbors, uint ipLow, uint ipHigh) : switchId(switchId), neighbors(neighbors),
+                                                                         ipLow(ipLow), ipHigh(ipHigh) {
 
 }
 

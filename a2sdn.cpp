@@ -33,7 +33,8 @@ using namespace std;
 ipRange parseIPRange(const string &ipRangeString) {
     string delimiter = "-";
     uint ipLow = static_cast<uint>(stoi(ipRangeString.substr(0, ipRangeString.find(delimiter))));
-    uint ipHigh = static_cast<uint>(stoi(ipRangeString.substr(ipRangeString.find(delimiter) + 1, ipRangeString.size() - 1)));
+    uint ipHigh = static_cast<uint>(stoi(
+            ipRangeString.substr(ipRangeString.find(delimiter) + 1, ipRangeString.size() - 1)));
     if (ipLow > ipHigh) {
         printf("ERROR: invalid ip range:\n"
                "\tipLow: %u greater than ipHigh: %u", ipLow, ipHigh);
