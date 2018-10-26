@@ -1,3 +1,5 @@
+#include <utility>
+
 //
 // Created by nklap on 2018-10-26.
 //
@@ -12,15 +14,21 @@ string Packet::getType() {
     return type;
 }
 
-Packet::Packet(string packetRaw) {
-    string delimiter = ": ";
+Packet::Packet(string &packetRaw) {
+    string delimiter = ":";
     string typeRaw = packetRaw.substr(0, packetRaw.find(delimiter));
     type = parseType(typeRaw);
-    string messageRaw = packetRaw.substr(packetRaw.find(delimiter)+1, packetRaw.length());
-    message = parseMessage(messageRaw);
+
+    // we have no message
+    if (packetRaw.length()==packetRaw.find(delimiter)+1){
+        message = Message();
+    } else {
+        string messageRaw = packetRaw.substr(packetRaw.find(delimiter)+2, packetRaw.length());
+        message = parseMessage(messageRaw);
+    }
 }
 
-string Packet::parseType(string type) {
+string Packet::parseType(string &type) {
     if (type==OPEN){
 
     }
@@ -46,7 +54,7 @@ string Packet::parseType(string type) {
  * @param messageRaw
  * @return
  */
-Message Packet::parseMessage(string messageRaw) {
+Message Packet::parseMessage(string &messageRaw) {
     Message message;
     istringstream iss(messageRaw);
     vector<string> messageArgsRaw((istream_iterator<string>(iss)),
@@ -68,8 +76,8 @@ Message Packet::getMessage() {
 }
 
 Packet::Packet(string type, Message message) {
-    type = parseType(type);
-    Packet::message = message;
+    Packet::type = parseType(type);
+    Packet::message = std::move(message);
 
 }
 

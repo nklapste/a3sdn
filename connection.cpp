@@ -13,7 +13,7 @@ using namespace std;
 
 void Connection::makeFIFO(string &FIFOName) {
     int status = mkfifo(FIFOName.c_str(), S_IRUSR | S_IWUSR | S_IRGRP |
-                                          S_IWGRP | S_IROTH | S_IWOTH);
+                                          S_IWGRP | S_IROTH | S_IWOTH | O_NONBLOCK);
     if (errno || status==-1){
         perror("ERROR: error creating FIFO connection");
         errno=0;

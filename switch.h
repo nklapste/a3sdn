@@ -47,7 +47,7 @@ private:
      * ID of the switch itself
      */
     uint switchId;
-
+    uint neighbors;
     /**
      * ID of the "left" switch to connect to
      */
@@ -59,6 +59,8 @@ private:
     uint rightSwitchId;
     string trafficFile;
 
+    uint ipHigh;
+    uint ipLow;
     FlowTable flowTable;
     vector<Connection> connections;
 };
