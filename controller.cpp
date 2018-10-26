@@ -42,24 +42,31 @@ Controller::Controller(uint nSwitches): nSwitches(nSwitches)  {
     for (uint switch_i=1; switch_i<=nSwitches; ++switch_i) {
         connections.emplace_back(CONTROLLER_ID, switch_i);
     }
+    printf("Created controller\n");
 }
 
 /**
  * Start the {@code Controller} loop.
  */
 void Controller::start() {
-    struct pollfd pfds[connections.size()+1];
+    struct pollfd pfds[2*connections.size()+1];
     char buf[1024];
 
     // get fd for stdin
     pfds[0].fd = STDIN_FILENO;
 
-    // get fd for receive FIFOs
-    for(std::vector<Connection>::size_type i = 0; i != connections.size(); i++) {
-        pfds[1 + i].fd = connections[i].getReceiveFIFO();
+    // TODO: this is blocking
+    // TODO listing the fifo
+
+    for(std::vector<Connection>::size_type i = 1; i != connections.size()+1; i++) {
+        printf("pfds[%lu] has connection: %s\n", 2*i, connections[i-1].getSendFIFOName().c_str());
+        pfds[2*i].fd = connections[i-1].openSendFIFO();
+        printf("pfds[%lu] has connection: %s\n", 2*i-1, connections[i-1].getReceiveFIFOName().c_str());
+        pfds[2*i-1].fd = connections[i-1].openReceiveFIFO();
     }
 
     for(;;){
+
         /*
          * 1. Poll the keyboard for a user command. The user can issue one of the following commands.
          *       list: The program writes all entries in the flow table, and for each transmitted or received
@@ -67,11 +74,18 @@ void Controller::start() {
          *             type.
          *       exit: The program writes the above information and exits.
          */
-        pfds[0].events = POLLIN;
-        poll(pfds, 0, 0);
+//        pfds[0].events = POLLIN;
+//        for(std::vector<Connection>::size_type i = 1; i != connections.size()+1; i++) {
+//            pfds[i].events = POLLIN;
+//        }
+
+        int p = poll(pfds, 2*connections.size()+1, 0);
+//        if (errno || p==-1){
+//            perror("ERROR: calling poll");
+//        }
         if(pfds[0].revents & POLLIN) {
-            int i = read(pfds[0].fd, buf, 1024);
-            if (!i) {
+            int r = read(pfds[0].fd, buf, 1024);
+            if (!r) {
                 printf("stdin closed\n");
             }
             string cmd = string(buf);
@@ -80,10 +94,10 @@ void Controller::start() {
 
             if (cmd == LIST_CMD) {
                 // TODO: implement
-                write(connections[0].getSendFIFO(), "123", sizeof("123"));
+                write(connections[0].openSendFIFO(), cmd.c_str(), strlen(cmd.c_str()));
+                write(STDOUT_FILENO, cmd.c_str(), strlen(cmd.c_str()));
             } else if (cmd == EXIT_CMD) {
                 // TODO: write above information
-                printf("exit command received: terminating\n");
                 exit(0);
             } else {
                 printf("ERROR: invalid Controller command: %s\n"
@@ -98,16 +112,15 @@ void Controller::start() {
          *    In addition,  upon receiving signal USER1, the switch displays the information specified by the
          *    list command
          */
-        for(std::vector<Connection>::size_type i = 0; i != connections.size(); i++) {
-            pfds[i + 1].events = POLLIN;
-            poll(pfds, i + 1, 0);
-            if(pfds[i + 1].revents & POLLIN) {
-                int r = read(pfds[i + 1].fd, buf, 1024);
+        for(std::vector<Connection>::size_type i = 1; i != connections.size()+1; i++) {
+            if(pfds[2*i-1].revents & POLLIN) {
+                printf("pfds[%lu] has connection POLLIN event: %s\n", 2*i-1, connections[i-1].getReceiveFIFOName().c_str());
+                int r = read(pfds[2*i-1].fd, buf, 1024);
                 if (!r) {
                     printf("stdin closed\n");
                 }
                 string cmd = string(buf);
-                printf("Received message: %s", cmd.c_str());
+                printf("Received output: %s\n", cmd.c_str());
             }
         }
     }
