@@ -52,6 +52,13 @@ uint parseSwitchId(const string &switchId) {
     }
 }
 
+/**
+ * The program writes all entries in the flow table, and for each transmitted or received
+ * packet type, the program writes an aggregate count of handled packets of this type
+ */
+void Switch::list(){
+    // TODO
+}
 
 /**
  * Initialize a switch.
@@ -131,10 +138,12 @@ void Switch::start() {
     }
 
     // send a OPEN packer to the controller
-    string openPacketRaw =
-            "OPEN: ID:" + std::to_string(switchId) + " N:" + to_string(neighbors) + " IPLow:" + to_string(ipLow) +
-            " IPHigh:" + to_string(ipHigh);
-    Packet openPacket = Packet(openPacketRaw);
+    Message openMessage;
+    openMessage.emplace_back(make_tuple("ID", to_string(switchId)));
+    openMessage.emplace_back(make_tuple("N", to_string(neighbors)));
+    openMessage.emplace_back(make_tuple("IPLow", to_string(ipLow)));
+    openMessage.emplace_back(make_tuple("IPHigh", to_string(ipHigh)));
+    Packet openPacket = Packet(OPEN, openMessage);
     write(connections[0].openSendFIFO(), openPacket.toString().c_str(), strlen(openPacket.toString().c_str()));
     // TODO: wait for ack?
 
@@ -150,6 +159,18 @@ void Switch::start() {
         if (trafficFileStream.is_open()) {
             if (getline(trafficFileStream, line)) {
                 printf("read traffic file line: %s\n", line.c_str());
+                if (line.length()<1){
+                    // ignore this
+                    printf("ignoring invalid line\n");
+
+                } else if (line.substr(0,1)=="#"){
+                    // ignore this aswell
+                    printf("ignoring comment\n");
+                } else if (line.substr(0,3)!="sw"+to_string(switchId)){
+                    printf("ignoring line specifying another switch\n");
+                } else {
+                    printf("found line specifying self\n");
+                }
             } else {
                 trafficFileStream.close();
                 printf("finished reading traffic file\n");
@@ -182,11 +203,9 @@ void Switch::start() {
             // trim off all whitespace
             while (!cmd.empty() && !std::isalpha(cmd.back())) cmd.pop_back();
             if (cmd == LIST_CMD) {
-                // TODO: implement
-                write(connections[0].openSendFIFO(), cmd.c_str(), strlen(cmd.c_str()));
-                write(STDOUT_FILENO, buf, r);
+                list();
             } else if (cmd == EXIT_CMD) {
-                // TODO: write above information
+                list();
                 printf("exit command received: terminating\n");
                 exit(0);
             } else {
