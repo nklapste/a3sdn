@@ -128,6 +128,24 @@ Switch::Switch(string &switchId, string &leftSwitchId, string &rightSwitchId, st
 }
 
 /**
+ * Parse a line in a trafficFile into a {@code trafficItem}.
+ *
+ * @param trafficFileLine {@code std::string}
+ * @return {@code trafficItem}
+ */
+trafficFileItem parseTrafficItem(string &trafficFileLine){
+    istringstream iss(trafficFileLine);
+    vector<string> trafficFileItems ((istream_iterator<string>(iss)),
+                                     istream_iterator<string>());
+    uint switchId = parseSwitchId(trafficFileItems.at(0));
+    uint srcIP = static_cast<uint>(stoi(trafficFileItems.at(1)));
+    uint dstIP = static_cast<uint>(stoi(trafficFileItems.at(2)));
+    printf("Parsed trafficFileItem: switchId: %u srcIP: %u dst: %u\n",
+            switchId, srcIP, dstIP);
+    return make_tuple(switchId, srcIP, dstIP);
+}
+
+/**
  * Start the {@code Switch} loop.
  */
 void Switch::start() {
@@ -174,10 +192,11 @@ void Switch::start() {
                     printf("WARNING: ignoring invalid line: %s\n", line.c_str());
                 } else if (line.substr(0,1)=="#"){
                     printf("ignoring comment line\n");
-                } else if (line.substr(0,3)!="sw"+to_string(switchId)){
+                } else if (line.substr(0,3)!="sw"+to_string(Switch::switchId)){
                     printf("ignoring line specifying another switch\n");
                 } else {
                     printf("found line specifying self: %s\n", line.c_str());
+                    parseTrafficItem(line);
                 }
             } else {
                 trafficFileStream.close();
@@ -298,5 +317,17 @@ void Switch::start() {
         }
 
     }
+}
+
+// TODO: doc
+/**
+ * USED FOR CONROLLER
+ * @param switchId
+ * @param neighbors
+ * @param ipLow
+ * @param ipHigh
+ */
+Switch::Switch(uint switchId, uint neighbors, uint ipLow, uint ipHigh): switchId(switchId), neighbors(neighbors), ipLow(ipLow), ipHigh(ipHigh) {
+
 }
 
