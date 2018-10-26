@@ -43,6 +43,7 @@ Controller::Controller(uint nSwitches) : nSwitches(nSwitches) {
         connections.emplace_back(CONTROLLER_ID, switch_i);
     }
     printf("Created controller\n");
+
 }
 
 /**
@@ -144,6 +145,9 @@ void Controller::start() {
                     uint switchIPHigh = static_cast<uint>(stoi(get<1>(openMesssage[3])));
                     printf("Parsed to OPEN packet: switchID: %u switchNeighbors: %u switchIPLow: %u switchIPHigh: %u\n",
                            switchId, switchNeighbors, switchIPLow, switchIPHigh);
+
+                    switches.emplace_back(Switch(switchId, switchNeighbors, switchIPLow, switchIPHigh));
+
 
                     // send ack back to switch
                     printf("Sending ACK back to switchID: %u", switchId);

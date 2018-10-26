@@ -13,6 +13,7 @@
 #include <tuple>
 #include <vector>
 #include "connection.h"
+#include "switch.h"
 
 #define MAX_SWITCHES 7
 #define LIST_CMD "list"
@@ -31,6 +32,7 @@ public:
 
 private:
     uint nSwitches;
+    vector<Switch> switches;
     vector<Connection> connections;
 };
 
