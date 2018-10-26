@@ -30,7 +30,7 @@ using namespace std;
  * @return
  */
 uint parseSwitchId(const string &switchId) {
-    regex rgx("(sw)([0-9]+)");
+    regex rgx("(sw)([1-9]+[0-9]*)");
     match_results<string::const_iterator > matches;
 
     std::regex_match(switchId, matches, rgx);
@@ -88,7 +88,7 @@ Switch::Switch(string &switchId, string &leftSwitchId, string &rightSwitchId, st
         Switch::leftSwitchId = parseSwitchId(leftSwitchId);
         connections.emplace_back(Connection(Switch::switchId, CONTROLLER_ID));
     } else {
-        // TODO:
+        Switch::leftSwitchId = 0;
         connections.emplace_back(Connection(Switch::switchId, CONTROLLER_ID));
     }
 
@@ -98,7 +98,7 @@ Switch::Switch(string &switchId, string &leftSwitchId, string &rightSwitchId, st
         Switch::rightSwitchId = parseSwitchId(rightSwitchId);
         connections.emplace_back(Connection(Switch::switchId, CONTROLLER_ID));
     } else {
-        // TODO:
+        Switch::rightSwitchId = 0;
         connections.emplace_back(Connection(Switch::switchId, CONTROLLER_ID));
     }
     printf("I am switch: %i\n", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
@@ -133,6 +133,25 @@ Connection Switch::getControllerConnection() {
  */
 void Switch::start() {
     char buf[1024];
+    struct pollfd pfds[5];
+
+    // get fd for stdin
+    pfds[0].fd = 0;
+    pfds[0].events = POLLIN;
+
+    // get fd for receive FIFOs
+    pfds[1].fd = getControllerConnection().getReceiveFIFO();
+    pfds[1].events = POLLIN;
+
+    if (leftSwitchId!=0) {
+        pfds[2].fd = getRightSwitchConnection().getReceiveFIFO();
+        pfds[2].events = POLLIN;
+    }
+    if (rightSwitchId!=0) {
+        pfds[3].fd = getRightSwitchConnection().getReceiveFIFO();
+        pfds[3].events = POLLIN;
+    }
+
     for(;;){
        /*
         * 1.  Read and process a single line from the traffic line (if the EOF has not been reached yet). The
@@ -142,11 +161,11 @@ void Switch::start() {
         *     Note: After reading all lines in the traffic file, the program continues to monitor and process
         *     keyboard commands, and the incoming packets from neighbouring devices.
         */
-        string line;
-        ifstream trafficFileStream(trafficFile);
-        for (int lineNo = 0; getline(trafficFileStream, line) && !trafficFileStream.eof(); lineNo++) {
-            // TODO: implement
-        }
+//        string line;
+//        ifstream trafficFileStream(trafficFile);
+//        for (int lineNo = 0; getline(trafficFileStream, line) && !trafficFileStream.eof(); lineNo++) {
+//            // TODO: implement
+//        }
 
         /*
          * 2. Poll the keyboard for a user command. The user can issue one of the following commands.
@@ -155,29 +174,28 @@ void Switch::start() {
          *             type.
          *       exit: The program writes the above information and exits.
          */
-        // TODO: implement
-        struct pollfd fds;
-        int ret;
-        fds.fd = 0; /* this is STDIN */
-        fds.events = POLLIN;
-        ret = poll(&fds, 1, 0);
-        if(ret == 1) {
-            read(0, buf, 1024);
+        pfds[0].events = POLLIN;
+        poll(pfds, 1, 0);
+        if(pfds[0].revents & POLLIN) {
+            int r = read(pfds[0].fd, buf, 1024);
+            if (!r) {
+                printf("stdin closed\n");
+            }
             string cmd = string(buf);
             // trim off all whitespace
-            while( !cmd.empty() && !std::isalpha( cmd.back() ) ) cmd.pop_back() ;
+            while(!cmd.empty() && !std::isalpha(cmd.back())) cmd.pop_back() ;
+
             if (cmd == LIST_CMD) {
                 // TODO: implement
+                write(getControllerConnection().getSendFIFO(), "123", sizeof("123"));
             } else if (cmd == EXIT_CMD) {
                 // TODO: write above information
+                printf("exit command received: terminating\n");
                 exit(0);
             } else {
                 printf("ERROR: invalid Controller command: %s\n"
                        "\tPlease use either 'list' or 'exit'\n", cmd.c_str());
             }
-            memset(buf, 0, sizeof buf);
-        } else if(ret != 0) {
-            perror("ERROR: polling stdin");
         }
 
         /*
@@ -187,7 +205,17 @@ void Switch::start() {
          *    In addition,  upon receiving signal USER1, the switch displays the information specified by the list command
          */
         // iterate through each Connection (FIFO pair)
-        for (auto &connection : connections) {
+        for (uint i = 1; i <= 3; i++){
+            pfds[i].events = POLLIN;
+            poll(pfds, i, 0);
+            if(pfds[i].revents & POLLIN) {
+                int r = read(pfds[i].fd, buf, 1024);
+                if (!r) {
+                    printf("stdin closed\n");
+                }
+                string cmd = string(buf);
+                printf("Received message: %s", cmd.c_str());
+            }
         }
     }
 }

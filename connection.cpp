@@ -25,7 +25,11 @@ void Connection::makeFIFO(string &FIFOName) {
  * @return
  */
 int Connection::openReceiveFIFO() {
-    return open(Connection::receiveFIFOName.c_str(), O_RDONLY);
+    int i = open(Connection::receiveFIFOName.c_str(), O_RDONLY);
+    if (!i){
+        perror("ERROR: opening receive FOFO");
+    }
+    return i;
 }
 
 /**
@@ -33,7 +37,11 @@ int Connection::openReceiveFIFO() {
  * @return
  */
 int Connection::openSendFIFO() {
-    return open(Connection::sendFIFOName.c_str(), O_WRONLY);
+    int i = open(Connection::sendFIFOName.c_str(), O_WRONLY);
+    if (!i){
+        perror("ERROR: opening send FOFO");
+    }
+    return i;
 }
 
 
@@ -74,7 +82,8 @@ Connection::Connection(uint srcID, uint dstID) {
    Connection::dstID = dstID;
    sendFIFOName = makeFIFOName(srcID, dstID);
    receiveFIFOName = makeFIFOName(dstID, srcID);
-
+   printf("Making Connection:\n"
+          "\tsrc: %u dst: %u sendFIFO: %s receiveFIFO: %s\n", srcID, dstID, sendFIFOName.c_str(), receiveFIFOName.c_str());
 }
 
 /**
