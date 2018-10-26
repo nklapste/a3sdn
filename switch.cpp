@@ -52,12 +52,22 @@ uint parseSwitchId(const string &switchId) {
     }
 }
 
+// TODO: controller should use this to
 /**
  * The program writes all entries in the flow table, and for each transmitted or received
  * packet type, the program writes an aggregate count of handled packets of this type
  */
 void Switch::list(){
-    // TODO
+    uint counter = 0;
+    printf("listing active flow table rules for switch: sw%u \n", switchId);
+    for (auto const &flowEntry: flowTable) {
+        printf("\tflowTable rule %u:\tsrcIP_lo: %u srcIP_hi: %u dstIP_lo: %u dstIP_hi: %u actionType: %u actionVal: %u pri: %u pktCount: %u\n",
+               counter,
+               flowEntry.srcIP_lo, flowEntry.srcIP_hi, flowEntry.dstIP_lo, flowEntry.dstIP_hi,
+               flowEntry.actionType, flowEntry.actionVal, flowEntry.pri, flowEntry.pktCount);
+        counter++;
+    }
+    // TODO:
 }
 
 /**
@@ -130,6 +140,7 @@ void Switch::start() {
     string line;
     ifstream trafficFileStream(trafficFile);
 
+    // TODO: can simplify
     for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
         printf("pfds[%lu] has connection: %s\n", 2 * i, connections[i - 1].getSendFIFOName().c_str());
         pfds[2 * i].fd = connections[i - 1].openSendFIFO();
@@ -160,16 +171,13 @@ void Switch::start() {
             if (getline(trafficFileStream, line)) {
                 printf("read traffic file line: %s\n", line.c_str());
                 if (line.length()<1){
-                    // ignore this
-                    printf("ignoring invalid line\n");
-
+                    printf("WARNING: ignoring invalid line: %s\n", line.c_str());
                 } else if (line.substr(0,1)=="#"){
-                    // ignore this aswell
-                    printf("ignoring comment\n");
+                    printf("ignoring comment line\n");
                 } else if (line.substr(0,3)!="sw"+to_string(switchId)){
                     printf("ignoring line specifying another switch\n");
                 } else {
-                    printf("found line specifying self\n");
+                    printf("found line specifying self: %s\n", line.c_str());
                 }
             } else {
                 trafficFileStream.close();
@@ -184,16 +192,8 @@ void Switch::start() {
          *             type.
          *       exit: The program writes the above information and exits.
          */
-
-//        pfds[0].events = POLLIN;
-//        for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
-//            pfds[i].events = POLLIN;
-//        }
-
         poll(pfds, connections.size() + 1, 0);
-//        if (errno || p==-1){
-//            perror("ERROR: calling poll");
-//        }
+        // TODO: error handling
         if (pfds[0].revents & POLLIN) {
             int r = read(pfds[0].fd, buf, 1024);
             if (!r) {
@@ -230,7 +230,8 @@ void Switch::start() {
                     printf("WARNING: receiveFIFO closed\n");
                 }
                 string cmd = string(buf);
-                printf("Received output: %s\n", cmd.c_str());
+                // TODO: debug
+                printf("DEBUG: Received output: %s\n", cmd.c_str());
 
                 // TODO: handle packets
                 Packet packet = Packet(cmd);
@@ -245,15 +246,47 @@ void Switch::start() {
                     //ADD
                     // The switch then stores and
                     // applies the received rule
-                    // TODO: parse ADD packet
-                    //flowTable.emplace_back();
+                    uint srcIP_lo   =   static_cast<uint>(stoi(get<1>(packetMessage[0])));
+                    uint srcIP_hi   =   static_cast<uint>(stoi(get<1>(packetMessage[1])));
+                    uint dstIP_lo   =   static_cast<uint>(stoi(get<1>(packetMessage[2])));
+                    uint dstIP_hi   =   static_cast<uint>(stoi(get<1>(packetMessage[3])));
+                    uint actionType =   static_cast<uint>(stoi(get<1>(packetMessage[4])));
+                    uint actionVal  =   static_cast<uint>(stoi(get<1>(packetMessage[5])));
+                    uint pri        =   static_cast<uint>(stoi(get<1>(packetMessage[6])));
+                    uint pktCount   =   static_cast<uint>(stoi(get<1>(packetMessage[7])));
+
+                    printf("Parse %s packet: Adding new flowTable rule:\n"
+                           "\tsrcIP_lo: %u srcIP_hi: %u dstIP_lo: %u dstIP_hi: %u actionType: %u actionVal: %u pri: %u pktCount: %u\n",
+                           packetType.c_str(), srcIP_lo, srcIP_hi, dstIP_lo, dstIP_hi, actionType, actionVal, pri, pktCount);
+
+                    flowEntry newRule = {
+                            .srcIP_lo   = srcIP_lo,
+                            .srcIP_hi   = srcIP_hi,
+                            .dstIP_lo   = dstIP_lo,
+                            .dstIP_hi   = dstIP_hi,
+                            .actionType = actionType,
+                            .actionVal  = actionVal,
+                            .pri        = pri,
+                            .pktCount   = pktCount
+                    };
+                    flowTable.emplace_back(newRule);
                 } else if (packetType == RELAY) {
                     // A switch may forward a received packet header to a neighbour (as instructed by a
                     // matching rule in the flow table).  This information is passed to the neighbour in a
                     // RELAY packet.
-                    // TODO: parse RELAY packet
-//                         string relayPacket = "OPEN: ID:"+std::to_string(switchId)+" N:"+to_string(neighbors)+" IP:"+to_string(ipLow)+"-"+to_string(ipHigh);
-//                         write(connections[0].openSendFIFO(), openPacket.c_str(), strlen(openPacket.c_str()));
+                    uint switchId = static_cast<uint>(stoi(get<1>(packetMessage[0])));
+                    uint srcIp = static_cast<uint>(stoi(get<1>(packetMessage[1])));
+                    uint dstIP = static_cast<uint>(stoi(get<1>(packetMessage[2])));
+//
+//                    // TODO: use rules to figure out switch to write to
+//                    uint targetSwitch; // TODO: INIT
+//                    // TODO: parse RELAY packet
+//                    Message relayMessage;
+//                    relayMessage.emplace_back(make_tuple("ID", "sw"+to_string(switchId)));
+//                    relayMessage.emplace_back(make_tuple("srcIP", srcIp));
+//                    relayMessage.emplace_back(make_tuple("dstIP", dstIP));
+//                    Packet relayPacket = Packet(RELAY, relayMessage);
+//                    write(connections[targetSwitch].openSendFIFO(), relayPacket.toString().c_str(), strlen(relayPacket.toString().c_str()));
                 } else if (packetType == OPEN || packetType == QUERY) {
                     // switch does not handle open, or query
                     printf("ERROR: unexpected %s packet received: %s", packetType.c_str(),

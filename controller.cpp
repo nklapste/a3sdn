@@ -34,10 +34,9 @@ using namespace std;
 Controller::Controller(uint nSwitches) : nSwitches(nSwitches) {
     if (nSwitches > MAX_SWITCHES) {
         printf("ERROR: too many switches for controller: %u\n"
-               "\tMAX_SWITCHES=7\n", nSwitches);
+               "\tMAX_SWITCHES=%u\n", nSwitches, 7);
         exit(1);
     }
-    // TODO: this is not printing well
     printf("Creating controller: nSwitches: %u\n", nSwitches);
     // init all potential switch connections for the controller
     for (uint switch_i = 1; switch_i <= nSwitches; ++switch_i) {
@@ -53,12 +52,8 @@ void Controller::start() {
     struct pollfd pfds[2 * connections.size() + 1];
     char buf[1024];
 
-    // get fd for stdin
+    // setup file descriptions or stdin and all connection FIFOs
     pfds[0].fd = STDIN_FILENO;
-
-    // TODO: this is blocking
-    // TODO listing the fifo
-
     for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
         printf("pfds[%lu] has connection: %s\n", 2 * i, connections[i - 1].getSendFIFOName().c_str());
         pfds[2 * i].fd = connections[i - 1].openSendFIFO();
@@ -67,7 +62,6 @@ void Controller::start() {
     }
 
     for (;;) {
-
         /*
          * 1. Poll the keyboard for a user command. The user can issue one of the following commands.
          *       list: The program writes all entries in the flow table, and for each transmitted or received
@@ -75,15 +69,8 @@ void Controller::start() {
          *             type.
          *       exit: The program writes the above information and exits.
          */
-//        pfds[0].events = POLLIN;
-//        for(std::vector<Connection>::size_type i = 1; i != connections.size()+1; i++) {
-//            pfds[i].events = POLLIN;
-//        }
-
-        int p = poll(pfds, 2 * connections.size() + 1, 0);
-//        if (errno || p==-1){
-//            perror("ERROR: calling poll");
-//        }
+        poll(pfds, 2 * connections.size() + 1, 0);
+        // TODO: error handling
         if (pfds[0].revents & POLLIN) {
             int r = read(pfds[0].fd, buf, 1024);
             if (!r) {
@@ -123,7 +110,8 @@ void Controller::start() {
                 }
                 string cmd = string(buf);
 
-                printf("Received output: %s\n", cmd.c_str());
+                // TODO: debug
+                printf("DEBUG: Received output: %s\n", cmd.c_str());
 
                 // take the message and parse it into a packet
                 Packet packet = Packet(cmd);
@@ -170,6 +158,7 @@ void Controller::start() {
                     //packet to the controller.  The
                     //controller replies with a rule stored in a packet of type
                     // TODO:
+
 
                 } else if (packet.getType() == ACK || packet.getType() == ADD || packet.getType() == RELAY) {
                     // controller does nothing on ack, add, and relay

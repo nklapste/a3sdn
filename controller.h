@@ -25,7 +25,7 @@ typedef tuple<uint, uint> ipRange;
 
 class Controller {
 public:
-    Controller(uint nSwitches);
+    explicit Controller(uint nSwitches);
 
     void start();
 
