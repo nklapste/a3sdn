@@ -22,6 +22,11 @@
 #include <poll.h>
 #include "controller.h"
 
+#define STDIN_INDEX 0
+#define CONTROLLER_INDEX 1
+#define LEFT_SWITCH_INDEX 2
+#define RIGHT_SWITCH_INDEX 3
+
 using namespace std;
 
 /**
@@ -86,46 +91,15 @@ Switch::Switch(string &switchId, string &leftSwitchId, string &rightSwitchId, st
     // can potentially be a nullptr
     if(leftSwitchId != NULL_ID){
         Switch::leftSwitchId = parseSwitchId(leftSwitchId);
-        connections.emplace_back(Connection(Switch::switchId, CONTROLLER_ID));
-    } else {
-        Switch::leftSwitchId = 0;
-        connections.emplace_back(Connection(Switch::switchId, CONTROLLER_ID));
+        connections.emplace_back(Connection(Switch::switchId, Switch::leftSwitchId));
     }
-
     // create Connection to the right switch
     // can potentially be a nullptr
     if(rightSwitchId != NULL_ID){
         Switch::rightSwitchId = parseSwitchId(rightSwitchId);
-        connections.emplace_back(Connection(Switch::switchId, CONTROLLER_ID));
-    } else {
-        Switch::rightSwitchId = 0;
-        connections.emplace_back(Connection(Switch::switchId, CONTROLLER_ID));
+        connections.emplace_back(Connection(Switch::switchId, Switch::rightSwitchId));
     }
     printf("I am switch: %i\n", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-}
-
-/**
- * Getter for the connection to the left neighboring switch.
- * @return
- */
-Connection Switch::getRightSwitchConnection() {
-    return connections.at(2);
-}
-
-/**
- * Getter for the connection to the right neighboring switch.
- * @return
- */
-Connection Switch::getLeftSwitchConnection() {
-    return connections.at(1);
-}
-
-/**
- * Getter for the connection to the controller.
- * @return
- */
-Connection Switch::getControllerConnection() {
-    return connections.at(0);
 }
 
 /**
@@ -133,23 +107,13 @@ Connection Switch::getControllerConnection() {
  */
 void Switch::start() {
     char buf[1024];
-    struct pollfd pfds[5];
+    struct pollfd pfds[connections.size()+1];
 
     // get fd for stdin
-    pfds[0].fd = 0;
-    pfds[0].events = POLLIN;
+    pfds[0].fd = STDIN_FILENO;
 
-    // get fd for receive FIFOs
-    pfds[1].fd = getControllerConnection().getReceiveFIFO();
-    pfds[1].events = POLLIN;
-
-    if (leftSwitchId!=0) {
-        pfds[2].fd = getRightSwitchConnection().getReceiveFIFO();
-        pfds[2].events = POLLIN;
-    }
-    if (rightSwitchId!=0) {
-        pfds[3].fd = getRightSwitchConnection().getReceiveFIFO();
-        pfds[3].events = POLLIN;
+    for(std::vector<Connection>::size_type i = 0; i != connections.size(); i++) {
+        pfds[1+i].fd = connections[i].getSendFIFO();
     }
 
     for(;;){
@@ -161,11 +125,12 @@ void Switch::start() {
         *     Note: After reading all lines in the traffic file, the program continues to monitor and process
         *     keyboard commands, and the incoming packets from neighbouring devices.
         */
-//        string line;
-//        ifstream trafficFileStream(trafficFile);
-//        for (int lineNo = 0; getline(trafficFileStream, line) && !trafficFileStream.eof(); lineNo++) {
-//            // TODO: implement
-//        }
+        string line;
+        ifstream trafficFileStream(trafficFile);
+        for (int lineNo = 0; getline(trafficFileStream, line) && !trafficFileStream.eof(); lineNo++) {
+            // TODO: implement
+        }
+        trafficFileStream.close();
 
         /*
          * 2. Poll the keyboard for a user command. The user can issue one of the following commands.
@@ -175,7 +140,7 @@ void Switch::start() {
          *       exit: The program writes the above information and exits.
          */
         pfds[0].events = POLLIN;
-        poll(pfds, 1, 0);
+        poll(pfds, 0, 0);
         if(pfds[0].revents & POLLIN) {
             int r = read(pfds[0].fd, buf, 1024);
             if (!r) {
@@ -187,7 +152,7 @@ void Switch::start() {
 
             if (cmd == LIST_CMD) {
                 // TODO: implement
-                write(getControllerConnection().getSendFIFO(), "123", sizeof("123"));
+                write(connections[0].getSendFIFO(), "123", sizeof("123"));
             } else if (cmd == EXIT_CMD) {
                 // TODO: write above information
                 printf("exit command received: terminating\n");
@@ -205,11 +170,11 @@ void Switch::start() {
          *    In addition,  upon receiving signal USER1, the switch displays the information specified by the list command
          */
         // iterate through each Connection (FIFO pair)
-        for (uint i = 1; i <= 3; i++){
-            pfds[i].events = POLLIN;
-            poll(pfds, i, 0);
-            if(pfds[i].revents & POLLIN) {
-                int r = read(pfds[i].fd, buf, 1024);
+        for(std::vector<Connection>::size_type i = 0; i != connections.size(); i++) {
+            pfds[i + 1].events = POLLIN;
+            poll(pfds, i + 1, 0);
+            if(pfds[i + 1].revents & POLLIN) {
+                int r = read(pfds[i + 1].fd, buf, 1024);
                 if (!r) {
                     printf("stdin closed\n");
                 }

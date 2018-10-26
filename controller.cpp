@@ -45,39 +45,18 @@ Controller::Controller(uint nSwitches): nSwitches(nSwitches)  {
 }
 
 /**
- * Returns the number of switches bound to the controller.
- *
- * @return
- */
-uint Controller::getNumSwitches() {
-    /* Returns the number of switches */
-    return nSwitches;
-}
-
-/**
- * Get the connection to a specified switch.
- *
- * @param switchId the numeric id of the switch.
- * @return
- */
-Connection Controller::getConnection(uint switchId){
-    return Controller::connections.at(switchId-1);
-}
-
-/**
  * Start the {@code Controller} loop.
  */
 void Controller::start() {
-    struct pollfd pfds[getNumSwitches()+2];
+    struct pollfd pfds[connections.size()+1];
     char buf[1024];
 
     // get fd for stdin
-    pfds[0].fd = 0;
-    pfds[0].events = POLLIN;
+    pfds[0].fd = STDIN_FILENO;
 
     // get fd for receive FIFOs
-    for(uint switchId = 1; switchId != getNumSwitches()+1; switchId++) {
-        pfds[switchId].fd = getConnection(switchId).getReceiveFIFO();
+    for(std::vector<Connection>::size_type i = 0; i != connections.size(); i++) {
+        pfds[1 + i].fd = connections[i].getReceiveFIFO();
     }
 
     for(;;){
@@ -101,7 +80,7 @@ void Controller::start() {
 
             if (cmd == LIST_CMD) {
                 // TODO: implement
-                write(getConnection(1).getSendFIFO(), "123", sizeof("123"));
+                write(connections[0].getSendFIFO(), "123", sizeof("123"));
             } else if (cmd == EXIT_CMD) {
                 // TODO: write above information
                 printf("exit command received: terminating\n");
@@ -119,18 +98,17 @@ void Controller::start() {
          *    In addition,  upon receiving signal USER1, the switch displays the information specified by the
          *    list command
          */
-        for(vector<Connection>::size_type switchId = 1; switchId < getNumSwitches()+1; switchId++) {
-            pfds[switchId].events = POLLIN;
-            poll(pfds, switchId, 0);
-            if (pfds[switchId].revents & POLLIN) {
-                int i = read(pfds[switchId].fd, buf, 1024);
-                if (!i) {
-                    printf("receive FIFO closed\n");
+        for(std::vector<Connection>::size_type i = 0; i != connections.size(); i++) {
+            pfds[i + 1].events = POLLIN;
+            poll(pfds, i + 1, 0);
+            if(pfds[i + 1].revents & POLLIN) {
+                int r = read(pfds[i + 1].fd, buf, 1024);
+                if (!r) {
+                    printf("stdin closed\n");
                 }
-                string message = string(buf);
-                printf("got message: %s", message.c_str());
+                string cmd = string(buf);
+                printf("Received message: %s", cmd.c_str());
             }
-            close(pfds[switchId].fd);
         }
     }
 }
