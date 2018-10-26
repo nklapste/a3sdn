@@ -25,12 +25,19 @@ typedef vector<MessageArg> Message;
 class Packet {
 public:
     Packet(string type, Message message);
+
     explicit Packet(string &packetRaw);
+
     string getType();
+
     static string parseType(string &typeRaw);
-    Message  getMessage();
+
+    Message getMessage();
+
     string toString();
+
     static Message parseMessage(string &messageRaw);
+
 private:
     string type;
     string rawMessage;

@@ -39,7 +39,9 @@ typedef std::vector<flowEntry> FlowTable;
 class Switch {
 public:
     Switch(string &switchId, string &leftSwitchId, string &rightSwitchId, string &trafficFile, uint ipLow, uint ipHigh);
+
     Connection getControllerConnection();
+
     void start();
 
 private:
