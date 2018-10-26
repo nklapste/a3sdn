@@ -34,14 +34,21 @@ struct flowEntry {
     uint pktCount;
 };
 
+
+/**
+ * Traffic file item.
+ */
+typedef tuple<uint, uint, uint> trafficFileItem;
+
 typedef std::vector<flowEntry> FlowTable;
 
 class Switch {
 public:
     Switch(string &switchId, string &leftSwitchId, string &rightSwitchId, string &trafficFile, uint ipLow, uint ipHigh);
+    Switch(uint switchId, uint neighbors, uint ipLow, uint ipHigh);
+
     void list();
     void start();
-
 private:
     /**
      * ID of the switch itself
@@ -58,7 +65,6 @@ private:
      */
     uint rightSwitchId;
     string trafficFile;
-
     uint ipHigh;
     uint ipLow;
     FlowTable flowTable;
