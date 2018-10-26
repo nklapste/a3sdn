@@ -77,7 +77,6 @@ Message Packet::getMessage() {
 Packet::Packet(string type, Message message) {
     Packet::type = parseType(type);
     Packet::message = std::move(message);
-
 }
 
 /**

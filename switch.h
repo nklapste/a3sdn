@@ -41,7 +41,7 @@ public:
     Switch(string &switchId, string &leftSwitchId, string &rightSwitchId, string &trafficFile, uint ipLow, uint ipHigh);
 
     Connection getControllerConnection();
-
+    void list();
     void start();
 
 private:
