@@ -112,9 +112,16 @@ void Switch::start() {
     // get fd for stdin
     pfds[0].fd = STDIN_FILENO;
 
-    for(std::vector<Connection>::size_type i = 0; i != connections.size(); i++) {
-        pfds[1+i].fd = connections[i].getSendFIFO();
+    string line;
+    ifstream trafficFileStream(trafficFile);
+
+    for(std::vector<Connection>::size_type i = 1; i != connections.size()+1; i++) {
+        printf("pfds[%lu] has connection: %s\n", 2*i, connections[i-1].getSendFIFOName().c_str());
+        pfds[2*i].fd = connections[i-1].openSendFIFO();
+        printf("pfds[%lu] has connection: %s\n", 2*i-1, connections[i-1].getReceiveFIFOName().c_str());
+        pfds[2*i-1].fd = connections[i-1].openReceiveFIFO();
     }
+
 
     for(;;){
        /*
@@ -125,12 +132,14 @@ void Switch::start() {
         *     Note: After reading all lines in the traffic file, the program continues to monitor and process
         *     keyboard commands, and the incoming packets from neighbouring devices.
         */
-        string line;
-        ifstream trafficFileStream(trafficFile);
-        for (int lineNo = 0; getline(trafficFileStream, line) && !trafficFileStream.eof(); lineNo++) {
-            // TODO: implement
+        if (trafficFileStream.is_open()) {
+            if (getline(trafficFileStream, line)) {
+                printf("read traffic file line: %s\n", line.c_str());
+            } else {
+                trafficFileStream.close();
+                printf("finished reading traffic file\n");
+            }
         }
-        trafficFileStream.close();
 
         /*
          * 2. Poll the keyboard for a user command. The user can issue one of the following commands.
@@ -139,8 +148,16 @@ void Switch::start() {
          *             type.
          *       exit: The program writes the above information and exits.
          */
+
         pfds[0].events = POLLIN;
-        poll(pfds, 0, 0);
+        for(std::vector<Connection>::size_type i = 1; i != connections.size()+1; i++) {
+            pfds[i].events = POLLIN;
+        }
+
+        poll(pfds, connections.size()+1, 0);
+//        if (errno || p==-1){
+//            perror("ERROR: calling poll");
+//        }
         if(pfds[0].revents & POLLIN) {
             int r = read(pfds[0].fd, buf, 1024);
             if (!r) {
@@ -149,10 +166,10 @@ void Switch::start() {
             string cmd = string(buf);
             // trim off all whitespace
             while(!cmd.empty() && !std::isalpha(cmd.back())) cmd.pop_back() ;
-
             if (cmd == LIST_CMD) {
                 // TODO: implement
-                write(connections[0].getSendFIFO(), "123", sizeof("123"));
+                write(connections[0].openSendFIFO(), cmd.c_str(), strlen(cmd.c_str()));
+                write(STDOUT_FILENO, buf, r);
             } else if (cmd == EXIT_CMD) {
                 // TODO: write above information
                 printf("exit command received: terminating\n");
@@ -170,18 +187,19 @@ void Switch::start() {
          *    In addition,  upon receiving signal USER1, the switch displays the information specified by the list command
          */
         // iterate through each Connection (FIFO pair)
-        for(std::vector<Connection>::size_type i = 0; i != connections.size(); i++) {
-            pfds[i + 1].events = POLLIN;
-            poll(pfds, i + 1, 0);
-            if(pfds[i + 1].revents & POLLIN) {
-                int r = read(pfds[i + 1].fd, buf, 1024);
+
+        for(std::vector<Connection>::size_type i = 1; i != connections.size()+1; i++) {
+            if(pfds[2*i-1].revents & POLLIN) {
+                printf("pfds[%lu] has connection POLLIN event: %s\n", 2*i-1, connections[i-1].getReceiveFIFOName().c_str());
+                int r = read(pfds[2*i-1].fd, buf, 1024);
                 if (!r) {
                     printf("stdin closed\n");
                 }
                 string cmd = string(buf);
-                printf("Received message: %s", cmd.c_str());
+                printf("Received output: %s\n", cmd.c_str());
             }
         }
+
     }
 }
 

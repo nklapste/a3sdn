@@ -15,17 +15,13 @@ public:
     Connection(uint srcID, uint dstID);
     string getSendFIFOName();
     string getReceiveFIFOName();
-    int getSendFIFO();
-    int getReceiveFIFO();
-
+    int openSendFIFO();
+    int openReceiveFIFO();
 private:
     string receiveFIFOName;
     string sendFIFOName;
-    uint srcID;
-    uint dstID;
     void makeFIFO(string &FIFOName);
-    int openSendFIFO();
-    int openReceiveFIFO();
+
     const string makeFIFOName(uint senderId, uint receiverId);
 };
 
