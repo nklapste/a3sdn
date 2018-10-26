@@ -87,7 +87,7 @@ void Controller::start() {
         if (pfds[0].revents & POLLIN) {
             int r = read(pfds[0].fd, buf, 1024);
             if (!r) {
-                printf("stdin closed\n");
+                printf("WARNING: stdin closed\n");
             }
             string cmd = string(buf);
             // trim off all whitespace
@@ -119,7 +119,7 @@ void Controller::start() {
                        connections[i - 1].getReceiveFIFOName().c_str());
                 int r = read(pfds[2 * i - 1].fd, buf, 1024);
                 if (!r) {
-                    printf("stdin closed\n");
+                    printf("WARNING: receiveFIFO closed\n");
                 }
                 string cmd = string(buf);
 

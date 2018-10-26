@@ -119,7 +119,7 @@ void Switch::start() {
 
     // get fd for stdin
     pfds[0].fd = STDIN_FILENO;
-
+    bool firstAck = true;
     string line;
     ifstream trafficFileStream(trafficFile);
 
@@ -176,7 +176,7 @@ void Switch::start() {
         if (pfds[0].revents & POLLIN) {
             int r = read(pfds[0].fd, buf, 1024);
             if (!r) {
-                printf("stdin closed\n");
+                printf("WARNING: stdin closed\n");
             }
             string cmd = string(buf);
             // trim off all whitespace
@@ -208,7 +208,7 @@ void Switch::start() {
                        connections[i - 1].getReceiveFIFOName().c_str());
                 int r = read(pfds[2 * i - 1].fd, buf, 1024);
                 if (!r) {
-                    printf("stdin closed\n");
+                    printf("WARNING: receiveFIFO closed\n");
                 }
                 string cmd = string(buf);
                 printf("Received output: %s\n", cmd.c_str());
@@ -218,21 +218,21 @@ void Switch::start() {
                 string packetType = packet.getType();
                 Message packetMessage = packet.getMessage();
                 printf("Parsed packet: %s\n", packet.toString().c_str());
-                if (packetType == ACK) {
+                if (firstAck && packetType == ACK) {
                     // do nothing on ack
-                    // TODO: better logic
+                    firstAck = false;
                     printf("%s packet received: %s\n", packetType.c_str(), packet.toString().c_str());
                 } else if (packetType == ADD) {
                     //ADD
                     // The switch then stores and
                     // applies the received rule
-                    // TODO:
+                    // TODO: parse ADD packet
                     //flowTable.emplace_back();
                 } else if (packetType == RELAY) {
                     // A switch may forward a received packet header to a neighbour (as instructed by a
                     // matching rule in the flow table).  This information is passed to the neighbour in a
                     // RELAY packet.
-                    // TODO:
+                    // TODO: parse RELAY packet
 //                         string relayPacket = "OPEN: ID:"+std::to_string(switchId)+" N:"+to_string(neighbors)+" IP:"+to_string(ipLow)+"-"+to_string(ipHigh);
 //                         write(connections[0].openSendFIFO(), openPacket.c_str(), strlen(openPacket.c_str()));
                 } else if (packetType == OPEN || packetType == QUERY) {
