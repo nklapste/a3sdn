@@ -12,11 +12,11 @@
 #include <vector>
 
 #include "connection.h"
+#include "flow.h"
 
 #define NULL_ID "null"
 
 using namespace std;
-
 
 #define DELIVER 0
 #define FORWARD 1
@@ -24,24 +24,10 @@ using namespace std;
 #define MIN_PRI 4
 #define MAX_IP 1000
 
-struct FlowEntry {
-    uint srcIP_lo;
-    uint srcIP_hi;
-    uint dstIP_lo;
-    uint dstIP_hi;
-    uint actionType;
-    uint actionVal;
-    uint pri;
-    uint pktCount;
-};
-
-
 /**
  * Traffic file item.
  */
 typedef tuple<uint, uint, uint> trafficFileItem;
-
-typedef std::vector<FlowEntry> FlowTable;
 
 class Switch {
 public:
@@ -51,6 +37,16 @@ public:
 
     void list();
 
+    uint getId();
+
+    uint getIpHigh();
+
+    uint getIpLow();
+
+    int getLeftSwitchId();
+
+    int getRightSwitchId();
+
     void start();
 
 private:
@@ -58,21 +54,45 @@ private:
      * ID of the switch itself
      */
     uint switchId;
+
+    /**
+     * The number of neighboring switches.
+     */
     uint neighbors;
     /**
      * ID of the "left" switch to connect to
      */
-    uint leftSwitchId;
+    int leftSwitchId;
 
     /**
      * ID of the "right" switch to connect to
      */
-    uint rightSwitchId;
+    int rightSwitchId;
+
     string trafficFile;
     uint ipHigh;
     uint ipLow;
     FlowTable flowTable;
     vector<Connection> connections;
+
+    /**
+     * Counts of {@code Packets} received.
+     */
+    uint rOpenCount = 0;
+    uint rAddCount = 0;
+    uint rAckCount = 0;
+    uint rRelayCount = 0;
+    uint rQueryCount = 0;
+
+    /**
+     * Counts of {@code Packets} transmitted.
+     */
+    uint tOpenCount = 0;
+    uint tAddCount = 0;
+    uint tAckCount = 0;
+    uint tRelayCount = 0;
+    uint tQueryCount = 0;
+
 };
 
 #endif //A2SDN_SWITCH_H

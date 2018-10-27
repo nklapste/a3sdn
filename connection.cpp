@@ -90,11 +90,15 @@ const string Connection::makeFIFOName(uint senderId, uint receiverId) {
  * @param dstID
  */
 Connection::Connection(uint srcID, uint dstID) {
+    // make the send FIFO
     sendFIFOName = makeFIFOName(srcID, dstID);
+    printf("Making Connection:\n"
+           "\tsrc: %u dst: %u sendFIFO: %s\n", srcID, dstID, sendFIFOName.c_str());
+    makeFIFO(sendFIFOName);
+
+    // make the receiving FIFO
     receiveFIFOName = makeFIFOName(dstID, srcID);
     printf("Making Connection:\n"
-           "\tsrc: %u dst: %u sendFIFO: %s receiveFIFO: %s\n", srcID, dstID, sendFIFOName.c_str(),
-           receiveFIFOName.c_str());
-    makeFIFO(sendFIFOName);
+           "\tsrc: %u dst: %u receiveFIFO: %s\n", srcID, dstID, receiveFIFOName.c_str());
     makeFIFO(receiveFIFOName);
 }

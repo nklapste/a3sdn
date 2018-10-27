@@ -5,12 +5,13 @@
  * @version 0.0.0
  */
 
-#include "controller.h"
-#include "packet.h"
 #include <sys/types.h>
 #include <tuple>
 #include <iostream>
 #include <fstream>
+
+#include "controller.h"
+#include "packet.h"
 
 /*FIFO stuff*/
 #include <sys/types.h>
@@ -22,7 +23,6 @@
 #include <stdlib.h>
 #include <sstream>
 #include <poll.h>
-
 
 using namespace std;
 
@@ -45,6 +45,31 @@ Controller::Controller(uint nSwitches) : nSwitches(nSwitches) {
 }
 
 /**
+ * Print the switches connected to the controller and the statistics of packets sent and received.
+ */
+void Controller::list() {
+    printf("Switch information:\n");
+    for (auto &sw: switches) {
+        printf("[sw%u] port1= %i, port= %i, port3= %u-%u\n",
+               sw.getId(), sw.getLeftSwitchId(), sw.getRightSwitchId(), sw.getIpLow(), sw.getIpHigh());
+    }
+    printf("Packet Stats:\n");
+    printf("\tReceived:    ");
+    printf("OPEN:%u, ",rOpenCount);
+    printf("ACK:%u, ",rAckCount);
+    printf("QUERY:%u, ",rQueryCount);
+    printf("ADDRULE:%u, ",rAddCount);
+    printf("RELAYIN:%u\n",rRelayCount);
+
+    printf("\tTransmitted: ");
+    printf("OPEN:%u, ",tOpenCount);
+    printf("ACK:%u, ",tAckCount);
+    printf("QUERY:%u, ",tQueryCount);
+    printf("ADDRULE:%u, ",tAddCount);
+    printf("RELAYOUT:%u\n",tRelayCount);
+}
+
+/**
  * Start the {@code Controller} loop.
  */
 void Controller::start() {
@@ -54,10 +79,8 @@ void Controller::start() {
     // setup file descriptions or stdin and all connection FIFOs
     pfds[0].fd = STDIN_FILENO;
     for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
-        printf("pfds[%lu] has connection: %s\n", 2 * i, connections[i - 1].getSendFIFOName().c_str());
-        pfds[2 * i].fd = connections[i - 1].openSendFIFO();
-        printf("pfds[%lu] has connection: %s\n", 2 * i - 1, connections[i - 1].getReceiveFIFOName().c_str());
-        pfds[2 * i - 1].fd = connections[i - 1].openReceiveFIFO();
+        printf("pfds[%lu] has connection: %s\n", i, connections[i - 1].getReceiveFIFOName().c_str());
+        pfds[i].fd = connections[i - 1].openReceiveFIFO();
     }
 
     for (;;) {
@@ -80,11 +103,9 @@ void Controller::start() {
             while (!cmd.empty() && !std::isalpha(cmd.back())) cmd.pop_back();
 
             if (cmd == LIST_CMD) {
-                // TODO: implement
-                write(connections[0].openSendFIFO(), cmd.c_str(), strlen(cmd.c_str()));
-                write(STDOUT_FILENO, cmd.c_str(), strlen(cmd.c_str()));
+                list();
             } else if (cmd == EXIT_CMD) {
-                // TODO: write above information
+                list();
                 exit(0);
             } else {
                 printf("ERROR: invalid Controller command: %s\n"
@@ -100,10 +121,10 @@ void Controller::start() {
          *    list command
          */
         for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
-            if (pfds[2 * i - 1].revents & POLLIN) {
-                printf("pfds[%lu] has connection POLLIN event: %s\n", 2 * i - 1,
+            if (pfds[i].revents & POLLIN) {
+                printf("pfds[%lu] has connection POLLIN event: %s\n", i,
                        connections[i - 1].getReceiveFIFOName().c_str());
-                int r = read(pfds[2 * i - 1].fd, buf, 1024);
+                int r = read(pfds[i].fd, buf, 1024);
                 if (!r) {
                     printf("WARNING: receiveFIFO closed\n");
                 }
@@ -119,29 +140,19 @@ void Controller::start() {
                 printf("Parsed packet: %s\n", packet.toString().c_str());
 
                 if (packet.getType() == OPEN) {
+                    rOpenCount++;
                     //OPEN
                     //and
                     //ACK
-                    //: When a switch starts, it sends an
-                    //OPEN
-                    //packet to the controller. The carried
-                    //message  contains  the  switch  number,  the  numbers  of  its  neighbouring  switches  (if  any),
-                    //and the range of IP addresses served by the switch.  Upon receiving an
-                    //OPEN
-                    //packet, the
-                    //controller updates its stored information about the switch, and replies with a packet of type
-                    // TODO: parse OPEN packet
+                    // Upon receiving an OPEN
+                    // packet, the controller updates its stored information about the switch,
+                    // and replies with a packet of type
                     // parse the raw input into a packet
-                    // TODO: refactor
-                    Packet openPacket = packet;
-                    Message openMesssage = openPacket.getMessage();
-                    printf("Responding to OPEN packet: %s\n", openPacket.toString().c_str());
-
-                    uint switchId = static_cast<uint>(stoi(get<1>(openMesssage[0])));
-                    uint switchNeighbors = static_cast<uint>(stoi(get<1>(openMesssage[1])));
-                    uint switchIPLow = static_cast<uint>(stoi(get<1>(openMesssage[2])));
-                    uint switchIPHigh = static_cast<uint>(stoi(get<1>(openMesssage[3])));
-                    printf("Parsed to OPEN packet: switchID: %u switchNeighbors: %u switchIPLow: %u switchIPHigh: %u\n",
+                    uint switchId = static_cast<uint>(stoi(get<1>(packetMessage[0])));
+                    uint switchNeighbors = static_cast<uint>(stoi(get<1>(packetMessage[1])));
+                    uint switchIPLow = static_cast<uint>(stoi(get<1>(packetMessage[2])));
+                    uint switchIPHigh = static_cast<uint>(stoi(get<1>(packetMessage[3])));
+                    printf("Parsed OPEN packet: switchID: %u switchNeighbors: %u switchIPLow: %u switchIPHigh: %u\n",
                            switchId, switchNeighbors, switchIPLow, switchIPHigh);
 
                     switches.emplace_back(Switch(switchId, switchNeighbors, switchIPLow, switchIPHigh));
@@ -151,22 +162,45 @@ void Controller::start() {
                     Packet ackPacket = Packet(ACK, Message());
                     write(connections[i - 1].openSendFIFO(), ackPacket.toString().c_str(),
                           strlen(ackPacket.toString().c_str()));
+                    tAckCount++;
                 } else if (packet.getType() == QUERY) {
+                    rQueryCount++;
                     // When processing an incoming packet header (the header may be read from
                     //the traffic file, or relayed to the switch by one of its neighbours), if a switch does not find
                     //a matching rule in the flow table, the switch sends a
                     //QUERY
                     //packet to the controller.  The
                     //controller replies with a rule stored in a packet of type
-                    // TODO:
-
-
-                } else if (packet.getType() == ACK || packet.getType() == ADD || packet.getType() == RELAY) {
-                    // controller does nothing on ack, add, and relay
-                    printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(),
-                           packet.toString().c_str());
+                    uint switchId = static_cast<uint>(stoi(get<1>(packetMessage[0])));
+                    uint srcIP = static_cast<uint>(stoi(get<1>(packetMessage[1])));
+                    uint dstIP = static_cast<uint>(stoi(get<1>(packetMessage[2])));
+                    printf("Parsed QUERY packet: switchId: %u srcIP: %u dstIP: %u",
+                           switchId, srcIP, dstIP);
+                    // TODO: calculate a new flowtable rule
+                    // TODO: populate the response fields
+                    Message addMessage;
+                    addMessage.emplace_back(MessageArg("srcIP_lo", "0"));
+                    addMessage.emplace_back(MessageArg("srcIP_hi", "0"));
+                    addMessage.emplace_back(MessageArg("dstIP_lo", "0"));
+                    addMessage.emplace_back(MessageArg("dstIP_hi", "0"));
+                    addMessage.emplace_back(MessageArg("actionType", "0"));
+                    addMessage.emplace_back(MessageArg("actionVal", "0"));
+                    addMessage.emplace_back(MessageArg("pri", "0"));
+                    addMessage.emplace_back(MessageArg("pktCount", "0"));
+                    Packet addPacket = Packet(ADD, addMessage);
+                    write(connections[i - 1].openSendFIFO(), addPacket.toString().c_str(),
+                          strlen(addPacket.toString().c_str()));
+                    tAddCount++;
                 } else {
-                    printf("ERROR: unknown packet received: %s\n", cmd.c_str());
+                    if (packet.getType() == ACK ) {
+                        rAckCount++;
+                    } else if(packet.getType() == ADD){
+                        rAddCount++;
+                    } else if (packet.getType() == RELAY) {
+                        // controller does nothing on ack, add, and relay
+                        rRelayCount++;
+                    }
+                    printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
                 }
             }
         }
