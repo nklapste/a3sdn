@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <sstream>
 #include <poll.h>
+#include <algorithm>
 
 using namespace std;
 
@@ -109,8 +110,7 @@ void Controller::start() {
          * 2. Poll the incoming FIFOs from the controller and the attached switches. The switch handles
          *    each incoming packet, as described in the Packet Types.
          *
-         *    In addition,  upon receiving signal USER1, the switch displays the information specified by the
-         *    list command
+         *    TODO: In addition,  upon receiving signal USER1, the switch displays the information specified by the list command
          */
         for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
             if (pfds[i].revents & POLLIN) {
@@ -133,13 +133,8 @@ void Controller::start() {
 
                 if (packet.getType() == OPEN) {
                     rOpenCount++;
-                    //OPEN
-                    //and
-                    //ACK
-                    // Upon receiving an OPEN
-                    // packet, the controller updates its stored information about the switch,
-                    // and replies with a packet of type
-                    // parse the raw input into a packet
+                    // Upon receiving an OPEN packet, the controller updates its stored information about the switch,
+                    // and replies with a packet of type ACK
                     uint switchId = static_cast<uint>(stoi(get<1>(packetMessage[0])));
                     uint switchNeighbors = static_cast<uint>(stoi(get<1>(packetMessage[1])));
                     uint switchIPLow = static_cast<uint>(stoi(get<1>(packetMessage[2])));
@@ -168,25 +163,28 @@ void Controller::start() {
                     uint dstIP = static_cast<uint>(stoi(get<1>(packetMessage[2])));
                     printf("Parsed QUERY packet: switchId: %u srcIP: %u dstIP: %u",
                            switchId, srcIP, dstIP);
-                    // TODO: calculate a new flowtable rule
-                    // TODO: populate the response fields
+
+                    // calculate new flow entry
+                    FlowEntry flowEntry = makeRule(switchId, srcIP, dstIP);
+
+                    // create new add packet
                     Message addMessage;
-                    addMessage.emplace_back(MessageArg("srcIP_lo", "0"));
-                    addMessage.emplace_back(MessageArg("srcIP_hi", "0"));
-                    addMessage.emplace_back(MessageArg("dstIP_lo", "0"));
-                    addMessage.emplace_back(MessageArg("dstIP_hi", "0"));
-                    addMessage.emplace_back(MessageArg("actionType", "0"));
-                    addMessage.emplace_back(MessageArg("actionVal", "0"));
-                    addMessage.emplace_back(MessageArg("pri", "0"));
-                    addMessage.emplace_back(MessageArg("pktCount", "0"));
+                    addMessage.emplace_back(MessageArg("srcIP_lo", to_string(flowEntry.srcIP_lo)));
+                    addMessage.emplace_back(MessageArg("srcIP_hi", to_string(flowEntry.srcIP_lo)));
+                    addMessage.emplace_back(MessageArg("dstIP_lo", to_string(flowEntry.dstIP_lo)));
+                    addMessage.emplace_back(MessageArg("dstIP_hi", to_string(flowEntry.dstIP_hi)));
+                    addMessage.emplace_back(MessageArg("actionType", to_string(flowEntry.actionType)));
+                    addMessage.emplace_back(MessageArg("actionVal", to_string(flowEntry.actionVal)));
+                    addMessage.emplace_back(MessageArg("pri", to_string(flowEntry.pri)));
+                    addMessage.emplace_back(MessageArg("pktCount", to_string(flowEntry.pktCount)));
                     Packet addPacket = Packet(ADD, addMessage);
                     write(connections[i - 1].openSendFIFO(), addPacket.toString().c_str(),
                           strlen(addPacket.toString().c_str()));
                     tAddCount++;
                 } else {
-                    if (packet.getType() == ACK ) {
+                    if (packet.getType() == ACK) {
                         rAckCount++;
-                    } else if(packet.getType() == ADD){
+                    } else if (packet.getType() == ADD) {
                         rAddCount++;
                     } else if (packet.getType() == RELAY) {
                         // controller does nothing on ack, add, and relay
@@ -196,5 +194,137 @@ void Controller::start() {
                 }
             }
         }
+    }
+}
+
+
+// TODO: doc
+/**
+ * Calculate a new flow entry rule.
+ *
+ * @param switchId
+ * @param srcIP
+ * @param dstIP
+ * @return
+ */
+FlowEntry Controller::makeRule(uint switchId, uint srcIP, uint dstIP) {
+    auto it = find_if(switches.begin(), switches.end(), [&switchId](Switch &sw) { return sw.getId() == switchId; });
+    if (it != switches.end()) {
+        // found element. it is an iterator to the first matching element.
+        auto index = std::distance(switches.begin(), it);
+        Switch requestSwitch = switches[index];
+        // check src ip is invalid
+        if (srcIP < 0 || srcIP > MAX_IP){
+            // src ip is invalid make a drop rule
+            // TODO: create DROP rule
+            FlowEntry drop_rule = {
+                    .srcIP_lo   = srcIP,
+                    .srcIP_hi   = srcIP,
+                    .dstIP_lo   = dstIP,
+                    .dstIP_hi   = dstIP,
+                    .actionType = DROP,
+                    .actionVal  = 0,
+                    .pri        = MIN_PRI,
+                    .pktCount   = 0
+            };
+            return drop_rule;
+        } else {
+            // dst is out of range of switches range
+            // make a drop rule
+            if (dstIP < requestSwitch.getIpLow() || dstIP > requestSwitch.getIpHigh()) { // out of range of
+                // get left switch
+                int leftSwitchId = requestSwitch.getLeftSwitchId();
+                if (leftSwitchId > 0) {
+                    auto it2 = find_if(switches.begin(), switches.end(),
+                                       [&leftSwitchId](Switch &sw) { return sw.getId() == leftSwitchId; });
+                    if (it != switches.end()) {
+                        auto index2 = std::distance(switches.begin(), it2);
+                        Switch requestLeftSwitch = switches[index2];
+                        if (dstIP < requestLeftSwitch.getIpLow() || dstIP > requestLeftSwitch.getIpHigh()) {
+                        } else {
+                            // TODO: make FORWARD rule
+                            FlowEntry forwardLeftRule = {
+                                    .srcIP_lo   = 0,
+                                    .srcIP_hi   = MAX_IP,
+                                    .dstIP_lo   = dstIP,
+                                    .dstIP_hi   = dstIP,
+                                    .actionType = FORWARD,
+                                    .actionVal  = requestLeftSwitch.getId(),
+                                    .pri        = MIN_PRI,
+                                    .pktCount   = 0
+                            };
+                            return forwardLeftRule;
+                        }
+                    }
+                }
+                // get the right switch
+                int rightSwitch = requestSwitch.getRightSwitchId();
+                if (rightSwitch > 0) {
+                    auto it3 = find_if(switches.begin(), switches.end(),
+                                       [&rightSwitch](Switch &sw) { return sw.getId() == rightSwitch; });
+                    if (it != switches.end()) {
+                        auto index3 = std::distance(switches.begin(), it3);
+                        Switch requestRightSwitch = switches[index3];
+                        if (dstIP < requestRightSwitch.getIpLow() || dstIP > requestRightSwitch.getIpHigh()) {
+                        } else {
+                            // TODO: make FORWARD rule
+                            FlowEntry forwardRightRule = {
+                                    .srcIP_lo   = 0,
+                                    .srcIP_hi   = MAX_IP,
+                                    .dstIP_lo   = dstIP,
+                                    .dstIP_hi   = dstIP,
+                                    .actionType = FORWARD,
+                                    .actionVal  = requestRightSwitch.getId(),
+                                    .pri        = MIN_PRI,
+                                    .pktCount   = 0
+                            };
+                            return forwardRightRule;
+                        }
+                    }
+                }
+                // all other options exhausted
+                // TODO: make DROP rule
+                FlowEntry drop_rule = {
+                        .srcIP_lo   = 0,
+                        .srcIP_hi   = MAX_IP,
+                        .dstIP_lo   = dstIP,
+                        .dstIP_hi   = dstIP,
+                        .actionType = DROP,
+                        .actionVal  = 0,
+                        .pri        = MIN_PRI,
+                        .pktCount   = 0
+                };
+                return drop_rule;
+            } else {
+                // TODO: make DELIVER rule
+                FlowEntry deliver_rule = {
+                        .srcIP_lo   = 0,
+                        .srcIP_hi   = MAX_IP,
+                        .dstIP_lo   = dstIP,
+                        .dstIP_hi   = dstIP,
+                        .actionType = DELIVER,
+                        .actionVal  = 3,
+                        .pri        = MIN_PRI,
+                        .pktCount   = 0
+                };
+                return deliver_rule;
+            }
+        }
+    } else {
+        // no switch with that ID is found.
+        printf("ERROR: attempted to make rule for switch that is not supported: switchId: %u", switchId);
+        // TODO: make DROP rule
+        // TODO: is this okay behavoir
+        FlowEntry drop_rule = {
+                .srcIP_lo   = 0,
+                .srcIP_hi   = MAX_IP,
+                .dstIP_lo   = dstIP,
+                .dstIP_hi   = dstIP,
+                .actionType = DROP,
+                .actionVal  = 0,
+                .pri        = MIN_PRI,
+                .pktCount   = 0
+        };
+        return drop_rule;
     }
 }

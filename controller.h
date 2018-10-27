@@ -32,6 +32,7 @@ public:
 
     void start();
 
+    FlowEntry makeRule(uint switchId, uint srcIP, uint dstIP);
 private:
     uint nSwitches;
     vector<Switch> switches;
