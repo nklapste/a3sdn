@@ -33,7 +33,7 @@ class Switch {
 public:
     Switch(string &switchId, string &leftSwitchId, string &rightSwitchId, string &trafficFile, uint ipLow, uint ipHigh);
 
-    Switch(uint switchId, uint neighbors, uint ipLow, uint ipHigh);
+    Switch(uint switchId, uint neighbors, int leftSwitchId, int rightSwitchId, uint ipLow, uint ipHigh);
 
     void list();
 
@@ -46,6 +46,8 @@ public:
     int getLeftSwitchId();
 
     int getRightSwitchId();
+
+    int getRule(FlowEntry &flowEntry, uint switchId, uint srcIp, uint dstIp);
 
     void start();
 
