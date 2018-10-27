@@ -137,12 +137,15 @@ void Controller::start() {
                     // and replies with a packet of type ACK
                     uint switchId = static_cast<uint>(stoi(get<1>(packetMessage[0])));
                     uint switchNeighbors = static_cast<uint>(stoi(get<1>(packetMessage[1])));
-                    uint switchIPLow = static_cast<uint>(stoi(get<1>(packetMessage[2])));
-                    uint switchIPHigh = static_cast<uint>(stoi(get<1>(packetMessage[3])));
-                    printf("Parsed OPEN packet: switchID: %u switchNeighbors: %u switchIPLow: %u switchIPHigh: %u\n",
-                           switchId, switchNeighbors, switchIPLow, switchIPHigh);
+                    int leftSwitchId = stoi(get<1>(packetMessage[2]));
+                    int rightSwitchId = stoi(get<1>(packetMessage[3]));
+                    uint switchIPLow = static_cast<uint>(stoi(get<1>(packetMessage[4])));
+                    uint switchIPHigh = static_cast<uint>(stoi(get<1>(packetMessage[5])));
+                    printf("Parsed OPEN packet: switchID: %u switchNeighbors: %u leftSwitchId: %i rightSwitchId: %i switchIPLow: %u switchIPHigh: %u\n",
+                           switchId, switchNeighbors, leftSwitchId, rightSwitchId, switchIPLow, switchIPHigh);
 
-                    switches.emplace_back(Switch(switchId, switchNeighbors, switchIPLow, switchIPHigh));
+                    switches.emplace_back(
+                            Switch(switchId, switchNeighbors, leftSwitchId, rightSwitchId, switchIPLow, switchIPHigh));
 
                     // send ack back to switch
                     printf("Sending ACK back to switchID: %u", switchId);
@@ -161,7 +164,7 @@ void Controller::start() {
                     uint switchId = static_cast<uint>(stoi(get<1>(packetMessage[0])));
                     uint srcIP = static_cast<uint>(stoi(get<1>(packetMessage[1])));
                     uint dstIP = static_cast<uint>(stoi(get<1>(packetMessage[2])));
-                    printf("Parsed QUERY packet: switchId: %u srcIP: %u dstIP: %u",
+                    printf("Parsed QUERY packet: switchId: %u srcIP: %u dstIP: %u\n",
                            switchId, srcIP, dstIP);
 
                     // calculate new flow entry
@@ -214,7 +217,7 @@ FlowEntry Controller::makeRule(uint switchId, uint srcIP, uint dstIP) {
         auto index = std::distance(switches.begin(), it);
         Switch requestSwitch = switches[index];
         // check src ip is invalid
-        if (srcIP < 0 || srcIP > MAX_IP){
+        if (srcIP < 0 || srcIP > MAX_IP) {
             // src ip is invalid make a drop rule
             // TODO: create DROP rule
             FlowEntry drop_rule = {

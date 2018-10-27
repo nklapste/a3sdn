@@ -57,11 +57,11 @@ void Switch::list() {
     printf("sw%u Flow table:\n", switchId);
     for (auto const &flowEntry: flowTable) {
         string actionName;
-        if (flowEntry.actionType == 0){
+        if (flowEntry.actionType == 0) {
             actionName = "DELIVER";
-        } else if (flowEntry.actionType == 1){
+        } else if (flowEntry.actionType == 1) {
             actionName = "FORWARD";
-        } else if (flowEntry.actionType == 2){
+        } else if (flowEntry.actionType == 2) {
             actionName = "DROP";
         }
         printf("[%u] (srcIP= %u-%u dstIP %u-%u action=%s:%u pri= %u pktCount= %u)\n",
@@ -73,9 +73,9 @@ void Switch::list() {
 
     printf("Packet Stats:\n");
     printf("\tReceived:    OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYIN: %u\n",
-            rOpenCount, rAckCount, rQueryCount, rAddCount, rRelayCount);
+           rOpenCount, rAckCount, rQueryCount, rAddCount, rRelayCount);
     printf("\tTransmitted: OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYOUT:%u\n",
-            tOpenCount, tAckCount, tQueryCount, tAddCount, tRelayCount);
+           tOpenCount, tAckCount, tQueryCount, tAddCount, tRelayCount);
 }
 
 /**
@@ -181,6 +181,8 @@ void Switch::start() {
     Message openMessage;
     openMessage.emplace_back(make_tuple("ID", to_string(switchId)));
     openMessage.emplace_back(make_tuple("N", to_string(neighbors)));
+    openMessage.emplace_back(make_tuple("leftSwitchId", to_string(leftSwitchId)));
+    openMessage.emplace_back(make_tuple("rightSwitchId", to_string(rightSwitchId)));
     openMessage.emplace_back(make_tuple("IPLow", to_string(ipLow)));
     openMessage.emplace_back(make_tuple("IPHigh", to_string(ipHigh)));
     Packet openPacket = Packet(OPEN, openMessage);
@@ -211,13 +213,62 @@ void Switch::start() {
                     // TODO: refactor
                     trafficFileItem tfItem = parseTrafficItem(line);
                     uint tfSwitchId = get<0>(tfItem);
-                    uint tfsrcIP = get<0>(tfItem);
-                    uint tfdstIP = get<0>(tfItem);
+                    uint srcIp = get<0>(tfItem);
+                    uint dstIp = get<0>(tfItem);
                     // iterate through flowTable rules
                     for (auto const &flowEntry: flowTable) {
                         // TODO: check for matching rule for packet
                     }
                     // TODO: if no rule is found make query rule
+                    FlowEntry flowEntry = {
+                            .srcIP_lo = 0,
+                            .srcIP_hi = MAX_IP,
+                            .dstIP_lo = ipLow,
+                            .dstIP_hi = ipHigh,
+                            .actionType= FORWARD,
+                            .actionVal=3,
+                            .pri=MIN_PRI,
+                            .pktCount=0
+                    };
+                    int s = getRule(flowEntry, switchId, srcIp, dstIp);
+                    if (s == 1) { // found rule
+                        // we now have a valid rule that ap
+                        if (flowEntry.actionType == DELIVER) {
+                            // TODO: use rules to figure out switch to write to
+                        } else if (flowEntry.actionType == FORWARD) {
+                            // TODO: write RELAY packet
+                            Message relayMessage;
+                            relayMessage.emplace_back(make_tuple("ID", to_string(switchId)));
+                            relayMessage.emplace_back(make_tuple("srcIP", to_string(srcIp)));
+                            relayMessage.emplace_back(make_tuple("dstIP", to_string(dstIp)));
+                            Packet relayPacket = Packet(RELAY, relayMessage);
+
+                            // TODO: get proper connection for left or right switch
+                            if (flowEntry.actionVal == rightSwitchId) {
+                            } else if (flowEntry.actionVal == leftSwitchId) {
+                            } else {
+                                // TODO: error
+                                printf("ERROR: given FORWARD to sw%u this does not match any neighbors",
+                                       flowEntry.actionVal);
+                            }
+                            // TODO: BETTER Switch left right detection
+                            write(connections[1].openSendFIFO(), relayPacket.toString().c_str(),
+                                  strlen(relayPacket.toString().c_str()));
+                            tRelayCount++;
+                        } else if (flowEntry.actionType == DROP) {
+                            // TODO: do nothing
+                        }
+                    } else if (s == -1) { // did not find rule
+                        Message queryMessage;
+                        queryMessage.emplace_back(MessageArg("ID", to_string(Switch::switchId)));
+                        queryMessage.emplace_back(MessageArg("srcIP", to_string(srcIp)));
+                        queryMessage.emplace_back(MessageArg("dstIP", to_string(dstIp)));
+                        Packet queryPacket = Packet(QUERY, queryMessage);
+                        write(connections[0].openSendFIFO(), queryPacket.toString().c_str(),
+                              strlen(queryPacket.toString().c_str()));
+                        tQueryCount++;
+                        // TODO: wait for response and possibly reply?
+                    }
                 }
             } else {
                 trafficFileStream.close();
@@ -321,28 +372,61 @@ void Switch::start() {
                     uint switchId = static_cast<uint>(stoi(get<1>(packetMessage[0])));
                     uint srcIp = static_cast<uint>(stoi(get<1>(packetMessage[1])));
                     uint dstIP = static_cast<uint>(stoi(get<1>(packetMessage[2])));
+                    // TODO: check for matching rule for packet
+                    FlowEntry flowEntry = {
+                            .srcIP_lo = 0,
+                            .srcIP_hi = MAX_IP,
+                            .dstIP_lo = ipLow,
+                            .dstIP_hi = ipHigh,
+                            .actionType= FORWARD,
+                            .actionVal=3,
+                            .pri=MIN_PRI,
+                            .pktCount=0
+                    };
+                    int s = getRule(flowEntry, switchId, srcIp, dstIP);
+                    if (s == 1) { // found rule
+                        // we now have a valid rule that ap
+                        if (flowEntry.actionType == DELIVER) {
+                            // TODO: use rules to figure out switch to write to
+                        } else if (flowEntry.actionType == FORWARD) {
+                            // TODO: write RELAY packet
+                            Message relayMessage;
+                            relayMessage.emplace_back(make_tuple("ID", to_string(switchId)));
+                            relayMessage.emplace_back(make_tuple("srcIP", to_string(srcIp)));
+                            relayMessage.emplace_back(make_tuple("dstIP", to_string(dstIP)));
+                            Packet relayPacket = Packet(RELAY, relayMessage);
 
-                    // iterate through flowTable rules
-                    for (auto const &flowEntry: flowTable) {
-                        // TODO: check for matching rule for packet
+                            // TODO: get proper connection for left or right switch
+                            if (flowEntry.actionVal == rightSwitchId) {
+                            } else if (flowEntry.actionVal == leftSwitchId) {
+                            } else {
+                                // TODO: error
+                                printf("ERROR: given FORWARD to sw%u this does not match any neighbors",
+                                       flowEntry.actionVal);
+                            }
+                            // TODO: BETTER Switch left right detection
+                            write(connections[1].openSendFIFO(), relayPacket.toString().c_str(),
+                                  strlen(relayPacket.toString().c_str()));
+                            tRelayCount++;
+                        } else if (flowEntry.actionType == DROP) {
+                            // TODO: do nothing
+                        }
+                    } else if (s == -1) { // did not find rule
+                        Message queryMessage;
+                        queryMessage.emplace_back(MessageArg("ID", to_string(Switch::switchId)));
+                        queryMessage.emplace_back(MessageArg("srcIP", to_string(srcIp)));
+                        queryMessage.emplace_back(MessageArg("dstIP", to_string(dstIP)));
+                        Packet queryPacket = Packet(QUERY, queryMessage);
+                        write(connections[0].openSendFIFO(), queryPacket.toString().c_str(),
+                              strlen(queryPacket.toString().c_str()));
+                        tQueryCount++;
+                        // TODO: wait for response and possibly reply?
                     }
-                    // TODO: if no rule is found make QUERY
-
-//                    // TODO: use rules to figure out switch to write to
-//                    uint targetSwitch; // TODO: INIT
-//                    // TODO: parse RELAY packet
-//                    Message relayMessage;
-//                    relayMessage.emplace_back(make_tuple("ID", "sw" + to_string(switchId)));
-//                    relayMessage.emplace_back(make_tuple("srcIP", srcIp));
-//                    relayMessage.emplace_back(make_tuple("dstIP", dstIP));
-//                    Packet relayPacket = Packet(RELAY, relayMessage);
-//                    write(connections[targetSwitch].openSendFIFO(), relayPacket.toString().c_str(), strlen(relayPacket.toString().c_str()));
-                        tRelayCount++;
-                }  else {
+                } else {
                     // controller does nothing on ack, add, and relay
-                    if (packet.getType() == ACK ) {
+                    if (packet.getType() == ACK) {
                         rAckCount++;
-                    } else if(packet.getType() == OPEN){
+                    } else if (packet.getType() == OPEN) {
                         rOpenCount++;
                     } else if (packet.getType() == RELAY) {
                         rQueryCount++;
@@ -365,8 +449,14 @@ void Switch::start() {
  * @param ipLow
  * @param ipHigh
  */
-Switch::Switch(uint switchId, uint neighbors, uint ipLow, uint ipHigh) : switchId(switchId), neighbors(neighbors),
-                                                                         ipLow(ipLow), ipHigh(ipHigh) {
+Switch::Switch(uint switchId, uint neighbors, int leftSwitchId, int rightSwitchId, uint ipLow, uint ipHigh) : switchId(
+        switchId), neighbors(neighbors),
+                                                                                                              leftSwitchId(
+                                                                                                                      leftSwitchId),
+                                                                                                              rightSwitchId(
+                                                                                                                      rightSwitchId),
+                                                                                                              ipLow(ipLow),
+                                                                                                              ipHigh(ipHigh) {
 
 }
 
@@ -408,7 +498,6 @@ int Switch::getRightSwitchId() {
     return rightSwitchId;
 }
 
-
 /**
  * Getter for a switch's {@code leftSwitchId}
  *
@@ -419,3 +508,47 @@ int Switch::getRightSwitchId() {
 int Switch::getLeftSwitchId() {
     return leftSwitchId;
 }
+
+/**
+ * Attempt to get a rule for a specific traffic packet item.
+ *
+ * @param switchId
+ * @param srcIp
+ * @param dstIp
+ * @return {@code FlowEntry}
+ */
+int Switch::getRule(FlowEntry &oflowEntry, uint switchId, uint srcIp, uint dstIp) {
+    // iterate through flowTable rules
+    for (auto const &flowEntry: flowTable) {
+        // ensure valid src
+        if (srcIp >= flowEntry.srcIP_lo || srcIp <= flowEntry.srcIP_hi) {
+            // ensure valid dst
+            if (dstIp >= flowEntry.dstIP_lo || dstIp <= flowEntry.dstIP_hi) {
+                string actionName;
+                if (flowEntry.actionType == 0) {
+                    actionName = "DELIVER";
+                } else if (flowEntry.actionType == 1) {
+                    actionName = "FORWARD";
+                } else if (flowEntry.actionType == 2) {
+                    actionName = "DROP";
+                }
+                printf("found matching flowtable rule: (srcIP= %u-%u dstIP %u-%u action=%s:%u pri= %u pktCount= %u)\n",
+                       flowEntry.srcIP_lo, flowEntry.srcIP_hi, flowEntry.dstIP_lo, flowEntry.dstIP_hi,
+                       actionName.c_str(), flowEntry.actionVal, flowEntry.pri, flowEntry.pktCount);
+
+                oflowEntry.srcIP_lo = flowEntry.srcIP_lo;
+                oflowEntry.srcIP_hi = flowEntry.srcIP_hi;
+                oflowEntry.dstIP_lo = flowEntry.dstIP_lo;
+                oflowEntry.dstIP_hi = flowEntry.dstIP_hi;
+                oflowEntry.actionType = flowEntry.actionType;
+                oflowEntry.actionVal = flowEntry.actionVal;
+                oflowEntry.pri = flowEntry.pri;
+                oflowEntry.pktCount = flowEntry.pktCount;
+
+                return 1;
+            }
+        }
+    }
+    return -1;
+}
+
