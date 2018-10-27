@@ -1,16 +1,26 @@
-//
-// Created by ubuntu-dev on 24/10/18.
-//
+/**
+ * a2sdn connection.cpp
+ *
+ * @author Nathan Klapstein (nklapste)
+ * @version 0.0.0
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
 #include "connection.h"
 
 using namespace std;
 
+/**
+ * Make a FIFO for a {@code Connection}.
+ *
+ * @param FIFOName the name to be given to the FIFO.
+ */
 void Connection::makeFIFO(string &FIFOName) {
     int status = mkfifo(FIFOName.c_str(), S_IRUSR | S_IWUSR | S_IRGRP |
                                           S_IWGRP | S_IROTH | S_IWOTH | O_NONBLOCK);
@@ -64,6 +74,7 @@ string Connection::getSendFIFOName() {
 }
 
 /**
+ * Generate a FIFO name based from the sender's id and receiver's id.
  *
  * @param senderId
  * @param receiverId
@@ -72,7 +83,6 @@ string Connection::getSendFIFOName() {
 const string Connection::makeFIFOName(uint senderId, uint receiverId) {
     return "fifo-" + std::to_string(senderId) + "-" + std::to_string(receiverId);
 }
-
 
 /**
  *
