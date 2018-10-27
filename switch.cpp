@@ -48,36 +48,34 @@ uint parseSwitchId(const string &switchId) {
     }
 }
 
-// TODO: controller should use this to
 /**
  * The program writes all entries in the flow table, and for each transmitted or received
  * packet type, the program writes an aggregate count of handled packets of this type
  */
 void Switch::list() {
     uint counter = 0;
-    printf("listing active flow table rules for switch: sw%u \n", switchId);
+    printf("sw%u Flow table:\n", switchId);
     for (auto const &flowEntry: flowTable) {
-        printf("\tflowTable rule %u:\tsrcIP_lo: %u srcIP_hi: %u dstIP_lo: %u dstIP_hi: %u actionType: %u actionVal: %u pri: %u pktCount: %u\n",
+        string actionName;
+        if (flowEntry.actionType == 0){
+            actionName = "DELIVER";
+        } else if (flowEntry.actionType == 1){
+            actionName = "FORWARD";
+        } else if (flowEntry.actionType == 2){
+            actionName = "DROP";
+        }
+        printf("[%u] (srcIP= %u-%u dstIP %u-%u action=%s:%u pri= %u pktCount= %u)\n",
                counter,
                flowEntry.srcIP_lo, flowEntry.srcIP_hi, flowEntry.dstIP_lo, flowEntry.dstIP_hi,
-               flowEntry.actionType, flowEntry.actionVal, flowEntry.pri, flowEntry.pktCount);
+               actionName.c_str(), flowEntry.actionVal, flowEntry.pri, flowEntry.pktCount);
         counter++;
     }
 
     printf("Packet Stats:\n");
-    printf("\tReceived:    ");
-    printf("OPEN:%u, ",rOpenCount);
-    printf("ACK:%u, ",rAckCount);
-    printf("QUERY:%u, ",rQueryCount);
-    printf("ADDRULE:%u, ",rAddCount);
-    printf("RELAYIN:%u\n",rRelayCount);
-
-    printf("\tTransmitted: ");
-    printf("OPEN:%u, ",tOpenCount);
-    printf("ACK:%u, ",tAckCount);
-    printf("QUERY:%u, ",tQueryCount);
-    printf("ADDRULE:%u, ",tAddCount);
-    printf("RELAYOUT:%u\n",tRelayCount);
+    printf("\tReceived:    OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYIN: %u\n",
+            rOpenCount, rAckCount, rQueryCount, rAddCount, rRelayCount);
+    printf("\tTransmitted: OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYOUT:%u\n",
+            tOpenCount, tAckCount, tQueryCount, tAddCount, tRelayCount);
 }
 
 /**
