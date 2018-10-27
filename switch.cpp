@@ -23,11 +23,6 @@
 #include "controller.h"
 #include "packet.h"
 
-#define STDIN_INDEX 0
-#define CONTROLLER_INDEX 1
-#define LEFT_SWITCH_INDEX 2
-#define RIGHT_SWITCH_INDEX 3
-
 using namespace std;
 
 /**
@@ -88,12 +83,12 @@ Switch::Switch(string &switchId, string &leftSwitchId, string &rightSwitchId, st
      *   [srcIP lo= 0, srcIP hi= MAXIP, destIP lo= IPlow, destIP hi= IPhigh,
      *   actionType= FORWARD, actionVal= 3, pri= MINPRI, pktCount= 0]
      */
-    flowEntry init_rule = {
+    FlowEntry init_rule = {
             .srcIP_lo = 0,
             .srcIP_hi = MAX_IP,
             .dstIP_lo = ipLow,
             .dstIP_hi = ipHigh,
-            .actionType= FORWARD,  // TODO: help ambiguous
+            .actionType= FORWARD,
             .actionVal=3,
             .pri=MIN_PRI,
             .pktCount=0
@@ -196,7 +191,15 @@ void Switch::start() {
                     printf("ignoring line specifying another switch\n");
                 } else {
                     printf("found line specifying self: %s\n", line.c_str());
-                    parseTrafficItem(line);
+                    // TODO: refactor
+                    trafficFileItem tfItem = parseTrafficItem(line);
+                    uint tfSwitchId = get<0>(tfItem);
+                    uint tfsrcIP = get<0>(tfItem);
+                    uint tfdstIP = get<0>(tfItem);
+                    // iterate through flowTable rules
+                    for (auto const &flowEntry: flowTable) {
+                        // TODO: check for matching rule for packet
+                    }
                 }
             } else {
                 trafficFileStream.close();
@@ -279,7 +282,7 @@ void Switch::start() {
                            packetType.c_str(), srcIP_lo, srcIP_hi, dstIP_lo, dstIP_hi, actionType, actionVal, pri,
                            pktCount);
 
-                    flowEntry newRule = {
+                    FlowEntry newRule = {
                             .srcIP_lo   = srcIP_lo,
                             .srcIP_hi   = srcIP_hi,
                             .dstIP_lo   = dstIP_lo,
@@ -297,6 +300,12 @@ void Switch::start() {
                     uint switchId = static_cast<uint>(stoi(get<1>(packetMessage[0])));
                     uint srcIp = static_cast<uint>(stoi(get<1>(packetMessage[1])));
                     uint dstIP = static_cast<uint>(stoi(get<1>(packetMessage[2])));
+
+                    // iterate through flowTable rules
+                    for (auto const &flowEntry: flowTable) {
+                        // TODO: check for matching rule for packet
+                    }
+
 //
 //                    // TODO: use rules to figure out switch to write to
 //                    uint targetSwitch; // TODO: INIT

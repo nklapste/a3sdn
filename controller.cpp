@@ -42,8 +42,6 @@ Controller::Controller(uint nSwitches) : nSwitches(nSwitches) {
     for (uint switch_i = 1; switch_i <= nSwitches; ++switch_i) {
         connections.emplace_back(CONTROLLER_ID, switch_i);
     }
-    printf("Created controller\n");
-
 }
 
 /**
@@ -147,7 +145,6 @@ void Controller::start() {
                            switchId, switchNeighbors, switchIPLow, switchIPHigh);
 
                     switches.emplace_back(Switch(switchId, switchNeighbors, switchIPLow, switchIPHigh));
-
 
                     // send ack back to switch
                     printf("Sending ACK back to switchID: %u", switchId);

@@ -8,10 +8,10 @@
 #ifndef A2SDN_CONTROLLER_H
 #define A2SDN_CONTROLLER_H
 
-
 #include <string>
 #include <tuple>
 #include <vector>
+
 #include "connection.h"
 #include "switch.h"
 

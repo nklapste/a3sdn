@@ -1,6 +1,9 @@
-//
-// Created by ubuntu-dev on 24/10/18.
-//
+/**
+ * a2sdn connection.h
+ *
+ * @author Nathan Klapstein (nklapste)
+ * @version 0.0.0
+ */
 
 #ifndef A2SDN_FIFO_H
 #define A2SDN_FIFO_H

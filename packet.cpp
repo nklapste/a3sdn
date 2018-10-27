@@ -1,13 +1,16 @@
+/**
+ * a2sdn packet.cpp
+ *
+ * @author Nathan Klapstein (nklapste)
+ * @version 0.0.0
+ */
+
 #include <utility>
-
-//
-// Created by nklap on 2018-10-26.
-//
-
 #include <iterator>
 #include <sstream>
 #include <string>
 #include <tuple>
+
 #include "packet.h"
 
 string Packet::getType() {

@@ -10,6 +10,7 @@
 
 #include <string>
 #include <vector>
+
 #include "connection.h"
 
 #define NULL_ID "null"
@@ -23,7 +24,7 @@ using namespace std;
 #define MIN_PRI 4
 #define MAX_IP 1000
 
-struct flowEntry {
+struct FlowEntry {
     uint srcIP_lo;
     uint srcIP_hi;
     uint dstIP_lo;
@@ -40,7 +41,7 @@ struct flowEntry {
  */
 typedef tuple<uint, uint, uint> trafficFileItem;
 
-typedef std::vector<flowEntry> FlowTable;
+typedef std::vector<FlowEntry> FlowTable;
 
 class Switch {
 public:
