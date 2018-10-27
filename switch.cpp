@@ -258,7 +258,7 @@ void Switch::start() {
          * 3. Poll the incoming FIFOs from the controller and the attached switches. The switch handles
          *    each incoming packet, as described in the Packet Types.
          *
-         *    In addition,  upon receiving signal USER1, the switch displays the information specified by the list command
+         *    TODO: In addition,  upon receiving signal USER1, the switch displays the information specified by the list command
          */
         // iterate through each Connection (FIFO pair)
         for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
