@@ -22,7 +22,7 @@
 
 using namespace std;
 
-typedef tuple<uint, uint> ipRange;
+typedef tuple<uint, uint> IPRange;
 
 class Controller {
 public:
@@ -32,7 +32,7 @@ public:
 
     void start();
 
-    FlowEntry makeRule(uint switchId, uint srcIP, uint dstIP);
+    FlowEntry makeRule(uint switchID, uint srcIP, uint dstIP);
 
 private:
     uint nSwitches;
