@@ -245,7 +245,6 @@ FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
                         Switch requestLeftSwitch = switches[index2];
                         if (dstIP < requestLeftSwitch.getIPLow() || dstIP > requestLeftSwitch.getIPHigh()) {
                         } else {
-                            // TODO: make FORWARD rule
                             FlowEntry forwardLeftRule = {
                                     .srcIP_lo   = 0,
                                     .srcIP_hi   = MAX_IP,
@@ -270,7 +269,6 @@ FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
                         Switch requestRightSwitch = switches[index3];
                         if (dstIP < requestRightSwitch.getIPLow() || dstIP > requestRightSwitch.getIPHigh()) {
                         } else {
-                            // TODO: make FORWARD rule
                             FlowEntry forwardRightRule = {
                                     .srcIP_lo   = 0,
                                     .srcIP_hi   = MAX_IP,
@@ -286,7 +284,6 @@ FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
                     }
                 }
                 // all other options exhausted
-                // TODO: make DROP rule
                 FlowEntry drop_rule = {
                         .srcIP_lo   = 0,
                         .srcIP_hi   = MAX_IP,
@@ -299,7 +296,6 @@ FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
                 };
                 return drop_rule;
             } else {
-                // TODO: make DELIVER rule
                 FlowEntry deliver_rule = {
                         .srcIP_lo   = 0,
                         .srcIP_hi   = MAX_IP,
@@ -316,7 +312,6 @@ FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
     } else {
         // no switch with that ID is found.
         printf("ERROR: attempted to make rule for switch that is not supported: switchID: %u", switchID);
-        // TODO: make DROP rule
         // TODO: is this okay behavoir
         FlowEntry drop_rule = {
                 .srcIP_lo   = 0,
