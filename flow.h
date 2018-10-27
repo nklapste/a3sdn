@@ -9,6 +9,9 @@
 #ifndef A2SDN_FLOW_H
 #define A2SDN_FLOW_H
 
+#include <sys/types.h>
+#include <vector>
+
 using namespace std;
 
 struct FlowEntry {
