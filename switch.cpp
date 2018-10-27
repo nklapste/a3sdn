@@ -8,7 +8,10 @@
 #include <sys/types.h>
 #include <cstdio>
 #include <cstdlib>
+
 #include "switch.h"
+#include "controller.h"
+#include "packet.h"
 
 /*FIFO stuff*/
 #include <sys/types.h>
@@ -20,8 +23,6 @@
 #include <fstream>
 #include <unistd.h>
 #include <poll.h>
-#include "controller.h"
-#include "packet.h"
 
 using namespace std;
 
@@ -62,7 +63,21 @@ void Switch::list() {
                flowEntry.actionType, flowEntry.actionVal, flowEntry.pri, flowEntry.pktCount);
         counter++;
     }
-    // TODO:
+
+    printf("Packet Stats:\n");
+    printf("\tReceived:    ");
+    printf("OPEN:%u, ",rOpenCount);
+    printf("ACK:%u, ",rAckCount);
+    printf("QUERY:%u, ",rQueryCount);
+    printf("ADDRULE:%u, ",rAddCount);
+    printf("RELAYIN:%u\n",rRelayCount);
+
+    printf("\tTransmitted: ");
+    printf("OPEN:%u, ",tOpenCount);
+    printf("ACK:%u, ",tAckCount);
+    printf("QUERY:%u, ",tQueryCount);
+    printf("ADDRULE:%u, ",tAddCount);
+    printf("RELAYOUT:%u\n",tRelayCount);
 }
 
 /**
@@ -111,6 +126,8 @@ Switch::Switch(string &switchId, string &leftSwitchId, string &rightSwitchId, st
         neighbors++;
         Switch::leftSwitchId = parseSwitchId(leftSwitchId);
         connections.emplace_back(Connection(Switch::switchId, Switch::leftSwitchId));
+    } else {
+        Switch::leftSwitchId = -1;
     }
     // create Connection to the right switch
     // can potentially be a nullptr
@@ -118,6 +135,8 @@ Switch::Switch(string &switchId, string &leftSwitchId, string &rightSwitchId, st
         neighbors++;
         Switch::rightSwitchId = parseSwitchId(rightSwitchId);
         connections.emplace_back(Connection(Switch::switchId, Switch::rightSwitchId));
+    } else {
+        Switch::rightSwitchId = -1;
     }
     printf("I am switch: %i\n", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 }
@@ -144,24 +163,23 @@ trafficFileItem parseTrafficItem(string &trafficFileLine) {
  * Start the {@code Switch} loop.
  */
 void Switch::start() {
+    bool firstAck = true;
     char buf[1024];
     struct pollfd pfds[connections.size() + 1];
 
     // get fd for stdin
     pfds[0].fd = STDIN_FILENO;
-    bool firstAck = true;
     string line;
     ifstream trafficFileStream(trafficFile);
 
-    // TODO: can simplify
     for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
-        printf("pfds[%lu] has connection: %s\n", 2 * i, connections[i - 1].getSendFIFOName().c_str());
-        pfds[2 * i].fd = connections[i - 1].openSendFIFO();
-        printf("pfds[%lu] has connection: %s\n", 2 * i - 1, connections[i - 1].getReceiveFIFOName().c_str());
-        pfds[2 * i - 1].fd = connections[i - 1].openReceiveFIFO();
+        printf("pfds[%lu] has connection: %s\n", i, connections[i - 1].getReceiveFIFOName().c_str());
+        pfds[i].fd = connections[i - 1].openReceiveFIFO();
     }
 
-    // send a OPEN packer to the controller
+    // When a switch starts, it sends an OPEN packet to the controller.
+    // The carried message contains the switch number, the numbers of its neighbouring switches (if any),
+    // and the range of IP addresses served by the switch.
     Message openMessage;
     openMessage.emplace_back(make_tuple("ID", to_string(switchId)));
     openMessage.emplace_back(make_tuple("N", to_string(neighbors)));
@@ -169,6 +187,7 @@ void Switch::start() {
     openMessage.emplace_back(make_tuple("IPHigh", to_string(ipHigh)));
     Packet openPacket = Packet(OPEN, openMessage);
     write(connections[0].openSendFIFO(), openPacket.toString().c_str(), strlen(openPacket.toString().c_str()));
+    tOpenCount++;
     // TODO: wait for ack?
 
     for (;;) {
@@ -200,6 +219,7 @@ void Switch::start() {
                     for (auto const &flowEntry: flowTable) {
                         // TODO: check for matching rule for packet
                     }
+                    // TODO: if no rule is found make query rule
                 }
             } else {
                 trafficFileStream.close();
@@ -244,10 +264,10 @@ void Switch::start() {
          */
         // iterate through each Connection (FIFO pair)
         for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
-            if (pfds[2 * i - 1].revents & POLLIN) {
-                printf("pfds[%lu] has connection POLLIN event: %s\n", 2 * i - 1,
+            if (pfds[i].revents & POLLIN) {
+                printf("pfds[%lu] has connection POLLIN event: %s\n", i,
                        connections[i - 1].getReceiveFIFOName().c_str());
-                int r = read(pfds[2 * i - 1].fd, buf, 1024);
+                int r = read(pfds[i].fd, buf, 1024);
                 if (!r) {
                     printf("WARNING: receiveFIFO closed\n");
                 }
@@ -255,17 +275,19 @@ void Switch::start() {
                 // TODO: debug
                 printf("DEBUG: Received output: %s\n", cmd.c_str());
 
-                // TODO: handle packets
                 Packet packet = Packet(cmd);
                 string packetType = packet.getType();
                 Message packetMessage = packet.getMessage();
                 printf("Parsed packet: %s\n", packet.toString().c_str());
                 if (firstAck && packetType == ACK) {
+                    rAckCount++;
                     // do nothing on ack
                     firstAck = false;
                     printf("%s packet received: %s\n", packetType.c_str(), packet.toString().c_str());
                 } else if (packetType == ADD) {
-                    //ADD
+                    rAddCount++;
+
+                    // ADD
                     // The switch then stores and
                     // applies the received rule
                     uint srcIP_lo = static_cast<uint>(stoi(get<1>(packetMessage[0])));
@@ -294,6 +316,7 @@ void Switch::start() {
                     };
                     flowTable.emplace_back(newRule);
                 } else if (packetType == RELAY) {
+                    rRelayCount++;
                     // A switch may forward a received packet header to a neighbour (as instructed by a
                     // matching rule in the flow table).  This information is passed to the neighbour in a
                     // RELAY packet.
@@ -305,23 +328,28 @@ void Switch::start() {
                     for (auto const &flowEntry: flowTable) {
                         // TODO: check for matching rule for packet
                     }
+                    // TODO: if no rule is found make QUERY
 
-//
 //                    // TODO: use rules to figure out switch to write to
 //                    uint targetSwitch; // TODO: INIT
 //                    // TODO: parse RELAY packet
 //                    Message relayMessage;
-//                    relayMessage.emplace_back(make_tuple("ID", "sw"+to_string(switchId)));
+//                    relayMessage.emplace_back(make_tuple("ID", "sw" + to_string(switchId)));
 //                    relayMessage.emplace_back(make_tuple("srcIP", srcIp));
 //                    relayMessage.emplace_back(make_tuple("dstIP", dstIP));
 //                    Packet relayPacket = Packet(RELAY, relayMessage);
 //                    write(connections[targetSwitch].openSendFIFO(), relayPacket.toString().c_str(), strlen(relayPacket.toString().c_str()));
-                } else if (packetType == OPEN || packetType == QUERY) {
-                    // switch does not handle open, or query
-                    printf("ERROR: unexpected %s packet received: %s", packetType.c_str(),
-                           packet.toString().c_str());
-                } else {
-                    printf("ERROR: unknown packet received: %s\n", cmd.c_str());
+                        tRelayCount++;
+                }  else {
+                    // controller does nothing on ack, add, and relay
+                    if (packet.getType() == ACK ) {
+                        rAckCount++;
+                    } else if(packet.getType() == OPEN){
+                        rOpenCount++;
+                    } else if (packet.getType() == RELAY) {
+                        rQueryCount++;
+                    }
+                    printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
                 }
             }
         }
@@ -329,9 +357,11 @@ void Switch::start() {
     }
 }
 
-// TODO: doc
 /**
- * USED FOR CONROLLER
+ * Constructor by the controller to make a switch for upkeep.
+ *
+ * Note: this constructor not intended for actual usage by invoking the {@code start()} method.
+ *
  * @param switchId
  * @param neighbors
  * @param ipLow
@@ -342,3 +372,52 @@ Switch::Switch(uint switchId, uint neighbors, uint ipLow, uint ipHigh) : switchI
 
 }
 
+/**
+ * Getter for a switch's {@code switchId}.
+ *
+ * @return {@code uint}
+ */
+uint Switch::getId() {
+    return switchId;
+}
+
+/**
+ * Getter for a switch's {@code ipHigh}.
+ *
+ * @return {@code uint}
+ */
+uint Switch::getIpHigh() {
+    return ipHigh;
+}
+
+/**
+ * Getter for a switch's {@code ipLow}.
+ *
+ * @return {@code uint}
+ */
+uint Switch::getIpLow() {
+    return ipLow;
+}
+
+/**
+ * Getter for a switch's {@code rightSwitchId}
+ *
+ * Note: if the switch does not have a right neighboring switch {@code -1} will be returned.
+ *
+ * @return {@code int}
+ */
+int Switch::getRightSwitchId() {
+    return rightSwitchId;
+}
+
+
+/**
+ * Getter for a switch's {@code leftSwitchId}
+ *
+ * Note: if the switch does not have a left neighboring switch {@code -1} will be returned.
+ *
+ * @return {@code int}
+ */
+int Switch::getLeftSwitchId() {
+    return leftSwitchId;
+}

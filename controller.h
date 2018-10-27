@@ -28,12 +28,32 @@ class Controller {
 public:
     explicit Controller(uint nSwitches);
 
+    void list();
+
     void start();
 
 private:
     uint nSwitches;
     vector<Switch> switches;
     vector<Connection> connections;
+
+    /**
+     * Counts of {@code Packets} received.
+     */
+    uint rOpenCount = 0;
+    uint rAddCount = 0;
+    uint rAckCount = 0;
+    uint rRelayCount = 0;
+    uint rQueryCount = 0;
+
+    /**
+     * Counts of {@code Packets} transmitted.
+     */
+    uint tOpenCount = 0;
+    uint tAddCount = 0;
+    uint tAckCount = 0;
+    uint tRelayCount = 0;
+    uint tQueryCount = 0;
 };
 
 #endif //A2SDN_CONTROLLER_H

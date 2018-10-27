@@ -31,20 +31,24 @@ Packet::Packet(string &packetRaw) {
     }
 }
 
+/**
+ * Parse a string to check if it is a valid packet type.
+ *
+ * Valid strings include:
+ *  - "OPEN"
+ *  - "ACK"
+ *  - "QUERY"
+ *  - "ADD"
+ *  - "RELAY"
+ *
+ * @param type {@code std::string}
+ * @return {@code std::string}
+ */
 string Packet::parseType(string &type) {
-    if (type == OPEN) {
-
-    } else if (type == ACK) {
-
-    } else if (type == QUERY) {
-
-    } else if (type == ADD) {
-
-    } else if (type == RELAY) {
+    if (type == OPEN || type == ACK || type == QUERY || type == ADD || type == RELAY) {
 
     } else {
         errno = EINVAL;
-        // TODO: maybe use printf
         perror("Invalid type for packet");
     }
     return type;
@@ -52,9 +56,10 @@ string Packet::parseType(string &type) {
 
 
 /**
+ * Parse a string into a valid {@code Packet} {@code Message}
  *
- * @param messageRaw
- * @return
+ * @param messageRaw {@code std::string
+ * @return {@code Message}
  */
 Message Packet::parseMessage(string &messageRaw) {
     Message message;
@@ -73,6 +78,11 @@ Message Packet::parseMessage(string &messageRaw) {
     return message;
 }
 
+/**
+ * Getter method for a {@code Packet}'s message.
+ *
+ * @return {@code Message}
+ */
 Message Packet::getMessage() {
     return message;
 }
@@ -84,13 +94,14 @@ Packet::Packet(string type, Message message) {
 
 /**
  * Get a serial string version of the packet ready to be written out.
- * @return {@code std::string}
+ *
+ * @return {@code std::string} the serial string version of a {@code Packet}.
  */
 string Packet::toString() {
-    string str = type + ":";
+    string packetStr = type + ":";
     for (auto const &MessageArg: message) {
-        str.append(" " + get<0>(MessageArg) + ":" + get<1>(MessageArg));
+        packetStr.append(" " + get<0>(MessageArg) + ":" + get<1>(MessageArg));
     }
-    return str;
+    return packetStr;
 }
 
