@@ -25,27 +25,27 @@ using namespace std;
 ////////////////////////////////
 
 /**
- * Parse the ip range argument. Which follows the format ipLow-ipHigh.
+ * Parse the IP range argument. Which follows the format IPLow-IPHigh.
  *
- * @param ipRangeString
- * @return {@code ipRange} a tuple of (ipLow, ipHigh)
+ * @param IPRangeString
+ * @return {@code IPRange} a tuple of (IPLow, IPHigh)
  */
-ipRange parseIPRange(const string &ipRangeString) {
+IPRange parseIPRange(const string &IPRangeString) {
     string delimiter = "-";
-    uint ipLow = static_cast<uint>(stoi(ipRangeString.substr(0, ipRangeString.find(delimiter))));
-    uint ipHigh = static_cast<uint>(stoi(
-            ipRangeString.substr(ipRangeString.find(delimiter) + 1, ipRangeString.size() - 1)));
-    if (ipLow > ipHigh) {
-        printf("ERROR: invalid ip range:\n"
-               "\tipLow: %u greater than ipHigh: %u", ipLow, ipHigh);
+    uint IPLow = static_cast<uint>(stoi(IPRangeString.substr(0, IPRangeString.find(delimiter))));
+    uint IPHigh = static_cast<uint>(stoi(
+            IPRangeString.substr(IPRangeString.find(delimiter) + 1, IPRangeString.size() - 1)));
+    if (IPLow > IPHigh) {
+        printf("ERROR: invalid IP range:\n"
+               "\tIPLow: %u greater than IPHigh: %u", IPLow, IPHigh);
         exit(1);
     }
-    if (ipHigh - ipLow > MAXIP) {
-        printf("ERROR: invalid ip range:\n"
-               "\tip range is too large: %u", ipHigh - ipLow);
+    if (IPHigh - IPLow > MAXIP) {
+        printf("ERROR: invalid IP range:\n"
+               "\tIP range is too large: %u", IPHigh - IPLow);
         exit(1);
     }
-    return make_tuple(ipLow, ipHigh);
+    return make_tuple(IPLow, IPHigh);
 }
 
 
@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
     if (argc < 3 || argc > 6) {
         printf("ERROR: invalid argument format:\n"
                "\tPlease follow controller mode: 'a2sdn cont nSwitch'\n"
-               "\tOr follow switch mode:         'a2sdn swi trafficFile [null|swj] [null|swk] ipLow-IPhigh'\n");
+               "\tOr follow switch mode:         'a2sdn swi trafficFile [null|swj] [null|swk] IPLow-IPhigh'\n");
         exit(1);
     }
     string mode = argv[1];
@@ -82,15 +82,15 @@ int main(int argc, char **argv) {
         // parse switch mode arguments
         if (argc != 6) {
             printf("ERROR: invalid arguments for switch mode:\n"
-                   "\tFor switch mode: 'a2sdn swi trafficFile [null|swj] [null|swk] ipLow-IPhig'\n");
+                   "\tFor switch mode: 'a2sdn swi trafficFile [null|swj] [null|swk] IPLow-IPhig'\n");
             exit(1);
         }
         string switchId = argv[1];
         string trafficFile = argv[2];
         string leftSwitchId = argv[3];
         string rightSwitchId = argv[4];
-        ipRange ipRange1 = parseIPRange(argv[5]);
-        Switch aSwitch = Switch(switchId, leftSwitchId, rightSwitchId, trafficFile, get<0>(ipRange1), get<1>(ipRange1));
+        IPRange IPRange1 = parseIPRange(argv[5]);
+        Switch aSwitch = Switch(switchId, leftSwitchId, rightSwitchId, trafficFile, get<0>(IPRange1), get<1>(IPRange1));
         aSwitch.start();
     }
     return 0;

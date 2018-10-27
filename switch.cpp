@@ -28,22 +28,22 @@ using namespace std;
 
 /**
  * Parse the switch id. Should match the format {@code 'swi'} where {@code 'i'} is a numeric.
- * @param switchId
+ * @param switchID
  * @return
  */
-uint parseSwitchId(const string &switchId) {
+uint parseSwitchID(const string &switchID) {
     regex rgx("(sw)([1-9]+[0-9]*)");
     match_results<string::const_iterator> matches;
 
-    std::regex_match(switchId, matches, rgx);
+    std::regex_match(switchID, matches, rgx);
     for (std::size_t index = 1; index < matches.size(); ++index) {
     }
 
-    if (std::regex_search(switchId, matches, rgx)) {
+    if (std::regex_search(switchID, matches, rgx)) {
         return static_cast<uint>(std::stoi(matches[2], nullptr, 10));
     } else {
         // we failed to parse the switch id
-        printf("ERROR: invalid switch id argument: %s\n", switchId.c_str());
+        printf("ERROR: invalid switch id argument: %s\n", switchID.c_str());
         exit(1);
     }
 }
@@ -54,7 +54,7 @@ uint parseSwitchId(const string &switchId) {
  */
 void Switch::list() {
     uint counter = 0;
-    printf("sw%u Flow table:\n", switchId);
+    printf("sw%u Flow table:\n", switchID);
     for (auto const &flowEntry: flowTable) {
         string actionName;
         if (flowEntry.actionType == 0) {
@@ -81,17 +81,17 @@ void Switch::list() {
 /**
  * Initialize a switch.
  *
- * @param switchId
- * @param leftSwitchId
- * @param rightSwitchId
+ * @param switchID
+ * @param leftSwitchID
+ * @param rightSwitchID
  * @param trafficFile
- * @param ipLow
- * @param ipHigh
+ * @param IPLow
+ * @param IPHigh
  */
-Switch::Switch(string &switchId, string &leftSwitchId, string &rightSwitchId, string &trafficFile, uint ipLow,
-               uint ipHigh) {
-    printf("Creating switch: %s trafficFile: %s swj: %s swk: %s ipLow: %u ipHigh: %u\n",
-           switchId.c_str(), trafficFile.c_str(), leftSwitchId.c_str(), rightSwitchId.c_str(), ipLow, ipHigh);
+Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, string &trafficFile, uint IPLow,
+               uint IPHigh) {
+    printf("Creating switch: %s trafficFile: %s swj: %s swk: %s IPLow: %u IPHigh: %u\n",
+           switchID.c_str(), trafficFile.c_str(), leftSwitchID.c_str(), rightSwitchID.c_str(), IPLow, IPHigh);
     /*
      *   [srcIP lo= 0, srcIP hi= MAXIP, destIP lo= IPlow, destIP hi= IPhigh,
      *   actionType= FORWARD, actionVal= 3, pri= MINPRI, pktCount= 0]
@@ -99,42 +99,42 @@ Switch::Switch(string &switchId, string &leftSwitchId, string &rightSwitchId, st
     FlowEntry init_rule = {
             .srcIP_lo = 0,
             .srcIP_hi = MAX_IP,
-            .dstIP_lo = ipLow,
-            .dstIP_hi = ipHigh,
+            .dstIP_lo = IPLow,
+            .dstIP_hi = IPHigh,
             .actionType= FORWARD,
             .actionVal=3,
             .pri=MIN_PRI,
             .pktCount=0
     };
 
-    Switch::ipHigh = ipHigh;
-    Switch::ipLow = ipLow;
+    Switch::IPHigh = IPHigh;
+    Switch::IPLow = IPLow;
     flowTable.push_back(init_rule);
 
     Switch::trafficFile = trafficFile;
 
     // create Connection to controller
-    Switch::switchId = parseSwitchId(switchId);
-    connections.emplace_back(Connection(Switch::switchId, CONTROLLER_ID));
+    Switch::switchID = parseSwitchID(switchID);
+    connections.emplace_back(Connection(Switch::switchID, CONTROLLER_ID));
 
     neighbors = 0;
     // create Connection to the left switch
     // can potentially be a nullptr
-    if (leftSwitchId != NULL_ID) {
+    if (leftSwitchID != NULL_ID) {
         neighbors++;
-        Switch::leftSwitchId = parseSwitchId(leftSwitchId);
-        connections.emplace_back(Connection(Switch::switchId, Switch::leftSwitchId));
+        Switch::leftSwitchID = parseSwitchID(leftSwitchID);
+        connections.emplace_back(Connection(Switch::switchID, Switch::leftSwitchID));
     } else {
-        Switch::leftSwitchId = -1;
+        Switch::leftSwitchID = -1;
     }
     // create Connection to the right switch
     // can potentially be a nullptr
-    if (rightSwitchId != NULL_ID) {
+    if (rightSwitchID != NULL_ID) {
         neighbors++;
-        Switch::rightSwitchId = parseSwitchId(rightSwitchId);
-        connections.emplace_back(Connection(Switch::switchId, Switch::rightSwitchId));
+        Switch::rightSwitchID = parseSwitchID(rightSwitchID);
+        connections.emplace_back(Connection(Switch::switchID, Switch::rightSwitchID));
     } else {
-        Switch::rightSwitchId = -1;
+        Switch::rightSwitchID = -1;
     }
     printf("I am switch: %i\n", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 }
@@ -149,12 +149,12 @@ trafficFileItem parseTrafficItem(string &trafficFileLine) {
     istringstream iss(trafficFileLine);
     vector<string> trafficFileItems((istream_iterator<string>(iss)),
                                     istream_iterator<string>());
-    uint switchId = parseSwitchId(trafficFileItems.at(0));
+    uint switchID = parseSwitchID(trafficFileItems.at(0));
     uint srcIP = static_cast<uint>(stoi(trafficFileItems.at(1)));
     uint dstIP = static_cast<uint>(stoi(trafficFileItems.at(2)));
-    printf("Parsed trafficFileItem: switchId: %u srcIP: %u dst: %u\n",
-           switchId, srcIP, dstIP);
-    return make_tuple(switchId, srcIP, dstIP);
+    printf("Parsed trafficFileItem: switchID: %u srcIP: %u dst: %u\n",
+           switchID, srcIP, dstIP);
+    return make_tuple(switchID, srcIP, dstIP);
 }
 
 /**
@@ -179,12 +179,12 @@ void Switch::start() {
     // The carried message contains the switch number, the numbers of its neighbouring switches (if any),
     // and the range of IP addresses served by the switch.
     Message openMessage;
-    openMessage.emplace_back(make_tuple("ID", to_string(switchId)));
+    openMessage.emplace_back(make_tuple("switchID", to_string(switchID)));
     openMessage.emplace_back(make_tuple("N", to_string(neighbors)));
-    openMessage.emplace_back(make_tuple("leftSwitchId", to_string(leftSwitchId)));
-    openMessage.emplace_back(make_tuple("rightSwitchId", to_string(rightSwitchId)));
-    openMessage.emplace_back(make_tuple("IPLow", to_string(ipLow)));
-    openMessage.emplace_back(make_tuple("IPHigh", to_string(ipHigh)));
+    openMessage.emplace_back(make_tuple("leftSwitchID", to_string(leftSwitchID)));
+    openMessage.emplace_back(make_tuple("rightSwitchID", to_string(rightSwitchID)));
+    openMessage.emplace_back(make_tuple("IPLow", to_string(IPLow)));
+    openMessage.emplace_back(make_tuple("IPHigh", to_string(IPHigh)));
     Packet openPacket = Packet(OPEN, openMessage);
     write(connections[0].openSendFIFO(), openPacket.toString().c_str(), strlen(openPacket.toString().c_str()));
     tOpenCount++;
@@ -206,15 +206,15 @@ void Switch::start() {
                     printf("WARNING: ignoring invalid line: %s\n", line.c_str());
                 } else if (line.substr(0, 1) == "#") {
                     printf("ignoring comment line\n");
-                } else if (line.substr(0, 3) != "sw" + to_string(Switch::switchId)) {
+                } else if (line.substr(0, 3) != "sw" + to_string(Switch::switchID)) {
                     printf("ignoring line specifying another switch\n");
                 } else {
                     printf("found line specifying self: %s\n", line.c_str());
                     // TODO: refactor
                     trafficFileItem tfItem = parseTrafficItem(line);
-                    uint tfSwitchId = get<0>(tfItem);
-                    uint srcIp = get<0>(tfItem);
-                    uint dstIp = get<0>(tfItem);
+                    uint tfSwitchID = get<0>(tfItem);
+                    uint srcIP = get<0>(tfItem);
+                    uint dstIP = get<0>(tfItem);
                     // iterate through flowTable rules
                     for (auto const &flowEntry: flowTable) {
                         // TODO: check for matching rule for packet
@@ -223,14 +223,14 @@ void Switch::start() {
                     FlowEntry flowEntry = {
                             .srcIP_lo = 0,
                             .srcIP_hi = MAX_IP,
-                            .dstIP_lo = ipLow,
-                            .dstIP_hi = ipHigh,
+                            .dstIP_lo = IPLow,
+                            .dstIP_hi = IPHigh,
                             .actionType= FORWARD,
                             .actionVal=3,
                             .pri=MIN_PRI,
                             .pktCount=0
                     };
-                    int s = getRule(flowEntry, switchId, srcIp, dstIp);
+                    int s = getRule(flowEntry, switchID, srcIP, dstIP);
                     if (s == 1) { // found rule
                         // we now have a valid rule that ap
                         if (flowEntry.actionType == DELIVER) {
@@ -238,14 +238,14 @@ void Switch::start() {
                         } else if (flowEntry.actionType == FORWARD) {
                             // TODO: write RELAY packet
                             Message relayMessage;
-                            relayMessage.emplace_back(make_tuple("ID", to_string(switchId)));
-                            relayMessage.emplace_back(make_tuple("srcIP", to_string(srcIp)));
-                            relayMessage.emplace_back(make_tuple("dstIP", to_string(dstIp)));
+                            relayMessage.emplace_back(make_tuple("switchID", to_string(switchID)));
+                            relayMessage.emplace_back(make_tuple("srcIP", to_string(srcIP)));
+                            relayMessage.emplace_back(make_tuple("dstIP", to_string(dstIP)));
                             Packet relayPacket = Packet(RELAY, relayMessage);
 
                             // TODO: get proper connection for left or right switch
-                            if (flowEntry.actionVal == rightSwitchId) {
-                            } else if (flowEntry.actionVal == leftSwitchId) {
+                            if (flowEntry.actionVal == rightSwitchID) {
+                            } else if (flowEntry.actionVal == leftSwitchID) {
                             } else {
                                 // TODO: error
                                 printf("ERROR: given FORWARD to sw%u this does not match any neighbors",
@@ -260,9 +260,9 @@ void Switch::start() {
                         }
                     } else if (s == -1) { // did not find rule
                         Message queryMessage;
-                        queryMessage.emplace_back(MessageArg("ID", to_string(Switch::switchId)));
-                        queryMessage.emplace_back(MessageArg("srcIP", to_string(srcIp)));
-                        queryMessage.emplace_back(MessageArg("dstIP", to_string(dstIp)));
+                        queryMessage.emplace_back(MessageArg("switchID", to_string(Switch::switchID)));
+                        queryMessage.emplace_back(MessageArg("srcIP", to_string(srcIP)));
+                        queryMessage.emplace_back(MessageArg("dstIP", to_string(dstIP)));
                         Packet queryPacket = Packet(QUERY, queryMessage);
                         write(connections[0].openSendFIFO(), queryPacket.toString().c_str(),
                               strlen(queryPacket.toString().c_str()));
@@ -369,21 +369,21 @@ void Switch::start() {
                     // A switch may forward a received packet header to a neighbour (as instructed by a
                     // matching rule in the flow table).  This information is passed to the neighbour in a
                     // RELAY packet.
-                    uint switchId = static_cast<uint>(stoi(get<1>(packetMessage[0])));
-                    uint srcIp = static_cast<uint>(stoi(get<1>(packetMessage[1])));
+                    uint switchID = static_cast<uint>(stoi(get<1>(packetMessage[0])));
+                    uint srcIP = static_cast<uint>(stoi(get<1>(packetMessage[1])));
                     uint dstIP = static_cast<uint>(stoi(get<1>(packetMessage[2])));
                     // TODO: check for matching rule for packet
                     FlowEntry flowEntry = {
                             .srcIP_lo = 0,
                             .srcIP_hi = MAX_IP,
-                            .dstIP_lo = ipLow,
-                            .dstIP_hi = ipHigh,
+                            .dstIP_lo = IPLow,
+                            .dstIP_hi = IPHigh,
                             .actionType= FORWARD,
                             .actionVal=3,
                             .pri=MIN_PRI,
                             .pktCount=0
                     };
-                    int s = getRule(flowEntry, switchId, srcIp, dstIP);
+                    int s = getRule(flowEntry, switchID, srcIP, dstIP);
                     if (s == 1) { // found rule
                         // we now have a valid rule that ap
                         if (flowEntry.actionType == DELIVER) {
@@ -391,14 +391,14 @@ void Switch::start() {
                         } else if (flowEntry.actionType == FORWARD) {
                             // TODO: write RELAY packet
                             Message relayMessage;
-                            relayMessage.emplace_back(make_tuple("ID", to_string(switchId)));
-                            relayMessage.emplace_back(make_tuple("srcIP", to_string(srcIp)));
+                            relayMessage.emplace_back(make_tuple("switchID", to_string(switchID)));
+                            relayMessage.emplace_back(make_tuple("srcIP", to_string(srcIP)));
                             relayMessage.emplace_back(make_tuple("dstIP", to_string(dstIP)));
                             Packet relayPacket = Packet(RELAY, relayMessage);
 
                             // TODO: get proper connection for left or right switch
-                            if (flowEntry.actionVal == rightSwitchId) {
-                            } else if (flowEntry.actionVal == leftSwitchId) {
+                            if (flowEntry.actionVal == rightSwitchID) {
+                            } else if (flowEntry.actionVal == leftSwitchID) {
                             } else {
                                 // TODO: error
                                 printf("ERROR: given FORWARD to sw%u this does not match any neighbors",
@@ -413,8 +413,8 @@ void Switch::start() {
                         }
                     } else if (s == -1) { // did not find rule
                         Message queryMessage;
-                        queryMessage.emplace_back(MessageArg("ID", to_string(Switch::switchId)));
-                        queryMessage.emplace_back(MessageArg("srcIP", to_string(srcIp)));
+                        queryMessage.emplace_back(MessageArg("switchID", to_string(Switch::switchID)));
+                        queryMessage.emplace_back(MessageArg("srcIP", to_string(srcIP)));
                         queryMessage.emplace_back(MessageArg("dstIP", to_string(dstIP)));
                         Packet queryPacket = Packet(QUERY, queryMessage);
                         write(connections[0].openSendFIFO(), queryPacket.toString().c_str(),
@@ -444,86 +444,86 @@ void Switch::start() {
  *
  * Note: this constructor not intended for actual usage by invoking the {@code start()} method.
  *
- * @param switchId
+ * @param switchID
  * @param neighbors
- * @param ipLow
- * @param ipHigh
+ * @param IPLow
+ * @param IPHigh
  */
-Switch::Switch(uint switchId, uint neighbors, int leftSwitchId, int rightSwitchId, uint ipLow, uint ipHigh) : switchId(
-        switchId), neighbors(neighbors),
-                                                                                                              leftSwitchId(
-                                                                                                                      leftSwitchId),
-                                                                                                              rightSwitchId(
-                                                                                                                      rightSwitchId),
-                                                                                                              ipLow(ipLow),
-                                                                                                              ipHigh(ipHigh) {
+Switch::Switch(uint switchID, uint neighbors, int leftSwitchID, int rightSwitchID, uint IPLow, uint IPHigh) : switchID(
+        switchID), neighbors(neighbors),
+                                                                                                              leftSwitchID(
+                                                                                                                      leftSwitchID),
+                                                                                                              rightSwitchID(
+                                                                                                                      rightSwitchID),
+                                                                                                              IPLow(IPLow),
+                                                                                                              IPHigh(IPHigh) {
 
 }
 
 /**
- * Getter for a switch's {@code switchId}.
+ * Getter for a switch's {@code switchID}.
  *
  * @return {@code uint}
  */
-uint Switch::getId() {
-    return switchId;
+uint Switch::getID() {
+    return switchID;
 }
 
 /**
- * Getter for a switch's {@code ipHigh}.
+ * Getter for a switch's {@code IPHigh}.
  *
  * @return {@code uint}
  */
-uint Switch::getIpHigh() {
-    return ipHigh;
+uint Switch::getIPHigh() {
+    return IPHigh;
 }
 
 /**
- * Getter for a switch's {@code ipLow}.
+ * Getter for a switch's {@code IPLow}.
  *
  * @return {@code uint}
  */
-uint Switch::getIpLow() {
-    return ipLow;
+uint Switch::getIPLow() {
+    return IPLow;
 }
 
 /**
- * Getter for a switch's {@code rightSwitchId}
+ * Getter for a switch's {@code rightSwitchID}
  *
  * Note: if the switch does not have a right neighboring switch {@code -1} will be returned.
  *
  * @return {@code int}
  */
-int Switch::getRightSwitchId() {
-    return rightSwitchId;
+int Switch::getRightSwitchID() {
+    return rightSwitchID;
 }
 
 /**
- * Getter for a switch's {@code leftSwitchId}
+ * Getter for a switch's {@code leftSwitchID}
  *
  * Note: if the switch does not have a left neighboring switch {@code -1} will be returned.
  *
  * @return {@code int}
  */
-int Switch::getLeftSwitchId() {
-    return leftSwitchId;
+int Switch::getLeftSwitchID() {
+    return leftSwitchID;
 }
 
 /**
  * Attempt to get a rule for a specific traffic packet item.
  *
- * @param switchId
- * @param srcIp
- * @param dstIp
+ * @param switchID
+ * @param srcIP
+ * @param dstIP
  * @return {@code FlowEntry}
  */
-int Switch::getRule(FlowEntry &oflowEntry, uint switchId, uint srcIp, uint dstIp) {
+int Switch::getRule(FlowEntry &oflowEntry, uint switchID, uint srcIP, uint dstIP) {
     // iterate through flowTable rules
     for (auto const &flowEntry: flowTable) {
         // ensure valid src
-        if (srcIp >= flowEntry.srcIP_lo || srcIp <= flowEntry.srcIP_hi) {
+        if (srcIP >= flowEntry.srcIP_lo || srcIP <= flowEntry.srcIP_hi) {
             // ensure valid dst
-            if (dstIp >= flowEntry.dstIP_lo || dstIp <= flowEntry.dstIP_hi) {
+            if (dstIP >= flowEntry.dstIP_lo || dstIP <= flowEntry.dstIP_hi) {
                 string actionName;
                 if (flowEntry.actionType == 0) {
                     actionName = "DELIVER";

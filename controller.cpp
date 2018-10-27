@@ -51,8 +51,8 @@ Controller::Controller(uint nSwitches) : nSwitches(nSwitches) {
 void Controller::list() {
     printf("Switch information:\n");
     for (auto &sw: switches) {
-        printf("[sw%u] port1= %i, port= %i, port3= %u-%u\n",
-               sw.getId(), sw.getLeftSwitchId(), sw.getRightSwitchId(), sw.getIpLow(), sw.getIpHigh());
+        printf("[sw%u] port1= %i, port2= %i, port3= %u-%u\n",
+               sw.getID(), sw.getLeftSwitchID(), sw.getRightSwitchID(), sw.getIPLow(), sw.getIPHigh());
     }
 
     printf("Packet Stats:\n");
@@ -110,7 +110,7 @@ void Controller::start() {
          * 2. Poll the incoming FIFOs from the controller and the attached switches. The switch handles
          *    each incoming packet, as described in the Packet Types.
          *
-         *    TODO: In addition,  upon receiving signal USER1, the switch displays the information specified by the list command
+         *    TODO: In addition, upon receiving signal USER1, the switch displays the information specified by the list command
          */
         for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
             if (pfds[i].revents & POLLIN) {
@@ -135,20 +135,20 @@ void Controller::start() {
                     rOpenCount++;
                     // Upon receiving an OPEN packet, the controller updates its stored information about the switch,
                     // and replies with a packet of type ACK
-                    uint switchId = static_cast<uint>(stoi(get<1>(packetMessage[0])));
+                    uint switchID = static_cast<uint>(stoi(get<1>(packetMessage[0])));
                     uint switchNeighbors = static_cast<uint>(stoi(get<1>(packetMessage[1])));
-                    int leftSwitchId = stoi(get<1>(packetMessage[2]));
-                    int rightSwitchId = stoi(get<1>(packetMessage[3]));
+                    int leftSwitchID = stoi(get<1>(packetMessage[2]));
+                    int rightSwitchID = stoi(get<1>(packetMessage[3]));
                     uint switchIPLow = static_cast<uint>(stoi(get<1>(packetMessage[4])));
                     uint switchIPHigh = static_cast<uint>(stoi(get<1>(packetMessage[5])));
-                    printf("Parsed OPEN packet: switchID: %u switchNeighbors: %u leftSwitchId: %i rightSwitchId: %i switchIPLow: %u switchIPHigh: %u\n",
-                           switchId, switchNeighbors, leftSwitchId, rightSwitchId, switchIPLow, switchIPHigh);
+                    printf("Parsed OPEN packet: switchID: %u switchNeighbors: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
+                           switchID, switchNeighbors, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh);
 
                     switches.emplace_back(
-                            Switch(switchId, switchNeighbors, leftSwitchId, rightSwitchId, switchIPLow, switchIPHigh));
+                            Switch(switchID, switchNeighbors, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh));
 
                     // send ack back to switch
-                    printf("Sending ACK back to switchID: %u", switchId);
+                    printf("Sending ACK back to switchID: %u", switchID);
                     Packet ackPacket = Packet(ACK, Message());
                     write(connections[i - 1].openSendFIFO(), ackPacket.toString().c_str(),
                           strlen(ackPacket.toString().c_str()));
@@ -161,14 +161,14 @@ void Controller::start() {
                     //QUERY
                     //packet to the controller.  The
                     //controller replies with a rule stored in a packet of type
-                    uint switchId = static_cast<uint>(stoi(get<1>(packetMessage[0])));
+                    uint switchID = static_cast<uint>(stoi(get<1>(packetMessage[0])));
                     uint srcIP = static_cast<uint>(stoi(get<1>(packetMessage[1])));
                     uint dstIP = static_cast<uint>(stoi(get<1>(packetMessage[2])));
-                    printf("Parsed QUERY packet: switchId: %u srcIP: %u dstIP: %u\n",
-                           switchId, srcIP, dstIP);
+                    printf("Parsed QUERY packet: switchID: %u srcIP: %u dstIP: %u\n",
+                           switchID, srcIP, dstIP);
 
                     // calculate new flow entry
-                    FlowEntry flowEntry = makeRule(switchId, srcIP, dstIP);
+                    FlowEntry flowEntry = makeRule(switchID, srcIP, dstIP);
 
                     // create new add packet
                     Message addMessage;
@@ -205,20 +205,20 @@ void Controller::start() {
 /**
  * Calculate a new flow entry rule.
  *
- * @param switchId
+ * @param switchID
  * @param srcIP
  * @param dstIP
  * @return
  */
-FlowEntry Controller::makeRule(uint switchId, uint srcIP, uint dstIP) {
-    auto it = find_if(switches.begin(), switches.end(), [&switchId](Switch &sw) { return sw.getId() == switchId; });
+FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
+    auto it = find_if(switches.begin(), switches.end(), [&switchID](Switch &sw) { return sw.getID() == switchID; });
     if (it != switches.end()) {
         // found element. it is an iterator to the first matching element.
         auto index = std::distance(switches.begin(), it);
         Switch requestSwitch = switches[index];
-        // check src ip is invalid
+        // check src IP is invalid
         if (srcIP < 0 || srcIP > MAX_IP) {
-            // src ip is invalid make a drop rule
+            // src IP is invalid make a drop rule
             // TODO: create DROP rule
             FlowEntry drop_rule = {
                     .srcIP_lo   = srcIP,
@@ -234,16 +234,16 @@ FlowEntry Controller::makeRule(uint switchId, uint srcIP, uint dstIP) {
         } else {
             // dst is out of range of switches range
             // make a drop rule
-            if (dstIP < requestSwitch.getIpLow() || dstIP > requestSwitch.getIpHigh()) { // out of range of
+            if (dstIP < requestSwitch.getIPLow() || dstIP > requestSwitch.getIPHigh()) { // out of range of
                 // get left switch
-                int leftSwitchId = requestSwitch.getLeftSwitchId();
-                if (leftSwitchId > 0) {
+                int leftSwitchID = requestSwitch.getLeftSwitchID();
+                if (leftSwitchID > 0) {
                     auto it2 = find_if(switches.begin(), switches.end(),
-                                       [&leftSwitchId](Switch &sw) { return sw.getId() == leftSwitchId; });
+                                       [&leftSwitchID](Switch &sw) { return sw.getID() == leftSwitchID; });
                     if (it != switches.end()) {
                         auto index2 = std::distance(switches.begin(), it2);
                         Switch requestLeftSwitch = switches[index2];
-                        if (dstIP < requestLeftSwitch.getIpLow() || dstIP > requestLeftSwitch.getIpHigh()) {
+                        if (dstIP < requestLeftSwitch.getIPLow() || dstIP > requestLeftSwitch.getIPHigh()) {
                         } else {
                             // TODO: make FORWARD rule
                             FlowEntry forwardLeftRule = {
@@ -252,7 +252,7 @@ FlowEntry Controller::makeRule(uint switchId, uint srcIP, uint dstIP) {
                                     .dstIP_lo   = dstIP,
                                     .dstIP_hi   = dstIP,
                                     .actionType = FORWARD,
-                                    .actionVal  = requestLeftSwitch.getId(),
+                                    .actionVal  = requestLeftSwitch.getID(),
                                     .pri        = MIN_PRI,
                                     .pktCount   = 0
                             };
@@ -261,14 +261,14 @@ FlowEntry Controller::makeRule(uint switchId, uint srcIP, uint dstIP) {
                     }
                 }
                 // get the right switch
-                int rightSwitch = requestSwitch.getRightSwitchId();
+                int rightSwitch = requestSwitch.getRightSwitchID();
                 if (rightSwitch > 0) {
                     auto it3 = find_if(switches.begin(), switches.end(),
-                                       [&rightSwitch](Switch &sw) { return sw.getId() == rightSwitch; });
+                                       [&rightSwitch](Switch &sw) { return sw.getID() == rightSwitch; });
                     if (it != switches.end()) {
                         auto index3 = std::distance(switches.begin(), it3);
                         Switch requestRightSwitch = switches[index3];
-                        if (dstIP < requestRightSwitch.getIpLow() || dstIP > requestRightSwitch.getIpHigh()) {
+                        if (dstIP < requestRightSwitch.getIPLow() || dstIP > requestRightSwitch.getIPHigh()) {
                         } else {
                             // TODO: make FORWARD rule
                             FlowEntry forwardRightRule = {
@@ -277,7 +277,7 @@ FlowEntry Controller::makeRule(uint switchId, uint srcIP, uint dstIP) {
                                     .dstIP_lo   = dstIP,
                                     .dstIP_hi   = dstIP,
                                     .actionType = FORWARD,
-                                    .actionVal  = requestRightSwitch.getId(),
+                                    .actionVal  = requestRightSwitch.getID(),
                                     .pri        = MIN_PRI,
                                     .pktCount   = 0
                             };
@@ -315,7 +315,7 @@ FlowEntry Controller::makeRule(uint switchId, uint srcIP, uint dstIP) {
         }
     } else {
         // no switch with that ID is found.
-        printf("ERROR: attempted to make rule for switch that is not supported: switchId: %u", switchId);
+        printf("ERROR: attempted to make rule for switch that is not supported: switchID: %u", switchID);
         // TODO: make DROP rule
         // TODO: is this okay behavoir
         FlowEntry drop_rule = {

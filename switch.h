@@ -31,23 +31,23 @@ typedef tuple<uint, uint, uint> trafficFileItem;
 
 class Switch {
 public:
-    Switch(string &switchId, string &leftSwitchId, string &rightSwitchId, string &trafficFile, uint ipLow, uint ipHigh);
+    Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, string &trafficFile, uint IPLow, uint IPHigh);
 
-    Switch(uint switchId, uint neighbors, int leftSwitchId, int rightSwitchId, uint ipLow, uint ipHigh);
+    Switch(uint switchID, uint neighbors, int leftSwitchID, int rightSwitchID, uint IPLow, uint IPHigh);
 
     void list();
 
-    uint getId();
+    uint getID();
 
-    uint getIpHigh();
+    uint getIPHigh();
 
-    uint getIpLow();
+    uint getIPLow();
 
-    int getLeftSwitchId();
+    int getLeftSwitchID();
 
-    int getRightSwitchId();
+    int getRightSwitchID();
 
-    int getRule(FlowEntry &flowEntry, uint switchId, uint srcIp, uint dstIp);
+    int getRule(FlowEntry &flowEntry, uint switchID, uint srcIP, uint dstIP);
 
     void start();
 
@@ -55,7 +55,7 @@ private:
     /**
      * ID of the switch itself
      */
-    uint switchId;
+    uint switchID;
 
     /**
      * The number of neighboring switches.
@@ -64,16 +64,16 @@ private:
     /**
      * ID of the "left" switch to connect to
      */
-    int leftSwitchId;
+    int leftSwitchID;
 
     /**
      * ID of the "right" switch to connect to
      */
-    int rightSwitchId;
+    int rightSwitchID;
 
     string trafficFile;
-    uint ipHigh;
-    uint ipLow;
+    uint IPHigh;
+    uint IPLow;
     FlowTable flowTable;
     vector<Connection> connections;
 
