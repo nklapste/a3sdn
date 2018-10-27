@@ -53,20 +53,12 @@ void Controller::list() {
         printf("[sw%u] port1= %i, port= %i, port3= %u-%u\n",
                sw.getId(), sw.getLeftSwitchId(), sw.getRightSwitchId(), sw.getIpLow(), sw.getIpHigh());
     }
-    printf("Packet Stats:\n");
-    printf("\tReceived:    ");
-    printf("OPEN:%u, ",rOpenCount);
-    printf("ACK:%u, ",rAckCount);
-    printf("QUERY:%u, ",rQueryCount);
-    printf("ADDRULE:%u, ",rAddCount);
-    printf("RELAYIN:%u\n",rRelayCount);
 
-    printf("\tTransmitted: ");
-    printf("OPEN:%u, ",tOpenCount);
-    printf("ACK:%u, ",tAckCount);
-    printf("QUERY:%u, ",tQueryCount);
-    printf("ADDRULE:%u, ",tAddCount);
-    printf("RELAYOUT:%u\n",tRelayCount);
+    printf("Packet Stats:\n");
+    printf("\tReceived:    OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYIN: %u\n",
+           rOpenCount, rAckCount, rQueryCount, rAddCount, rRelayCount);
+    printf("\tTransmitted: OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYOUT:%u\n",
+           tOpenCount, tAckCount, tQueryCount, tAddCount, tRelayCount);
 }
 
 /**
