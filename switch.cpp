@@ -33,6 +33,8 @@
 
 using namespace std;
 
+// TODO: forward spec and DELIVER SPEC
+
 /**
  * Parse the switch id. Should match the format {@code 'swi'} where {@code 'i'} is a numeric.
  * @param switchID
@@ -79,8 +81,8 @@ void Switch::list() {
     }
 
     printf("Packet Stats:\n");
-    printf("\tReceived:    OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYIN: %u\n",
-           rOpenCount, rAckCount, rQueryCount, rAddCount, rRelayCount);
+    printf("\tReceived:    OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYIN: %u, ADMIT:%u\n",
+           rOpenCount, rAckCount, rQueryCount, rAddCount, rRelayCount, admitCount);
     printf("\tTransmitted: OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYOUT:%u\n",
            tOpenCount, tAckCount, tQueryCount, tAddCount, tRelayCount);
 }
@@ -108,7 +110,7 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
             .srcIP_hi = MAX_IP,
             .dstIP_lo = IPLow,
             .dstIP_hi = IPHigh,
-            .actionType= FORWARD,
+            .actionType= DELIVER,
             .actionVal=3,
             .pri=MIN_PRI,
             .pktCount=0
@@ -344,22 +346,15 @@ string &Switch::parseTrafficFileLine(string &line) {
         uint srcIP = get<0>(tfItem);
         uint dstIP = get<0>(tfItem);
 
-        FlowEntry flowEntry = {
-                .srcIP_lo = 0,
-                .srcIP_hi = MAX_IP,
-                .dstIP_lo = IPLow,
-                .dstIP_hi = IPHigh,
-                .actionType= FORWARD,
-                .actionVal=3,
-                .pri=MIN_PRI,
-                .pktCount=0
-        };
-        int s = getFlowEntry(flowEntry, switchID, srcIP, dstIP);
-        if (s == 1) { // found rule
+        int fi = getFlowEntry(switchID, srcIP, dstIP);
+        if (fi >= 0) { // found rule
+            FlowEntry flowEntry = flowTable.at(fi);
             // we now have a valid rule that ap
             if (flowEntry.actionType == DELIVER) {
+                // this is our packet
                 // TODO: use rules to figure out switch to write to
                 //TODO: iterate pktcount on actual flowEntry
+                admitCount++;
             } else if (flowEntry.actionType == FORWARD) {
                 // TODO: get proper connection for left or right switch
                 if (flowEntry.actionVal == rightSwitchID) {
@@ -377,7 +372,9 @@ string &Switch::parseTrafficFileLine(string &line) {
                 // TODO: do nothing
                 //TODO: iterate pktcount on actual flowEntry
             }
-        } else if (s == -1) { // did not find rule
+            flowEntry.pktCount++;
+            flowTable[fi] = flowEntry;
+        } else if (fi < 0) { // did not find rule
             sendQUERYPacket(connections[0], srcIP, dstIP);
             // TODO: wait for response and possibly reply?
         }
@@ -463,8 +460,9 @@ int Switch::getLeftSwitchID() {
  * @param dstIP
  * @return {@code FlowEntry}
  */
-int Switch::getFlowEntry(FlowEntry &oflowEntry, uint switchID, uint srcIP, uint dstIP) {
+int Switch::getFlowEntry(uint switchID, uint srcIP, uint dstIP) {
     // iterate through flowTable rules
+    int index=0;
     for (auto const &flowEntry: flowTable) {
         // ensure valid src
         if (srcIP >= flowEntry.srcIP_lo || srcIP <= flowEntry.srcIP_hi) {
@@ -481,19 +479,10 @@ int Switch::getFlowEntry(FlowEntry &oflowEntry, uint switchID, uint srcIP, uint 
                 printf("found matching flowtable rule: (srcIP= %u-%u dstIP %u-%u action=%s:%u pri= %u pktCount= %u)\n",
                        flowEntry.srcIP_lo, flowEntry.srcIP_hi, flowEntry.dstIP_lo, flowEntry.dstIP_hi,
                        actionName.c_str(), flowEntry.actionVal, flowEntry.pri, flowEntry.pktCount);
-
-                oflowEntry.srcIP_lo = flowEntry.srcIP_lo;
-                oflowEntry.srcIP_hi = flowEntry.srcIP_hi;
-                oflowEntry.dstIP_lo = flowEntry.dstIP_lo;
-                oflowEntry.dstIP_hi = flowEntry.dstIP_hi;
-                oflowEntry.actionType = flowEntry.actionType;
-                oflowEntry.actionVal = flowEntry.actionVal;
-                oflowEntry.pri = flowEntry.pri;
-                oflowEntry.pktCount = flowEntry.pktCount;
-
-                return 1;
+                return index;
             }
         }
+        index++;
     }
     return -1;
 }
@@ -512,22 +501,15 @@ void Switch::respondRELAYPacket(Message message) {
     uint rSwitchID = static_cast<uint>(stoi(get<1>(message[0])));
     uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
     uint dstIP = static_cast<uint>(stoi(get<1>(message[2])));
-    FlowEntry flowEntry = {
-            .srcIP_lo   = 0,
-            .srcIP_hi   = MAX_IP,
-            .dstIP_lo   = IPLow,
-            .dstIP_hi   = IPHigh,
-            .actionType = FORWARD,
-            .actionVal  = 3,
-            .pri        = MIN_PRI,
-            .pktCount   = 0
-    };
-    int s = getFlowEntry(flowEntry, rSwitchID, srcIP, dstIP);
-    if (s == 1) { // found rule
+
+    // TODO figure out way to update flow entry
+    int fi = getFlowEntry(rSwitchID, srcIP, dstIP);
+    if (fi >= 0) { // found rule
+        FlowEntry flowEntry = flowTable.at(fi);
         // we now have a valid rule that ap
         if (flowEntry.actionType == DELIVER) {
-            // TODO: use rules to figure out switch to write to
-            flowEntry.pktCount++;
+            // this packet is ours
+            admitCount++;
         } else if (flowEntry.actionType == FORWARD) {
             // TODO: get proper connection for left or right switch
             if (flowEntry.actionVal == rightSwitchID) {
@@ -536,12 +518,12 @@ void Switch::respondRELAYPacket(Message message) {
             }
             // TODO: gen better method to choose relay switch
             sendRELAYPacket(connections[1], srcIP, dstIP);
-            flowEntry.pktCount++;
-
         } else if (flowEntry.actionType == DROP) {
-            flowEntry.pktCount++;
+
         }
-    } else if (s == -1) { // did not find rule
+        flowEntry.pktCount++;
+        flowTable[fi]=flowEntry;
+    } else if (fi < 0) { // did not find rule
         sendQUERYPacket(connections[0], srcIP, dstIP);
         // TODO: wait for response and possibly reply?
     }
@@ -613,14 +595,11 @@ void Switch::respondADDPacket(Message message) {
  *
  */
 void Switch::sendRELAYPacket(Connection connection, uint srcIP, uint dstIP) {
-// TODO: write RELAY packet
     Message relayMessage;
     relayMessage.emplace_back(make_tuple("switchID", to_string(switchID)));
     relayMessage.emplace_back(make_tuple("srcIP", to_string(srcIP)));
     relayMessage.emplace_back(make_tuple("dstIP", to_string(dstIP)));
     Packet relayPacket = Packet(RELAY, relayMessage);
-
-    // TODO: BETTER Switch left right detection
     write(connection.openSendFIFO(), relayPacket.toString().c_str(),
           strlen(relayPacket.toString().c_str()));
     tRelayCount++;

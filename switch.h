@@ -54,7 +54,7 @@ public:
 
     void respondRELAYPacket(Message message);
 
-    int getFlowEntry(FlowEntry &flowEntry, uint switchID, uint srcIP, uint dstIP);
+    int getFlowEntry(uint switchID, uint srcIP, uint dstIP);
 
     void start();
 
@@ -92,6 +92,7 @@ private:
     uint rAckCount = 0;
     uint rRelayCount = 0;
     uint rQueryCount = 0;
+    uint admitCount = 0;
 
     /**
      * Counts of {@code Packets} transmitted.
