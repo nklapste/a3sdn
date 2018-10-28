@@ -106,11 +106,9 @@ void Controller::start() {
     assert(err == 0);
     err = sigaddset(&sigset, SIGUSR1);
     assert(err == 0);
-
     /* We must block the signals in order for signalfd to receive them */
     err = sigprocmask(SIG_BLOCK, &sigset, NULL);
     assert(err == 0);
-
     /* This is the main loop */
     pfds[connections.size()+2].fd = signalfd(-1, &sigset, 0);;
     pfds[connections.size()+2].events = POLLIN;
@@ -123,7 +121,11 @@ void Controller::start() {
          *             type.
          *       exit: The program writes the above information and exits.
          */
+        pfds[0].events = POLLIN;
         pfds[connections.size()+2].events = POLLIN;
+        for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
+            pfds[i].events = POLLIN;
+        }
 
         int ret = poll(pfds, connections.size() + 3, 0);
         if (errno || ret<0){
@@ -155,9 +157,7 @@ void Controller::start() {
         /*
          * 2. Poll the incoming FIFOs from the controller and the attached switches. The switch handles
          *    each incoming packet, as described in the Packet Types.
-         *
-         *    TODO:
-         *    */
+         */
         for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
             if (pfds[i].revents & POLLIN) {
                 printf("pfds[%lu] has connection POLLIN event: %s\n", i,
