@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "connection.h"
+#include "packet.h"
 #include "flow.h"
 
 #define NULL_ID "null"
@@ -33,7 +34,7 @@ class Switch {
 public:
     Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, string &trafficFile, uint IPLow, uint IPHigh);
 
-    Switch(uint switchID, uint neighbors, int leftSwitchID, int rightSwitchID, uint IPLow, uint IPHigh);
+    Switch(uint switchID, int leftSwitchID, int rightSwitchID, uint IPLow, uint IPHigh);
 
     void list();
 
@@ -47,7 +48,13 @@ public:
 
     int getRightSwitchID();
 
-    int getRule(FlowEntry &flowEntry, uint switchID, uint srcIP, uint dstIP);
+    void respondACKPacket();
+
+    void respondADDPacket(Message message);
+
+    void respondRELAYPacket(Message message);
+
+    int getFlowEntry(FlowEntry &flowEntry, uint switchID, uint srcIP, uint dstIP);
 
     void start();
 
@@ -95,6 +102,13 @@ private:
     uint tRelayCount = 0;
     uint tQueryCount = 0;
 
+    string &parseTrafficFileLine(string &line);
+
+    void sendOPENPacket(Connection connection);
+
+    void sendQUERYPacket(Connection connection, uint srcIP, uint dstIP);
+
+    void sendRELAYPacket(Connection connection, uint srcIP, uint dstIP);
 };
 
 #endif //A2SDN_SWITCH_H

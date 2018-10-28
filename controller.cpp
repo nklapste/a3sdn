@@ -66,17 +66,19 @@ void Controller::list() {
  * Start the {@code Controller} loop.
  */
 void Controller::start() {
-    struct pollfd pfds[2 * connections.size() + 1];
+    struct pollfd pfds[connections.size() + 1];
     char buf[1024];
 
     // setup file descriptions or stdin and all connection FIFOs
     pfds[0].fd = STDIN_FILENO;
     for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
-        printf("pfds[%lu] has connection: %s\n", i, connections[i - 1].getReceiveFIFOName().c_str());
         pfds[i].fd = connections[i - 1].openReceiveFIFO();
     }
 
     for (;;) {
+        // clear buffer at the start of loop
+        memset(buf, 0, sizeof buf);
+
         /*
          * 1. Poll the keyboard for a user command. The user can issue one of the following commands.
          *       list: The program writes all entries in the flow table, and for each transmitted or received
@@ -84,7 +86,7 @@ void Controller::start() {
          *             type.
          *       exit: The program writes the above information and exits.
          */
-        poll(pfds, 2 * connections.size() + 1, 0);
+        poll(pfds, connections.size() + 1, 0);
         // TODO: error handling
         if (pfds[0].revents & POLLIN) {
             int r = read(pfds[0].fd, buf, 1024);
@@ -116,81 +118,28 @@ void Controller::start() {
             if (pfds[i].revents & POLLIN) {
                 printf("pfds[%lu] has connection POLLIN event: %s\n", i,
                        connections[i - 1].getReceiveFIFOName().c_str());
+                memset(buf, 0, sizeof buf);
                 int r = read(pfds[i].fd, buf, 1024);
                 if (!r) {
                     printf("WARNING: receiveFIFO closed\n");
                 }
                 string cmd = string(buf);
 
-                // TODO: debug
-                printf("DEBUG: Received output: %s\n", cmd.c_str());
-
                 // take the message and parse it into a packet
                 Packet packet = Packet(cmd);
-                string packetType = packet.getType();
-                Message packetMessage = packet.getMessage();
                 printf("Parsed packet: %s\n", packet.toString().c_str());
 
                 if (packet.getType() == OPEN) {
-                    rOpenCount++;
-                    // Upon receiving an OPEN packet, the controller updates its stored information about the switch,
-                    // and replies with a packet of type ACK
-                    uint switchID = static_cast<uint>(stoi(get<1>(packetMessage[0])));
-                    uint switchNeighbors = static_cast<uint>(stoi(get<1>(packetMessage[1])));
-                    int leftSwitchID = stoi(get<1>(packetMessage[2]));
-                    int rightSwitchID = stoi(get<1>(packetMessage[3]));
-                    uint switchIPLow = static_cast<uint>(stoi(get<1>(packetMessage[4])));
-                    uint switchIPHigh = static_cast<uint>(stoi(get<1>(packetMessage[5])));
-                    printf("Parsed OPEN packet: switchID: %u switchNeighbors: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
-                           switchID, switchNeighbors, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh);
-
-                    switches.emplace_back(
-                            Switch(switchID, switchNeighbors, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh));
-
-                    // send ack back to switch
-                    printf("Sending ACK back to switchID: %u", switchID);
-                    Packet ackPacket = Packet(ACK, Message());
-                    write(connections[i - 1].openSendFIFO(), ackPacket.toString().c_str(),
-                          strlen(ackPacket.toString().c_str()));
-                    tAckCount++;
+                    openResponse(connections[i - 1], packet.getMessage());
                 } else if (packet.getType() == QUERY) {
-                    rQueryCount++;
-                    // When processing an incoming packet header (the header may be read from
-                    //the traffic file, or relayed to the switch by one of its neighbours), if a switch does not find
-                    //a matching rule in the flow table, the switch sends a
-                    //QUERY
-                    //packet to the controller.  The
-                    //controller replies with a rule stored in a packet of type
-                    uint switchID = static_cast<uint>(stoi(get<1>(packetMessage[0])));
-                    uint srcIP = static_cast<uint>(stoi(get<1>(packetMessage[1])));
-                    uint dstIP = static_cast<uint>(stoi(get<1>(packetMessage[2])));
-                    printf("Parsed QUERY packet: switchID: %u srcIP: %u dstIP: %u\n",
-                           switchID, srcIP, dstIP);
-
-                    // calculate new flow entry
-                    FlowEntry flowEntry = makeRule(switchID, srcIP, dstIP);
-
-                    // create new add packet
-                    Message addMessage;
-                    addMessage.emplace_back(MessageArg("srcIP_lo", to_string(flowEntry.srcIP_lo)));
-                    addMessage.emplace_back(MessageArg("srcIP_hi", to_string(flowEntry.srcIP_lo)));
-                    addMessage.emplace_back(MessageArg("dstIP_lo", to_string(flowEntry.dstIP_lo)));
-                    addMessage.emplace_back(MessageArg("dstIP_hi", to_string(flowEntry.dstIP_hi)));
-                    addMessage.emplace_back(MessageArg("actionType", to_string(flowEntry.actionType)));
-                    addMessage.emplace_back(MessageArg("actionVal", to_string(flowEntry.actionVal)));
-                    addMessage.emplace_back(MessageArg("pri", to_string(flowEntry.pri)));
-                    addMessage.emplace_back(MessageArg("pktCount", to_string(flowEntry.pktCount)));
-                    Packet addPacket = Packet(ADD, addMessage);
-                    write(connections[i - 1].openSendFIFO(), addPacket.toString().c_str(),
-                          strlen(addPacket.toString().c_str()));
-                    tAddCount++;
+                    queryResponse(connections[i - 1], packet.getMessage());
                 } else {
+                    // Controller has no other special behavior for other packets
                     if (packet.getType() == ACK) {
                         rAckCount++;
                     } else if (packet.getType() == ADD) {
                         rAddCount++;
                     } else if (packet.getType() == RELAY) {
-                        // controller does nothing on ack, add, and relay
                         rRelayCount++;
                     }
                     printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
@@ -201,7 +150,6 @@ void Controller::start() {
 }
 
 
-// TODO: doc
 /**
  * Calculate a new flow entry rule.
  *
@@ -325,4 +273,61 @@ FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
         };
         return drop_rule;
     }
+}
+
+
+void Controller::queryResponse(Connection connection, Message message) {
+    rQueryCount++;
+    // When processing an incoming packet header (the header may be read from
+    //the traffic file, or relayed to the switch by one of its neighbours), if a switch does not find
+    //a matching rule in the flow table, the switch sends a
+    //QUERY
+    //packet to the controller.  The
+    //controller replies with a rule stored in a packet of type
+    uint switchID = static_cast<uint>(stoi(get<1>(message[0])));
+    uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
+    uint dstIP = static_cast<uint>(stoi(get<1>(message[2])));
+    printf("Parsed QUERY packet: switchID: %u srcIP: %u dstIP: %u\n",
+           switchID, srcIP, dstIP);
+
+    // calculate new flow entry
+    FlowEntry flowEntry = makeRule(switchID, srcIP, dstIP);
+
+    // create new add packet
+    Message addMessage;
+    addMessage.emplace_back(MessageArg("srcIP_lo", to_string(flowEntry.srcIP_lo)));
+    addMessage.emplace_back(MessageArg("srcIP_hi", to_string(flowEntry.srcIP_lo)));
+    addMessage.emplace_back(MessageArg("dstIP_lo", to_string(flowEntry.dstIP_lo)));
+    addMessage.emplace_back(MessageArg("dstIP_hi", to_string(flowEntry.dstIP_hi)));
+    addMessage.emplace_back(MessageArg("actionType", to_string(flowEntry.actionType)));
+    addMessage.emplace_back(MessageArg("actionVal", to_string(flowEntry.actionVal)));
+    addMessage.emplace_back(MessageArg("pri", to_string(flowEntry.pri)));
+    addMessage.emplace_back(MessageArg("pktCount", to_string(flowEntry.pktCount)));
+    Packet addPacket = Packet(ADD, addMessage);
+    write(connection.openSendFIFO(), addPacket.toString().c_str(),
+          strlen(addPacket.toString().c_str()));
+    tAddCount++;
+}
+
+void Controller::openResponse(Connection connection, Message message) {
+    rOpenCount++;
+    // Upon receiving an OPEN packet, the controller updates its stored information about the switch,
+    // and replies with a packet of type ACK
+    uint switchID = static_cast<uint>(stoi(get<1>(message[0])));
+    int leftSwitchID = stoi(get<1>(message[1]));
+    int rightSwitchID = stoi(get<1>(message[2]));
+    uint switchIPLow = static_cast<uint>(stoi(get<1>(message[3])));
+    uint switchIPHigh = static_cast<uint>(stoi(get<1>(message[4])));
+    printf("Parsed OPEN packet: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
+           switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh);
+
+    switches.emplace_back(
+            Switch(switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh));
+
+    // send ack back to switch
+    printf("Sending ACK back to switchID: %u\n", switchID);
+    Packet ackPacket = Packet(ACK, Message());
+    write(connection.openSendFIFO(), ackPacket.toString().c_str(),
+          strlen(ackPacket.toString().c_str()));
+    tAckCount++;
 }

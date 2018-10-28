@@ -14,6 +14,7 @@
 
 #include "connection.h"
 #include "switch.h"
+#include "packet.h"
 
 #define MAX_SWITCHES 7
 #define LIST_CMD "list"
@@ -33,6 +34,10 @@ public:
     void start();
 
     FlowEntry makeRule(uint switchID, uint srcIP, uint dstIP);
+
+    void queryResponse(Connection connection, Message message);
+
+    void openResponse(Connection connection, Message message);
 
 private:
     uint nSwitches;

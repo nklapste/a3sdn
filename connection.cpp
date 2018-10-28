@@ -32,26 +32,28 @@ void Connection::makeFIFO(string &FIFOName) {
 
 /**
  * Opens a Connection for reading a switch with id.
+ *
  * @return
  */
 int Connection::openReceiveFIFO() {
-    printf("opening receiveFIFO: %s", receiveFIFOName.c_str());
+    printf("opening receiveFIFO: %s\n", receiveFIFOName.c_str());
     int i = open(receiveFIFOName.c_str(), O_RDONLY | O_NONBLOCK);
     if (!i) {
-        perror("ERROR: opening receive FOFO");
+        perror("ERROR: opening receive FIFO");
     }
     return i;
 }
 
 /**
  * Opens a Connection for writing a switch with id.
+ *
  * @return
  */
 int Connection::openSendFIFO() {
-    printf("opening sendFIFO: %s", receiveFIFOName.c_str());
+    printf("opening sendFIFO: %s\n", receiveFIFOName.c_str());
     int i = open(sendFIFOName.c_str(), O_WRONLY | O_NONBLOCK);
     if (!i) {
-        perror("ERROR: opening send FOFO");
+        perror("ERROR: opening send FIFO");
     }
     return i;
 }
@@ -59,6 +61,7 @@ int Connection::openSendFIFO() {
 
 /**
  * Getter for the Receiving FIFO filename/pipename.
+ *
  * @return {@code std::string}
  */
 string Connection::getReceiveFIFOName() {
@@ -67,6 +70,7 @@ string Connection::getReceiveFIFOName() {
 
 /**
  * Getter for the Sending FIFO filename/pipename.
+ *
  * @return {@code std::string}
  */
 string Connection::getSendFIFOName() {
@@ -76,8 +80,8 @@ string Connection::getSendFIFOName() {
 /**
  * Generate a FIFO name based from the sender's id and receiver's id.
  *
- * @param senderId
- * @param receiverId
+ * @param senderId {@code uint}
+ * @param receiverId {@code uint}
  * @return
  */
 const string Connection::makeFIFOName(uint senderId, uint receiverId) {
@@ -86,8 +90,8 @@ const string Connection::makeFIFOName(uint senderId, uint receiverId) {
 
 /**
  *
- * @param srcID
- * @param dstID
+ * @param srcID {@code uint}
+ * @param dstID {@code uint}
  */
 Connection::Connection(uint srcID, uint dstID) {
     // make the send FIFO
