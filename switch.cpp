@@ -12,6 +12,13 @@
 #include "switch.h"
 #include "controller.h"
 #include "packet.h"
+#include <sys/signalfd.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/signalfd.h>
+#include <string.h>
+
+#include <assert.h>
 
 /*FIFO stuff*/
 #include <sys/types.h>
@@ -162,7 +169,7 @@ trafficFileItem parseTrafficItem(string &trafficFileLine) {
  */
 void Switch::start() {
     char buf[1024];
-    struct pollfd pfds[connections.size() + 1];
+    struct pollfd pfds[connections.size() + 3];
 
     // get fd for stdin
     pfds[0].fd = STDIN_FILENO;
@@ -180,6 +187,19 @@ void Switch::start() {
     sendOPENPacket(connections[0]);
 
     // TODO: wait for ack?
+    int err;
+    sigset_t sigset;
+    /* Create a sigset of all the signals that we're interested in */
+    err = sigemptyset(&sigset);
+    assert(err == 0);
+    err = sigaddset(&sigset, SIGUSR1);
+    assert(err == 0);
+    /* We must block the signals in order for signalfd to receive them */
+    err = sigprocmask(SIG_BLOCK, &sigset, NULL);
+    assert(err == 0);
+    /* This is the main loop */
+    pfds[connections.size()+2].fd = signalfd(-1, &sigset, 0);;
+    pfds[connections.size()+2].events = POLLIN;
 
     for (;;) {
         // clear buffer at the start of loop
@@ -208,6 +228,12 @@ void Switch::start() {
          *             type.
          *       exit: The program writes the above information and exits.
          */
+        pfds[0].events = POLLIN;
+        pfds[connections.size()+2].events = POLLIN;
+        for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
+            pfds[i].events = POLLIN;
+        }
+
         poll(pfds, connections.size() + 1, 0);
         // TODO: error handling
         if (pfds[0].revents & POLLIN) {
@@ -262,6 +288,21 @@ void Switch::start() {
                     }
                     printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
                 }
+            }
+        }
+
+        /*
+         * In addition, upon receiving signal USER1, the switch displays the information specified by the list command.
+         */
+        if(pfds[connections.size()+2].revents & POLLIN){
+            // TODO works but blocks stuff
+            struct signalfd_siginfo info;
+            /* We have a valid signal, read the info from the fd */
+            int r = read(pfds[connections.size()+2].fd, &info, sizeof(info));
+            unsigned sig = info.ssi_signo;
+            if (sig == SIGUSR1) {
+                printf("received SIGUSR1\n");
+                list();
             }
         }
     }
