@@ -264,7 +264,6 @@ void Switch::start() {
                 }
             }
         }
-
     }
 }
 
