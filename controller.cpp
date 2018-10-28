@@ -25,8 +25,32 @@
 #include <poll.h>
 #include <algorithm>
 
+#include <sys/signalfd.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/signalfd.h>
+#include <string.h>
+
+#include <assert.h>
 using namespace std;
 
+
+
+
+void handle_signal(int signo);
+
+
+void handle_signal(int signo)
+{
+    if( signo == SIGUSR1 )
+    {
+        write( 1, "Received user signal\n", 21);
+    }
+    else
+    {
+        write( 1, "unexpected signal received\n", 27 );
+    }
+}
 /**
  * Initialize a Controller.
  *
@@ -66,7 +90,7 @@ void Controller::list() {
  * Start the {@code Controller} loop.
  */
 void Controller::start() {
-    struct pollfd pfds[connections.size() + 1];
+    struct pollfd pfds[connections.size() + 3];
     char buf[1024];
 
     // setup file descriptions or stdin and all connection FIFOs
@@ -75,10 +99,23 @@ void Controller::start() {
         pfds[i].fd = connections[i - 1].openReceiveFIFO();
     }
 
-    for (;;) {
-        // clear buffer at the start of loop
-        memset(buf, 0, sizeof buf);
+    int err;
+    sigset_t sigset;
+    /* Create a sigset of all the signals that we're interested in */
+    err = sigemptyset(&sigset);
+    assert(err == 0);
+    err = sigaddset(&sigset, SIGUSR1);
+    assert(err == 0);
 
+    /* We must block the signals in order for signalfd to receive them */
+    err = sigprocmask(SIG_BLOCK, &sigset, NULL);
+    assert(err == 0);
+
+    /* This is the main loop */
+    pfds[connections.size()+2].fd = signalfd(-1, &sigset, 0);;
+    pfds[connections.size()+2].events = POLLIN;
+
+    for (;;) {
         /*
          * 1. Poll the keyboard for a user command. The user can issue one of the following commands.
          *       list: The program writes all entries in the flow table, and for each transmitted or received
@@ -86,7 +123,12 @@ void Controller::start() {
          *             type.
          *       exit: The program writes the above information and exits.
          */
-        poll(pfds, connections.size() + 1, 0);
+        pfds[connections.size()+2].events = POLLIN;
+
+        int ret = poll(pfds, connections.size() + 3, 0);
+        if (errno || ret<0){
+            perror("poll failure");
+        }
         // TODO: error handling
         if (pfds[0].revents & POLLIN) {
             int r = read(pfds[0].fd, buf, 1024);
@@ -106,14 +148,16 @@ void Controller::start() {
                 printf("ERROR: invalid Controller command: %s\n"
                        "\tPlease use either 'list' or 'exit'\n", cmd.c_str());
             }
+            fflush(stdout);
+            fflush(stdin);
         }
 
         /*
          * 2. Poll the incoming FIFOs from the controller and the attached switches. The switch handles
          *    each incoming packet, as described in the Packet Types.
          *
-         *    TODO: In addition, upon receiving signal USER1, the switch displays the information specified by the list command
-         */
+         *    TODO:
+         *    */
         for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
             if (pfds[i].revents & POLLIN) {
                 printf("pfds[%lu] has connection POLLIN event: %s\n", i,
@@ -144,6 +188,22 @@ void Controller::start() {
                     }
                     printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
                 }
+            }
+        }
+
+        // TODO:
+        /*
+         * In addition, upon receiving signal USER1, the switch displays the information specified by the list command.
+         */
+        if(pfds[connections.size()+2].revents & POLLIN){
+            // TODO works but blocks stuff
+            struct signalfd_siginfo info;
+            /* We have a valid signal, read the info from the fd */
+            int r = read(pfds[connections.size()+2].fd, &info, sizeof(info));
+            unsigned sig = info.ssi_signo;
+            if (sig == SIGUSR1) {
+                printf("received SIGUSR1\n");
+                list();
             }
         }
     }
