@@ -36,7 +36,7 @@ void Connection::makeFIFO(string &FIFOName) {
  * @return
  */
 int Connection::openReceiveFIFO() {
-    printf("opening receiveFIFO: %s\n", receiveFIFOName.c_str());
+    printf("DEBUG: opening receiveFIFO: %s\n", receiveFIFOName.c_str());
     int i = open(receiveFIFOName.c_str(), O_RDONLY | O_NONBLOCK);
     if (!i) {
         perror("ERROR: opening receive FIFO");
@@ -50,7 +50,7 @@ int Connection::openReceiveFIFO() {
  * @return
  */
 int Connection::openSendFIFO() {
-    printf("opening sendFIFO: %s\n", receiveFIFOName.c_str());
+    printf("DEBUG: opening sendFIFO: %s\n", receiveFIFOName.c_str());
     int i = open(sendFIFOName.c_str(), O_WRONLY | O_NONBLOCK);
     if (!i) {
         perror("ERROR: opening send FIFO");
@@ -96,13 +96,13 @@ const string Connection::makeFIFOName(uint senderId, uint receiverId) {
 Connection::Connection(uint srcID, uint dstID) {
     // make the send FIFO
     sendFIFOName = makeFIFOName(srcID, dstID);
-    printf("Making Connection:\n"
+    printf("INFO: Making Connection:\n"
            "\tsrc: %u dst: %u sendFIFO: %s\n", srcID, dstID, sendFIFOName.c_str());
     makeFIFO(sendFIFOName);
 
     // make the receiving FIFO
     receiveFIFOName = makeFIFOName(dstID, srcID);
-    printf("Making Connection:\n"
+    printf("INFO: Making Connection:\n"
            "\tsrc: %u dst: %u receiveFIFO: %s\n", srcID, dstID, receiveFIFOName.c_str());
     makeFIFO(receiveFIFOName);
 }
