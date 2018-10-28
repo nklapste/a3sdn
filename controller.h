@@ -43,7 +43,6 @@ private:
     uint nSwitches;
     vector<Switch> switches;
     vector<Connection> connections;
-
     /**
      * Counts of {@code Packets} received.
      */
