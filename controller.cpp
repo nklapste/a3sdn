@@ -107,7 +107,7 @@ void Controller::start() {
     err = sigaddset(&sigset, SIGUSR1);
     assert(err == 0);
     /* We must block the signals in order for signalfd to receive them */
-    err = sigprocmask(SIG_BLOCK, &sigset, NULL);
+    err = sigprocmask(SIG_BLOCK, &sigset, nullptr);
     assert(err == 0);
     /* This is the main loop */
     pfds[connections.size()+2].fd = signalfd(-1, &sigset, 0);;
@@ -200,9 +200,12 @@ void Controller::start() {
             struct signalfd_siginfo info;
             /* We have a valid signal, read the info from the fd */
             int r = read(pfds[connections.size()+2].fd, &info, sizeof(info));
+            if(!r){
+                printf("WARNING: signal reading error\n");
+            }
             unsigned sig = info.ssi_signo;
             if (sig == SIGUSR1) {
-                printf("received SIGUSR1\n");
+                printf("DEBUG: received SIGUSR1\n");
                 list();
             }
         }
