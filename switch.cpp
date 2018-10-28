@@ -168,8 +168,8 @@ trafficFileItem parseTrafficItem(string &trafficFileLine) {
  * Start the {@code Switch} loop.
  */
 void Switch::start() {
-    char buf[1024];
     struct pollfd pfds[connections.size() + 3];
+    char buf[1024];
 
     // get fd for stdin
     pfds[0].fd = STDIN_FILENO;
@@ -195,15 +195,13 @@ void Switch::start() {
     err = sigaddset(&sigset, SIGUSR1);
     assert(err == 0);
     /* We must block the signals in order for signalfd to receive them */
-    err = sigprocmask(SIG_BLOCK, &sigset, NULL);
+    err = sigprocmask(SIG_BLOCK, &sigset, nullptr);
     assert(err == 0);
     /* This is the main loop */
     pfds[connections.size()+2].fd = signalfd(-1, &sigset, 0);;
     pfds[connections.size()+2].events = POLLIN;
 
     for (;;) {
-        // clear buffer at the start of loop
-        memset(buf, 0, sizeof buf);
         /*
          * 1.  Read and process a single line from the traffic line (if the EOF has not been reached yet). The
          *     switch ignores empty lines, comment lines, and lines specifying other handling switches. A
@@ -234,7 +232,7 @@ void Switch::start() {
             pfds[i].events = POLLIN;
         }
 
-        poll(pfds, connections.size() + 1, 0);
+        poll(pfds, connections.size() + 3, 0);
         // TODO: error handling
         if (pfds[0].revents & POLLIN) {
             int r = read(pfds[0].fd, buf, 1024);
@@ -254,6 +252,8 @@ void Switch::start() {
                 printf("ERROR: invalid Controller command: %s\n"
                        "\tPlease use either 'list' or 'exit'\n", cmd.c_str());
             }
+            fflush(stdout);
+            fflush(stdin);
         }
 
         /*
@@ -299,9 +299,12 @@ void Switch::start() {
             struct signalfd_siginfo info;
             /* We have a valid signal, read the info from the fd */
             int r = read(pfds[connections.size()+2].fd, &info, sizeof(info));
+            if(!r){
+                printf("WARNING: signal reading error\n");
+            }
             unsigned sig = info.ssi_signo;
             if (sig == SIGUSR1) {
-                printf("received SIGUSR1\n");
+                printf("DEBUG: received SIGUSR1\n");
                 list();
             }
         }
@@ -330,11 +333,11 @@ string &Switch::parseTrafficFileLine(string &line) {
     if (line.length() < 1) {
         printf("WARNING: ignoring invalid line: %s\n", line.c_str());
     } else if (line.substr(0, 1) == "#") {
-        printf("ignoring comment line\n");
+        printf("DEBUG: ignoring comment line\n");
     } else if (line.substr(0, 3) != "sw" + to_string(switchID)) {
-        printf("ignoring line specifying another switch\n");
+        printf("DEBUG: ignoring line specifying another switch\n");
     } else {
-        printf("found line specifying self: %s\n", line.c_str());
+        printf("DEBUG: found line specifying self: %s\n", line.c_str());
         // TODO: refactor
         trafficFileItem tfItem = parseTrafficItem(line);
         uint tfSwitchID = get<0>(tfItem);
