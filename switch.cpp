@@ -99,7 +99,7 @@ void Switch::list() {
  */
 Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, string &trafficFile, uint IPLow,
                uint IPHigh) {
-    printf("Creating switch: %s trafficFile: %s swj: %s swk: %s IPLow: %u IPHigh: %u\n",
+    printf("DEBUG: Creating switch: %s trafficFile: %s swj: %s swk: %s IPLow: %u IPHigh: %u\n",
            switchID.c_str(), trafficFile.c_str(), leftSwitchID.c_str(), rightSwitchID.c_str(), IPLow, IPHigh);
     /*
      *   [srcIP lo= 0, srcIP hi= MAXIP, destIP lo= IPlow, destIP hi= IPhigh,
@@ -132,20 +132,22 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
     if (leftSwitchID != NULL_ID) {
         neighbors++;
         Switch::leftSwitchID = parseSwitchID(leftSwitchID);
-        connections.emplace_back(Connection(Switch::switchID, Switch::leftSwitchID));
+
     } else {
         Switch::leftSwitchID = -1;
     }
+    connections.emplace_back(Connection(Switch::switchID, Switch::leftSwitchID));
     // create Connection to the right switch
     // can potentially be a nullptr
     if (rightSwitchID != NULL_ID) {
         neighbors++;
         Switch::rightSwitchID = parseSwitchID(rightSwitchID);
-        connections.emplace_back(Connection(Switch::switchID, Switch::rightSwitchID));
     } else {
         Switch::rightSwitchID = -1;
     }
-    printf("I am switch: %i\n", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    connections.emplace_back(Connection(Switch::switchID, Switch::rightSwitchID));
+
+    printf("INFO: I am switch: %i\n", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 }
 
 /**
@@ -161,7 +163,7 @@ trafficFileItem parseTrafficItem(string &trafficFileLine) {
     uint switchID = parseSwitchID(trafficFileItems.at(0));
     uint srcIP = static_cast<uint>(stoi(trafficFileItems.at(1)));
     uint dstIP = static_cast<uint>(stoi(trafficFileItems.at(2)));
-    printf("Parsed trafficFileItem: switchID: %u srcIP: %u dst: %u\n",
+    printf("DEBUG: Parsed trafficFileItem: switchID: %u srcIP: %u dst: %u\n",
            switchID, srcIP, dstIP);
     return make_tuple(switchID, srcIP, dstIP);
 }
@@ -248,7 +250,7 @@ void Switch::start() {
                 list();
             } else if (cmd == EXIT_CMD) {
                 list();
-                printf("exit command received: terminating\n");
+                printf("INFO: exit command received: terminating\n");
                 exit(0);
             } else {
                 printf("ERROR: invalid Controller command: %s\n"
@@ -261,8 +263,6 @@ void Switch::start() {
         /*
          * 3. Poll the incoming FIFOs from the controller and the attached switches. The switch handles
          *    each incoming packet, as described in the Packet Types.
-         *
-         *    TODO: In addition,  upon receiving signal USER1, the switch displays the information specified by the list command
          */
         for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
             if (pfds[i].revents & POLLIN) {
@@ -274,7 +274,7 @@ void Switch::start() {
                 }
                 string cmd = string(buf);
                 Packet packet = Packet(cmd);
-                printf("Parsed packet: %s\n", packet.toString().c_str());
+                printf("DEBUG: Parsed packet: %s\n", packet.toString().c_str());
                 if (packet.getType() == ACK) {
                     respondACKPacket();
                 } else if (packet.getType() == ADD) {
@@ -340,7 +340,6 @@ string &Switch::parseTrafficFileLine(string &line) {
         printf("DEBUG: ignoring line specifying another switch\n");
     } else {
         printf("DEBUG: found line specifying self: %s\n", line.c_str());
-        // TODO: refactor
         trafficFileItem tfItem = parseTrafficItem(line);
         uint tfSwitchID = get<0>(tfItem);
         uint srcIP = get<0>(tfItem);
@@ -349,28 +348,20 @@ string &Switch::parseTrafficFileLine(string &line) {
         int fi = getFlowEntry(switchID, srcIP, dstIP);
         if (fi >= 0) { // found rule
             FlowEntry flowEntry = flowTable.at(fi);
-            // we now have a valid rule that ap
+            // we now have a valid rule that applies to the traffic item and the switch
             if (flowEntry.actionType == DELIVER) {
                 // this is our packet
-                // TODO: use rules to figure out switch to write to
-                //TODO: iterate pktcount on actual flowEntry
                 admitCount++;
             } else if (flowEntry.actionType == FORWARD) {
-                // TODO: get proper connection for left or right switch
-                if (flowEntry.actionVal == rightSwitchID) {
-                } else if (flowEntry.actionVal == leftSwitchID) {
+                if (flowEntry.actionVal == PORT_1) {
+                    sendRELAYPacket(connections[PORT_1], srcIP, dstIP);
+                } else if (flowEntry.actionVal == PORT_2) {
+                    sendRELAYPacket(connections[PORT_2], srcIP, dstIP);
                 } else {
-                    // TODO: error
-                    printf("ERROR: given FORWARD to sw%u this does not match any neighbors",
-                           flowEntry.actionVal);
+                    printf("ERROR: given FORWARD to unknown port: %u", flowEntry.actionVal);
                 }
-                // TODO: BETTER Switch left right detection
-                sendRELAYPacket(connections[1], srcIP, dstIP);
-                //TODO: iterate pktcount on actual flowEntry
-
             } else if (flowEntry.actionType == DROP) {
-                // TODO: do nothing
-                //TODO: iterate pktcount on actual flowEntry
+                // do nothing
             }
             flowEntry.pktCount++;
             flowTable[fi] = flowEntry;
@@ -469,11 +460,11 @@ int Switch::getFlowEntry(uint switchID, uint srcIP, uint dstIP) {
             // ensure valid dst
             if (dstIP >= flowEntry.dstIP_lo || dstIP <= flowEntry.dstIP_hi) {
                 string actionName;
-                if (flowEntry.actionType == 0) {
+                if (flowEntry.actionType == DELIVER) {
                     actionName = "DELIVER";
-                } else if (flowEntry.actionType == 1) {
+                } else if (flowEntry.actionType == FORWARD) {
                     actionName = "FORWARD";
-                } else if (flowEntry.actionType == 2) {
+                } else if (flowEntry.actionType == DROP) {
                     actionName = "DROP";
                 }
                 printf("found matching flowtable rule: (srcIP= %u-%u dstIP %u-%u action=%s:%u pri= %u pktCount= %u)\n",
@@ -511,20 +502,24 @@ void Switch::respondRELAYPacket(Message message) {
             // this packet is ours
             admitCount++;
         } else if (flowEntry.actionType == FORWARD) {
-            // TODO: get proper connection for left or right switch
-            if (flowEntry.actionVal == rightSwitchID) {
-            } else if (flowEntry.actionVal == leftSwitchID) {
+            if (flowEntry.actionVal == PORT_1) {
+                // left switch port 1
+                sendRELAYPacket(connections[PORT_1], srcIP, dstIP);
+
+            } else if (flowEntry.actionVal == PORT_2) {
+                // right switch port 2
+                sendRELAYPacket(connections[PORT_2], srcIP, dstIP);
             } else {
+                printf("ERROR: given FORWARD to sw%u this does not match any neighbors",
+                       flowEntry.actionVal);
             }
-            // TODO: gen better method to choose relay switch
-            sendRELAYPacket(connections[1], srcIP, dstIP);
         } else if (flowEntry.actionType == DROP) {
 
         }
         flowEntry.pktCount++;
         flowTable[fi]=flowEntry;
     } else if (fi < 0) { // did not find rule
-        sendQUERYPacket(connections[0], srcIP, dstIP);
+        sendQUERYPacket(connections[PORT_0], srcIP, dstIP);
         // TODO: wait for response and possibly reply?
     }
 }

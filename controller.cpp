@@ -34,23 +34,6 @@
 #include <assert.h>
 using namespace std;
 
-
-
-
-void handle_signal(int signo);
-
-
-void handle_signal(int signo)
-{
-    if( signo == SIGUSR1 )
-    {
-        write( 1, "Received user signal\n", 21);
-    }
-    else
-    {
-        write( 1, "unexpected signal received\n", 27 );
-    }
-}
 /**
  * Initialize a Controller.
  *
@@ -262,7 +245,7 @@ FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
                                     .dstIP_lo   = dstIP,
                                     .dstIP_hi   = dstIP,
                                     .actionType = FORWARD,
-                                    .actionVal  = requestLeftSwitch.getID(),
+                                    .actionVal  = PORT_1,
                                     .pri        = MIN_PRI,
                                     .pktCount   = 0
                             };
@@ -286,7 +269,7 @@ FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
                                     .dstIP_lo   = dstIP,
                                     .dstIP_hi   = dstIP,
                                     .actionType = FORWARD,
-                                    .actionVal  = requestRightSwitch.getID(),
+                                    .actionVal  = PORT_2,
                                     .pri        = MIN_PRI,
                                     .pktCount   = 0
                             };
@@ -323,7 +306,7 @@ FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
     } else {
         // no switch with that ID is found.
         printf("ERROR: attempted to make rule for switch that is not supported: switchID: %u", switchID);
-        // TODO: is this okay behavoir
+        // TODO: is this okay behavior
         FlowEntry drop_rule = {
                 .srcIP_lo   = 0,
                 .srcIP_hi   = MAX_IP,
@@ -350,7 +333,7 @@ void Controller::queryResponse(Connection connection, Message message) {
     uint switchID = static_cast<uint>(stoi(get<1>(message[0])));
     uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
     uint dstIP = static_cast<uint>(stoi(get<1>(message[2])));
-    printf("Parsed QUERY packet: switchID: %u srcIP: %u dstIP: %u\n",
+    printf("DEBUG: Parsed QUERY packet: switchID: %u srcIP: %u dstIP: %u\n",
            switchID, srcIP, dstIP);
 
     // calculate new flow entry
