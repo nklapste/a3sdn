@@ -583,14 +583,14 @@ void Switch::respondACKPacket() {
  */
 void Switch::respondADDPacket(Message message) {
     rAddCount++;
-    uint srcIP_lo = static_cast<uint>(stoi(get<1>(message[0])));
-    uint srcIP_hi = static_cast<uint>(stoi(get<1>(message[1])));
-    uint dstIP_lo = static_cast<uint>(stoi(get<1>(message[2])));
-    uint dstIP_hi = static_cast<uint>(stoi(get<1>(message[3])));
+    uint srcIP_lo   = static_cast<uint>(stoi(get<1>(message[0])));
+    uint srcIP_hi   = static_cast<uint>(stoi(get<1>(message[1])));
+    uint dstIP_lo   = static_cast<uint>(stoi(get<1>(message[2])));
+    uint dstIP_hi   = static_cast<uint>(stoi(get<1>(message[3])));
     uint actionType = static_cast<uint>(stoi(get<1>(message[4])));
-    uint actionVal = static_cast<uint>(stoi(get<1>(message[5])));
-    uint pri = static_cast<uint>(stoi(get<1>(message[6])));
-    uint pktCount = static_cast<uint>(stoi(get<1>(message[7])));
+    uint actionVal  = static_cast<uint>(stoi(get<1>(message[5])));
+    uint pri        = static_cast<uint>(stoi(get<1>(message[6])));
+    uint pktCount   = static_cast<uint>(stoi(get<1>(message[7])));
 
     printf("INFO: parsed ADD packet:\n"
            "\tAdding new flowTable rule:\n"
@@ -622,8 +622,8 @@ void Switch::respondADDPacket(Message message) {
 void Switch::respondRELAYPacket(Message message) {
     rRelayCount++;
     uint rSwitchID = static_cast<uint>(stoi(get<1>(message[0])));
-    uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
-    uint dstIP = static_cast<uint>(stoi(get<1>(message[2])));
+    uint srcIP     = static_cast<uint>(stoi(get<1>(message[1])));
+    uint dstIP     = static_cast<uint>(stoi(get<1>(message[2])));
 
     printf("INFO: parsed RELAY packet:\n"
            "\tswitchID: %u srcIP: %u dstIP: %u",
