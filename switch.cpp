@@ -220,6 +220,7 @@ void Switch::start() {
 
         int ret = poll(pfds, connections.size() + 3, 0);
         if (errno || ret < 0) {
+            // TODO: getting: ERROR: poll failure: Bad file descriptor
             perror("ERROR: poll failure");
         }
         if (pfds[0].revents & POLLIN) {
