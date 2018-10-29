@@ -24,7 +24,7 @@ using namespace std;
 void Connection::makeFIFO(string &FIFOName) {
     printf("DEBUG: making FIFO at: %s\n", FIFOName.c_str());
     int status = mkfifo(FIFOName.c_str(), S_IRUSR | S_IWUSR | S_IRGRP |
-                                          S_IWGRP | S_IROTH | S_IWOTH );
+                                          S_IWGRP | S_IROTH | S_IWOTH);
     if (errno || status == -1) {
         perror("ERROR: error creating FIFO connection");
         errno = 0;

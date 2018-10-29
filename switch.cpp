@@ -105,11 +105,11 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
                "\tIPLow: %u greater than IPHigh: %u", IPLow, IPHigh);
         exit(EINVAL);
     }
-    if(IPHigh>MAX_IP){
+    if (IPHigh > MAX_IP) {
         printf("ERROR: invalid IPHigh: %u MAX_IP: %u", IPHigh, MAX_IP);
         exit(EINVAL);
     }
-    if(IPLow<MIN_IP){
+    if (IPLow < MIN_IP) {
         printf("ERROR: invalid IPLow: %u MIN_IP: %u", IPLow, MIN_IP);
         exit(EINVAL);
     }
@@ -248,7 +248,7 @@ void Switch::start() {
         }
 
         int ret = poll(pfds, connections.size() + 3, 0);
-        if (errno || ret < 0){
+        if (errno || ret < 0) {
             perror("ERROR: poll failure");
         }
         if (pfds[0].revents & POLLIN) {
@@ -340,7 +340,7 @@ void Switch::sendOPENPacket(Connection connection) {
     openMessage.emplace_back(make_tuple("IPHigh", to_string(IPHigh)));
     Packet openPacket = Packet(OPEN, openMessage);
     printf("INFO: sending OPEN packet: connection: %s packet: %s\n",
-            connection.getSendFIFOName().c_str(), openPacket.toString().c_str());
+           connection.getSendFIFOName().c_str(), openPacket.toString().c_str());
     write(connection.openSendFIFO(), openPacket.toString().c_str(), strlen(openPacket.toString().c_str()));
     tOpenCount++;
 }
@@ -549,7 +549,7 @@ void Switch::sendQUERYPacket(Connection connection, uint srcIP, uint dstIP) {
     queryMessage.emplace_back(MessageArg("dstIP", to_string(dstIP)));
     Packet queryPacket = Packet(QUERY, queryMessage);
     printf("INFO: sending QUERY packet: connection: %s packet: %s\n",
-            connection.getSendFIFOName().c_str(), queryPacket.toString().c_str());
+           connection.getSendFIFOName().c_str(), queryPacket.toString().c_str());
     write(connection.openSendFIFO(), queryPacket.toString().c_str(),
           strlen(queryPacket.toString().c_str()));
     tQueryCount++;
@@ -614,7 +614,7 @@ void Switch::sendRELAYPacket(Connection connection, uint srcIP, uint dstIP) {
     relayMessage.emplace_back(make_tuple("dstIP", to_string(dstIP)));
     Packet relayPacket = Packet(RELAY, relayMessage);
     printf("INFO: sending RELAY packet: connection: %s packet: %s\n",
-            connection.getSendFIFOName().c_str(), relayPacket.toString().c_str());
+           connection.getSendFIFOName().c_str(), relayPacket.toString().c_str());
     write(connection.openSendFIFO(), relayPacket.toString().c_str(),
           strlen(relayPacket.toString().c_str()));
     tRelayCount++;

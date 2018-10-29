@@ -40,11 +40,11 @@ IPRange parseIPRange(const string &IPRangeString) {
                "\tIPLow: %u greater than IPHigh: %u", IPLow, IPHigh);
         exit(EINVAL);
     }
-    if(IPHigh>MAX_IP){
+    if (IPHigh > MAX_IP) {
         printf("ERROR: invalid IPHigh: %u MAX_IP: %u", IPHigh, MAX_IP);
         exit(EINVAL);
     }
-    if(IPLow<MIN_IP){
+    if (IPLow < MIN_IP) {
         printf("ERROR: invalid IPLow: %u MIN_IP: %u", IPLow, MIN_IP);
         exit(EINVAL);
     }
