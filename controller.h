@@ -32,15 +32,7 @@ class Controller {
 public:
     explicit Controller(uint nSwitches);
 
-    void list();
-
     void start();
-
-    FlowEntry makeRule(uint switchID, uint srcIP, uint dstIP);
-
-    void queryResponse(Connection connection, Message message);
-
-    void openResponse(Connection connection, Message message);
 
 private:
     uint nSwitches;
@@ -63,6 +55,18 @@ private:
     uint tAckCount = 0;
     uint tRelayCount = 0;
     uint tQueryCount = 0;
+
+    void list();
+
+    FlowEntry makeFlowEntry(uint switchID, uint srcIP, uint dstIP);
+
+    void sendACKPacket(Connection connection);
+
+    void sendADDPacket(Connection connection, FlowEntry flowEntry);
+
+    void respondOPENPacket(Connection connection, Message message);
+
+    void respondQUERYPacket(Connection connection, Message message);
 };
 
 #endif //A2SDN_CONTROLLER_H

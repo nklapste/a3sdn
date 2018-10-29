@@ -155,9 +155,9 @@ void Controller::start() {
                 printf("DEBUG: parsed packet: %s\n", packet.toString().c_str());
 
                 if (packet.getType() == OPEN) {
-                    openResponse(connections[i - 1], packet.getMessage());
+                    respondOPENPacket(connections[i - 1], packet.getMessage());
                 } else if (packet.getType() == QUERY) {
-                    queryResponse(connections[i - 1], packet.getMessage());
+                    respondQUERYPacket(connections[i - 1], packet.getMessage());
                 } else {
                     // Controller has no other special behavior for other packets
                     if (packet.getType() == ACK) {
@@ -204,7 +204,7 @@ void Controller::start() {
  * @param dstIP {@code uint}
  * @return {@code FlowEntry}
  */
-FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
+FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
     auto it = find_if(switches.begin(), switches.end(), [&switchID](Switch &sw) { return sw.getID() == switchID; });
     if (it != switches.end()) {
         // found element. it is an iterator to the first matching element.
@@ -322,7 +322,7 @@ FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
 }
 
 
-void Controller::queryResponse(Connection connection, Message message) {
+void Controller::respondQUERYPacket(Connection connection, Message message) {
     rQueryCount++;
     // When processing an incoming packet header (the header may be read from
     //the traffic file, or relayed to the switch by one of its neighbours), if a switch does not find
@@ -337,9 +337,51 @@ void Controller::queryResponse(Connection connection, Message message) {
            switchID, srcIP, dstIP);
 
     // calculate new flow entry
-    FlowEntry flowEntry = makeRule(switchID, srcIP, dstIP);
+    FlowEntry flowEntry = makeFlowEntry(switchID, srcIP, dstIP);
 
-    // create new add packet
+    // create and send new add packet
+    sendADDPacket(connection, flowEntry);
+}
+
+void Controller::respondOPENPacket(Connection connection, Message message) {
+    rOpenCount++;
+    // Upon receiving an OPEN packet, the controller updates its stored information about the switch,
+    // and replies with a packet of type ACK
+    uint switchID = static_cast<uint>(stoi(get<1>(message[0])));
+    int leftSwitchID = stoi(get<1>(message[1]));
+    int rightSwitchID = stoi(get<1>(message[2]));
+    uint switchIPLow = static_cast<uint>(stoi(get<1>(message[3])));
+    uint switchIPHigh = static_cast<uint>(stoi(get<1>(message[4])));
+    printf("DEBUG: parsed OPEN packet: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
+           switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh);
+
+    switches.emplace_back(Switch(switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh));
+
+    // send ack back to switch
+    sendACKPacket(connection);
+}
+
+/**
+ * Create and send a ACK packet out to the specified connection.
+ *
+ * @param connection {@code Connection}
+ */
+void Controller::sendACKPacket(Connection connection) {
+    Packet ackPacket = Packet(ACK, Message());
+    printf("INFO: sending ACK packet: connection: %s packet: %s\n",
+           connection.getSendFIFOName().c_str(), ackPacket.toString().c_str());
+    write(connection.openSendFIFO(), ackPacket.toString().c_str(),
+          strlen(ackPacket.toString().c_str()));
+    tAckCount++;
+}
+
+/**
+ * Create and send a ADD packet out to the specified connection. Indicating to add the specified FlowEntry.
+ *
+ * @param connection {@code Connection}
+ * @param flowEntry {@code FlowEntry}
+ */
+void Controller::sendADDPacket(Connection connection, FlowEntry flowEntry) {
     Message addMessage;
     addMessage.emplace_back(MessageArg("srcIP_lo", to_string(flowEntry.srcIP_lo)));
     addMessage.emplace_back(MessageArg("srcIP_hi", to_string(flowEntry.srcIP_lo)));
@@ -355,27 +397,4 @@ void Controller::queryResponse(Connection connection, Message message) {
     write(connection.openSendFIFO(), addPacket.toString().c_str(),
           strlen(addPacket.toString().c_str()));
     tAddCount++;
-}
-
-void Controller::openResponse(Connection connection, Message message) {
-    rOpenCount++;
-    // Upon receiving an OPEN packet, the controller updates its stored information about the switch,
-    // and replies with a packet of type ACK
-    uint switchID = static_cast<uint>(stoi(get<1>(message[0])));
-    int leftSwitchID = stoi(get<1>(message[1]));
-    int rightSwitchID = stoi(get<1>(message[2]));
-    uint switchIPLow = static_cast<uint>(stoi(get<1>(message[3])));
-    uint switchIPHigh = static_cast<uint>(stoi(get<1>(message[4])));
-    printf("DEBUG: parsed OPEN packet: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
-           switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh);
-
-    switches.emplace_back(Switch(switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh));
-
-    // send ack back to switch
-    Packet ackPacket = Packet(ACK, Message());
-    printf("INFO: sending ACK packet: connection: %s packet: %s\n",
-           connection.getSendFIFOName().c_str(), ackPacket.toString().c_str());
-    write(connection.openSendFIFO(), ackPacket.toString().c_str(),
-          strlen(ackPacket.toString().c_str()));
-    tAckCount++;
 }
