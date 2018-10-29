@@ -37,9 +37,9 @@ public:
 
     Message getMessage();
 
-    string toString();
-
     static Message parseMessage(string &messageRaw);
+
+    string toString();
 
 private:
     string type;
