@@ -599,10 +599,10 @@ void Switch::respondADDPacket(Message message) {
 }
 
 /**
- * Respond to a ADD packet.
+ * Respond to a RELAY packet.
  *
  * A switch may forward a received packet header to a neighbour (as instructed by a
- * matching rule in the flow table).  This information is passed to the neighbour in a
+ * matching rule in the flow table). This information is passed to the neighbour in a
  * RELAY packet.
  *
  * @param message {@code Message}
