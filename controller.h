@@ -13,8 +13,8 @@
 #include <vector>
 
 #include "connection.h"
-#include "switch.h"
 #include "packet.h"
+#include "switch.h"
 
 #define MIN_SWITCHES 1
 #define MAX_SWITCHES 7

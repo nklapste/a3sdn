@@ -29,11 +29,10 @@ using namespace std;
 
 #define MIN_PRI 4
 
-#define PORT_0 1 // controller port/connection index
+#define PORT_0 0 // controller port/connection index
 #define PORT_1 1 // left switch port/connection index
 #define PORT_2 2 // right switch port/connection index
 #define PORT_3 3 // self switch port
-
 
 /**
  * Traffic file item.

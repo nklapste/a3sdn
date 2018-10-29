@@ -5,30 +5,23 @@
  * @version 0.0.0
  */
 
-#include <sys/types.h>
+#include <assert.h>
 #include <cstdio>
 #include <cstdlib>
-#include <sys/signalfd.h>
-#include <unistd.h>
+#include <fstream>
+#include <regex>
 #include <signal.h>
+#include <string>
+#include <sys/stat.h>
 #include <sys/signalfd.h>
-#include <string.h>
-#include <assert.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 /* FIFO stuff */
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <cerrno>
-#include <string>
-#include <fcntl.h>
-#include <regex>
-#include <fstream>
-#include <unistd.h>
 #include <poll.h>
 
-#include "switch.h"
 #include "controller.h"
-#include "packet.h"
+#include "switch.h"
 
 using namespace std;
 
