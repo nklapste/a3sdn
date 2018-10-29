@@ -22,13 +22,12 @@
 
 #include "controller.h"
 
-
 using namespace std;
 
 /**
  * Initialize a Controller.
  *
- * @param nSwitches
+ * @param nSwitches {@code uint} the number of switches to potentially be connected to the controller.
  */
 Controller::Controller(uint nSwitches) : nSwitches(nSwitches) {
     if (nSwitches > MAX_SWITCHES) {
@@ -172,7 +171,6 @@ void Controller::start() {
             }
         }
 
-        // TODO:
         /*
          * In addition, upon receiving signal USER1, the switch displays the information specified by the list command.
          */
@@ -192,7 +190,6 @@ void Controller::start() {
         }
     }
 }
-
 
 /**
  * Calculate a new flow entry rule.
@@ -321,46 +318,6 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
     }
 }
 
-
-void Controller::respondQUERYPacket(Connection connection, Message message) {
-    rQueryCount++;
-    // When processing an incoming packet header (the header may be read from
-    //the traffic file, or relayed to the switch by one of its neighbours), if a switch does not find
-    //a matching rule in the flow table, the switch sends a
-    //QUERY
-    //packet to the controller.  The
-    //controller replies with a rule stored in a packet of type
-    uint switchID = static_cast<uint>(stoi(get<1>(message[0])));
-    uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
-    uint dstIP = static_cast<uint>(stoi(get<1>(message[2])));
-    printf("DEBUG: parsed QUERY packet: switchID: %u srcIP: %u dstIP: %u\n",
-           switchID, srcIP, dstIP);
-
-    // calculate new flow entry
-    FlowEntry flowEntry = makeFlowEntry(switchID, srcIP, dstIP);
-
-    // create and send new add packet
-    sendADDPacket(connection, flowEntry);
-}
-
-void Controller::respondOPENPacket(Connection connection, Message message) {
-    rOpenCount++;
-    // Upon receiving an OPEN packet, the controller updates its stored information about the switch,
-    // and replies with a packet of type ACK
-    uint switchID = static_cast<uint>(stoi(get<1>(message[0])));
-    int leftSwitchID = stoi(get<1>(message[1]));
-    int rightSwitchID = stoi(get<1>(message[2]));
-    uint switchIPLow = static_cast<uint>(stoi(get<1>(message[3])));
-    uint switchIPHigh = static_cast<uint>(stoi(get<1>(message[4])));
-    printf("DEBUG: parsed OPEN packet: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
-           switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh);
-
-    switches.emplace_back(Switch(switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh));
-
-    // send ack back to switch
-    sendACKPacket(connection);
-}
-
 /**
  * Create and send a ACK packet out to the specified connection.
  *
@@ -397,4 +354,55 @@ void Controller::sendADDPacket(Connection connection, FlowEntry flowEntry) {
     write(connection.openSendFIFO(), addPacket.toString().c_str(),
           strlen(addPacket.toString().c_str()));
     tAddCount++;
+}
+
+/**
+ * Respond to a OPEN packet.
+ *
+ * @param connection {@code Connection}
+ * @param message {@code Message}
+ */
+void Controller::respondOPENPacket(Connection connection, Message message) {
+    rOpenCount++;
+    // Upon receiving an OPEN packet, the controller updates its stored information about the switch,
+    // and replies with a packet of type ACK
+    uint switchID = static_cast<uint>(stoi(get<1>(message[0])));
+    int leftSwitchID = stoi(get<1>(message[1]));
+    int rightSwitchID = stoi(get<1>(message[2]));
+    uint switchIPLow = static_cast<uint>(stoi(get<1>(message[3])));
+    uint switchIPHigh = static_cast<uint>(stoi(get<1>(message[4])));
+    printf("DEBUG: parsed OPEN packet: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
+           switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh);
+
+    switches.emplace_back(Switch(switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh));
+
+    // send ack back to switch
+    sendACKPacket(connection);
+}
+
+/**
+ * Respond to a QUERY packet.
+ *
+ * @param connection {@code Connection}
+ * @param message {@code Message}
+ */
+void Controller::respondQUERYPacket(Connection connection, Message message) {
+    rQueryCount++;
+    // When processing an incoming packet header (the header may be read from
+    //the traffic file, or relayed to the switch by one of its neighbours), if a switch does not find
+    //a matching rule in the flow table, the switch sends a
+    //QUERY
+    //packet to the controller.  The
+    //controller replies with a rule stored in a packet of type
+    uint switchID = static_cast<uint>(stoi(get<1>(message[0])));
+    uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
+    uint dstIP = static_cast<uint>(stoi(get<1>(message[2])));
+    printf("DEBUG: parsed QUERY packet: switchID: %u srcIP: %u dstIP: %u\n",
+           switchID, srcIP, dstIP);
+
+    // calculate new flow entry
+    FlowEntry flowEntry = makeFlowEntry(switchID, srcIP, dstIP);
+
+    // create and send new add packet
+    sendADDPacket(connection, flowEntry);
 }
