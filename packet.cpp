@@ -72,7 +72,8 @@ string Packet::parseType(string &type) {
         // valid packet type
     } else {
         errno = EINVAL;
-        perror("Invalid type for packet");
+        perror("ERROR: Invalid type for packet");
+        exit(EINVAL);
     }
     return type;
 }
