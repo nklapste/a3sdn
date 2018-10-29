@@ -346,7 +346,7 @@ string &Switch::parseTrafficFileLine(string &line) {
         uint srcIP = get<0>(tfItem);
         uint dstIP = get<0>(tfItem);
 
-        int fi = getFlowEntry(switchID, srcIP, dstIP);
+        int fi = getFlowEntry(srcIP, dstIP);
         if (fi >= 0) { // found rule
             FlowEntry flowEntry = flowTable.at(fi);
             // we now have a valid rule that applies to the traffic item and the switch
@@ -446,7 +446,7 @@ int Switch::getLeftSwitchID() {
  * @return {@code int} index of the matching FlowEntry within the FlowTable.
  *         Else return -1 is no matching FlowEntry was found.
  */
-int Switch::getFlowEntry(uint switchID, uint srcIP, uint dstIP) {
+int Switch::getFlowEntry(uint srcIP, uint dstIP) {
     // iterate through flowTable rules
     int flowTableIndex = 0;
     for (auto const &flowEntry: flowTable) {
@@ -493,7 +493,7 @@ void Switch::respondRELAYPacket(Message message) {
            rSwitchID, srcIP, dstIP);
 
     // TODO figure out way to update flow entry
-    int fi = getFlowEntry(rSwitchID, srcIP, dstIP);
+    int fi = getFlowEntry(srcIP, dstIP);
     if (fi >= 0) { // found rule
         FlowEntry flowEntry = flowTable.at(fi);
         // we now have a valid rule that ap
