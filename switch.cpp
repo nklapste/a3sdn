@@ -454,7 +454,6 @@ int Switch::getLeftSwitchID() {
 /**
  * Attempt to get the index to a matching FlowEntry rule within the Switch's FlowTable for a given traffic packet item.
  *
- * @param switchID {@code uint}
  * @param srcIP {@code uint}
  * @param dstIP {@code uint}
  * @return {@code int} index of the matching FlowEntry within the FlowTable.
@@ -539,7 +538,7 @@ void Switch::respondRELAYPacket(Message message) {
 /**
  * Send a QUERY packet describing the unknown packet header through the given connection.
  *
- * @param connection {@code uint}
+ * @param connection {@code Connection}
  * @param srcIP {@code uint}
  * @param dstIP {@code uint}
  */
@@ -570,7 +569,7 @@ void Switch::respondACKPacket() {
  *
  * The switch then stores and applies the received rule within the ADD packet.
  *
- * @param message
+ * @param message {@code Message}
  */
 void Switch::respondADDPacket(Message message) {
     rAddCount++;

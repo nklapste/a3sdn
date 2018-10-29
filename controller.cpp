@@ -206,10 +206,12 @@ void Controller::start() {
 /**
  * Calculate a new flow entry rule.
  *
- * @param switchID
- * @param srcIP
- * @param dstIP
- * @return
+ * TODO: This code is spaghetti. Someone needs to eat it.
+ *
+ * @param switchID {@code uint}
+ * @param srcIP {@code uint}
+ * @param dstIP {@code uint}
+ * @return {@code FlowEntry}
  */
 FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
     auto it = find_if(switches.begin(), switches.end(), [&switchID](Switch &sw) { return sw.getID() == switchID; });
