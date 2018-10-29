@@ -63,7 +63,7 @@ public:
 
     void respondRELAYPacket(Message message);
 
-    int getFlowEntry(uint switchID, uint srcIP, uint dstIP);
+    int getFlowEntry(uint srcIP, uint dstIP);
 
     void start();
 
