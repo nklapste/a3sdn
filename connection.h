@@ -17,6 +17,8 @@ class Connection {
 public:
     Connection(uint srcID, uint dstID);
 
+    Connection();
+
     string getReceiveFIFOName();
 
     string getSendFIFOName();
