@@ -16,6 +16,7 @@
 #include "switch.h"
 #include "packet.h"
 
+#define MIN_SWITCHES 1
 #define MAX_SWITCHES 7
 #define LIST_CMD "list"
 #define EXIT_CMD "exit"

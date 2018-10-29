@@ -42,21 +42,28 @@ using namespace std;
 Controller::Controller(uint nSwitches) : nSwitches(nSwitches) {
     if (nSwitches > MAX_SWITCHES) {
         printf("ERROR: too many switches for controller: %u\n"
-               "\tMAX_SWITCHES=%u\n", nSwitches, 7);
+               "\tMAX_SWITCHES=%u\n", nSwitches, MAX_SWITCHES);
         exit(1);
     }
-    printf("Creating controller: nSwitches: %u\n", nSwitches);
+    if (nSwitches < MIN_SWITCHES) {
+        printf("ERROR: too little switches for controller: %u\n"
+               "\tMIN_SWITCHES=%u\n", nSwitches, MIN_SWITCHES);
+        exit(1);
+    }
+    printf("DEBUG: creating controller: nSwitches: %u\n", nSwitches);
+
     // init all potential switch connections for the controller
     for (uint switch_i = 1; switch_i <= nSwitches; ++switch_i) {
         connections.emplace_back(CONTROLLER_ID, switch_i);
     }
+    printf("INFO: created controller: nSwitches: %u\n", nSwitches);
 }
 
 /**
  * Print the switches connected to the controller and the statistics of packets sent and received.
  */
 void Controller::list() {
-    printf("Switch information:\n");
+    printf("Controller information:\n");
     for (auto &sw: switches) {
         printf("[sw%u] port1= %i, port2= %i, port3= %u-%u\n",
                sw.getID(), sw.getLeftSwitchID(), sw.getRightSwitchID(), sw.getIPLow(), sw.getIPHigh());
@@ -112,7 +119,7 @@ void Controller::start() {
 
         int ret = poll(pfds, connections.size() + 3, 0);
         if (errno || ret<0){
-            perror("poll failure");
+            perror("ERROR: poll failure");
         }
         // TODO: error handling
         if (pfds[0].revents & POLLIN) {
@@ -143,7 +150,7 @@ void Controller::start() {
          */
         for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
             if (pfds[i].revents & POLLIN) {
-                printf("pfds[%lu] has connection POLLIN event: %s\n", i,
+                printf("DEBUG: pfds[%lu] has connection POLLIN event: %s\n", i,
                        connections[i - 1].getReceiveFIFOName().c_str());
                 memset(buf, 0, sizeof buf);
                 int r = read(pfds[i].fd, buf, 1024);
@@ -154,7 +161,7 @@ void Controller::start() {
 
                 // take the message and parse it into a packet
                 Packet packet = Packet(cmd);
-                printf("Parsed packet: %s\n", packet.toString().c_str());
+                printf("DEBUG: parsed packet: %s\n", packet.toString().c_str());
 
                 if (packet.getType() == OPEN) {
                     openResponse(connections[i - 1], packet.getMessage());
@@ -215,8 +222,8 @@ FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
             // src IP is invalid make a drop rule
             // TODO: create DROP rule
             FlowEntry drop_rule = {
-                    .srcIP_lo   = srcIP,
-                    .srcIP_hi   = srcIP,
+                    .srcIP_lo   = MIN_IP,
+                    .srcIP_hi   = MAX_IP,
                     .dstIP_lo   = dstIP,
                     .dstIP_hi   = dstIP,
                     .actionType = DROP,
@@ -240,7 +247,7 @@ FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
                         if (dstIP < requestLeftSwitch.getIPLow() || dstIP > requestLeftSwitch.getIPHigh()) {
                         } else {
                             FlowEntry forwardLeftRule = {
-                                    .srcIP_lo   = 0,
+                                    .srcIP_lo   = MIN_IP,
                                     .srcIP_hi   = MAX_IP,
                                     .dstIP_lo   = dstIP,
                                     .dstIP_hi   = dstIP,
@@ -264,7 +271,7 @@ FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
                         if (dstIP < requestRightSwitch.getIPLow() || dstIP > requestRightSwitch.getIPHigh()) {
                         } else {
                             FlowEntry forwardRightRule = {
-                                    .srcIP_lo   = 0,
+                                    .srcIP_lo   = MIN_IP,
                                     .srcIP_hi   = MAX_IP,
                                     .dstIP_lo   = dstIP,
                                     .dstIP_hi   = dstIP,
@@ -279,7 +286,7 @@ FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
                 }
                 // all other options exhausted
                 FlowEntry drop_rule = {
-                        .srcIP_lo   = 0,
+                        .srcIP_lo   = MIN_IP,
                         .srcIP_hi   = MAX_IP,
                         .dstIP_lo   = dstIP,
                         .dstIP_hi   = dstIP,
@@ -291,12 +298,12 @@ FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
                 return drop_rule;
             } else {
                 FlowEntry deliver_rule = {
-                        .srcIP_lo   = 0,
+                        .srcIP_lo   = MIN_IP,
                         .srcIP_hi   = MAX_IP,
                         .dstIP_lo   = dstIP,
                         .dstIP_hi   = dstIP,
                         .actionType = DELIVER,
-                        .actionVal  = 3,
+                        .actionVal  = PORT_3,
                         .pri        = MIN_PRI,
                         .pktCount   = 0
                 };
@@ -333,7 +340,7 @@ void Controller::queryResponse(Connection connection, Message message) {
     uint switchID = static_cast<uint>(stoi(get<1>(message[0])));
     uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
     uint dstIP = static_cast<uint>(stoi(get<1>(message[2])));
-    printf("DEBUG: Parsed QUERY packet: switchID: %u srcIP: %u dstIP: %u\n",
+    printf("DEBUG: parsed QUERY packet: switchID: %u srcIP: %u dstIP: %u\n",
            switchID, srcIP, dstIP);
 
     // calculate new flow entry
@@ -350,6 +357,8 @@ void Controller::queryResponse(Connection connection, Message message) {
     addMessage.emplace_back(MessageArg("pri", to_string(flowEntry.pri)));
     addMessage.emplace_back(MessageArg("pktCount", to_string(flowEntry.pktCount)));
     Packet addPacket = Packet(ADD, addMessage);
+    printf("INFO: sending ADD packet: connection: %s packet: %s\n",
+            connection.getSendFIFOName().c_str(), addPacket.toString().c_str());
     write(connection.openSendFIFO(), addPacket.toString().c_str(),
           strlen(addPacket.toString().c_str()));
     tAddCount++;
@@ -364,15 +373,16 @@ void Controller::openResponse(Connection connection, Message message) {
     int rightSwitchID = stoi(get<1>(message[2]));
     uint switchIPLow = static_cast<uint>(stoi(get<1>(message[3])));
     uint switchIPHigh = static_cast<uint>(stoi(get<1>(message[4])));
-    printf("Parsed OPEN packet: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
+    printf("DEBUG: parsed OPEN packet: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
            switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh);
 
     switches.emplace_back(
             Switch(switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh));
 
     // send ack back to switch
-    printf("Sending ACK back to switchID: %u\n", switchID);
     Packet ackPacket = Packet(ACK, Message());
+    printf("INFO: sending ACK packet: connection: %s packet: %s\n",
+            connection.getSendFIFOName().c_str(), ackPacket.toString().c_str());
     write(connection.openSendFIFO(), ackPacket.toString().c_str(),
           strlen(ackPacket.toString().c_str()));
     tAckCount++;

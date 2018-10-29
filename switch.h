@@ -22,10 +22,13 @@ using namespace std;
 #define DELIVER 0
 #define FORWARD 1
 #define DROP 2
-#define MIN_PRI 4
+
+#define MIN_IP 0
 #define MAX_IP 1000
 
-#define PORT_0 1 // controller port/connnection index
+#define MIN_PRI 4
+
+#define PORT_0 1 // controller port/connection index
 #define PORT_1 1 // left switch port/connection index
 #define PORT_2 2 // right switch port/connection index
 #define PORT_3 3 // self switch port
@@ -71,10 +74,6 @@ private:
     uint switchID;
 
     /**
-     * The number of neighboring switches.
-     */
-    uint neighbors;
-    /**
      * ID of the "left" switch to connect to
      */
     int leftSwitchID;
@@ -93,19 +92,19 @@ private:
     /**
      * Counts of {@code Packets} received.
      */
-    uint rOpenCount = 0;
-    uint rAddCount = 0;
-    uint rAckCount = 0;
+    uint rOpenCount  = 0;
+    uint rAddCount   = 0;
+    uint rAckCount   = 0;
     uint rRelayCount = 0;
     uint rQueryCount = 0;
-    uint admitCount = 0;
+    uint admitCount  = 0; /* special for Switch indicates as DELIVERed packet */
 
     /**
      * Counts of {@code Packets} transmitted.
      */
-    uint tOpenCount = 0;
-    uint tAddCount = 0;
-    uint tAckCount = 0;
+    uint tOpenCount  = 0;
+    uint tAddCount   = 0;
+    uint tAckCount   = 0;
     uint tRelayCount = 0;
     uint tQueryCount = 0;
 

@@ -8,19 +8,14 @@
 #include <sys/types.h>
 #include <cstdio>
 #include <cstdlib>
-
-#include "switch.h"
-#include "controller.h"
-#include "packet.h"
 #include <sys/signalfd.h>
 #include <unistd.h>
 #include <signal.h>
 #include <sys/signalfd.h>
 #include <string.h>
-
 #include <assert.h>
 
-/*FIFO stuff*/
+/* FIFO stuff */
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <cerrno>
@@ -31,14 +26,19 @@
 #include <unistd.h>
 #include <poll.h>
 
+#include "switch.h"
+#include "controller.h"
+#include "packet.h"
+
 using namespace std;
 
 // TODO: forward spec and DELIVER SPEC
 
 /**
- * Parse the switch id. Should match the format {@code 'swi'} where {@code 'i'} is a numeric.
- * @param switchID
- * @return
+ * Parse the switch id. Should match the format {@code 'swi'} where {@code 'i'} is a numeric character.
+ *
+ * @param switchID {@code std::string}
+ * @return {@code uint}
  */
 uint parseSwitchID(const string &switchID) {
     regex rgx("(sw)([1-9]+[0-9]*)");
@@ -51,7 +51,6 @@ uint parseSwitchID(const string &switchID) {
     if (std::regex_search(switchID, matches, rgx)) {
         return static_cast<uint>(std::stoi(matches[2], nullptr, 10));
     } else {
-        // we failed to parse the switch id
         printf("ERROR: invalid switch id argument: %s\n", switchID.c_str());
         exit(1);
     }
@@ -99,21 +98,21 @@ void Switch::list() {
  */
 Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, string &trafficFile, uint IPLow,
                uint IPHigh) {
-    printf("DEBUG: Creating switch: %s trafficFile: %s swj: %s swk: %s IPLow: %u IPHigh: %u\n",
+    printf("DEBUG: creating switch: %s trafficFile: %s swj: %s swk: %s IPLow: %u IPHigh: %u\n",
            switchID.c_str(), trafficFile.c_str(), leftSwitchID.c_str(), rightSwitchID.c_str(), IPLow, IPHigh);
     /*
      *   [srcIP lo= 0, srcIP hi= MAXIP, destIP lo= IPlow, destIP hi= IPhigh,
      *   actionType= FORWARD, actionVal= 3, pri= MINPRI, pktCount= 0]
      */
     FlowEntry init_rule = {
-            .srcIP_lo = 0,
-            .srcIP_hi = MAX_IP,
-            .dstIP_lo = IPLow,
-            .dstIP_hi = IPHigh,
-            .actionType= DELIVER,
-            .actionVal=3,
-            .pri=MIN_PRI,
-            .pktCount=0
+            .srcIP_lo   = 0,
+            .srcIP_hi   = MAX_IP,
+            .dstIP_lo   = IPLow,
+            .dstIP_hi   = IPHigh,
+            .actionType = DELIVER,
+            .actionVal  = 3,
+            .pri        = MIN_PRI,
+            .pktCount   = 0
     };
 
     Switch::IPHigh = IPHigh;
@@ -126,21 +125,20 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
     Switch::switchID = parseSwitchID(switchID);
     connections.emplace_back(Connection(Switch::switchID, CONTROLLER_ID));
 
-    neighbors = 0;
+
     // create Connection to the left switch
     // can potentially be a nullptr
     if (leftSwitchID != NULL_ID) {
-        neighbors++;
         Switch::leftSwitchID = parseSwitchID(leftSwitchID);
 
     } else {
         Switch::leftSwitchID = -1;
     }
     connections.emplace_back(Connection(Switch::switchID, Switch::leftSwitchID));
+
     // create Connection to the right switch
     // can potentially be a nullptr
     if (rightSwitchID != NULL_ID) {
-        neighbors++;
         Switch::rightSwitchID = parseSwitchID(rightSwitchID);
     } else {
         Switch::rightSwitchID = -1;
@@ -158,12 +156,11 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
  */
 trafficFileItem parseTrafficItem(string &trafficFileLine) {
     istringstream iss(trafficFileLine);
-    vector<string> trafficFileItems((istream_iterator<string>(iss)),
-                                    istream_iterator<string>());
+    vector<string> trafficFileItems((istream_iterator<string>(iss)), istream_iterator<string>());
     uint switchID = parseSwitchID(trafficFileItems.at(0));
     uint srcIP = static_cast<uint>(stoi(trafficFileItems.at(1)));
     uint dstIP = static_cast<uint>(stoi(trafficFileItems.at(2)));
-    printf("DEBUG: Parsed trafficFileItem: switchID: %u srcIP: %u dst: %u\n",
+    printf("DEBUG: parsed trafficFileItem: switchID: %u srcIP: %u dst: %u\n",
            switchID, srcIP, dstIP);
     return make_tuple(switchID, srcIP, dstIP);
 }
@@ -202,8 +199,8 @@ void Switch::start() {
     err = sigprocmask(SIG_BLOCK, &sigset, nullptr);
     assert(err == 0);
     /* This is the main loop */
-    pfds[connections.size()+2].fd = signalfd(-1, &sigset, 0);;
-    pfds[connections.size()+2].events = POLLIN;
+    pfds[connections.size() + 2].fd = signalfd(-1, &sigset, 0);;
+    pfds[connections.size() + 2].events = POLLIN;
 
     for (;;) {
         /*
@@ -231,13 +228,15 @@ void Switch::start() {
          *       exit: The program writes the above information and exits.
          */
         pfds[0].events = POLLIN;
-        pfds[connections.size()+2].events = POLLIN;
+        pfds[connections.size() + 2].events = POLLIN;
         for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
             pfds[i].events = POLLIN;
         }
 
-        poll(pfds, connections.size() + 3, 0);
-        // TODO: error handling
+        int ret = poll(pfds, connections.size() + 3, 0);
+        if (errno || ret < 0){
+            perror("ERROR: poll failure");
+        }
         if (pfds[0].revents & POLLIN) {
             int r = read(pfds[0].fd, buf, 1024);
             if (!r) {
@@ -296,12 +295,12 @@ void Switch::start() {
         /*
          * In addition, upon receiving signal USER1, the switch displays the information specified by the list command.
          */
-        if(pfds[connections.size()+2].revents & POLLIN){
+        if (pfds[connections.size() + 2].revents & POLLIN) {
             // TODO works but blocks stuff
             struct signalfd_siginfo info;
             /* We have a valid signal, read the info from the fd */
-            int r = read(pfds[connections.size()+2].fd, &info, sizeof(info));
-            if(!r){
+            int r = read(pfds[connections.size() + 2].fd, &info, sizeof(info));
+            if (!r) {
                 printf("WARNING: signal reading error\n");
             }
             unsigned sig = info.ssi_signo;
@@ -326,6 +325,8 @@ void Switch::sendOPENPacket(Connection connection) {
     openMessage.emplace_back(make_tuple("IPLow", to_string(IPLow)));
     openMessage.emplace_back(make_tuple("IPHigh", to_string(IPHigh)));
     Packet openPacket = Packet(OPEN, openMessage);
+    printf("INFO: sending OPEN packet: connection: %s packet: %s\n",
+            connection.getSendFIFOName().c_str(), openPacket.toString().c_str());
     write(connection.openSendFIFO(), openPacket.toString().c_str(), strlen(openPacket.toString().c_str()));
     tOpenCount++;
 }
@@ -358,7 +359,7 @@ string &Switch::parseTrafficFileLine(string &line) {
                 } else if (flowEntry.actionVal == PORT_2) {
                     sendRELAYPacket(connections[PORT_2], srcIP, dstIP);
                 } else {
-                    printf("ERROR: given FORWARD to unknown port: %u", flowEntry.actionVal);
+                    printf("ERROR: given FORWARD to unknown port: %u\n", flowEntry.actionVal);
                 }
             } else if (flowEntry.actionType == DROP) {
                 // do nothing
@@ -378,20 +379,13 @@ string &Switch::parseTrafficFileLine(string &line) {
  *
  * Note: this constructor not intended for actual usage by invoking the {@code start()} method.
  *
- * @param switchID
- * @param neighbors
- * @param IPLow
- * @param IPHigh
+ * @param switchID {@code uint}
+ * @param IPLow {@code uint}
+ * @param IPHigh {@code uint}
  */
 Switch::Switch(uint switchID, int leftSwitchID, int rightSwitchID, uint IPLow, uint IPHigh) :
         switchID(switchID), leftSwitchID(leftSwitchID), rightSwitchID(rightSwitchID),
         IPLow(IPLow), IPHigh(IPHigh) {
-    if (leftSwitchID > 0) {
-        neighbors++;
-    }
-    if (rightSwitchID > 0) {
-        neighbors++;
-    }
 }
 
 /**
@@ -444,16 +438,17 @@ int Switch::getLeftSwitchID() {
 }
 
 /**
- * Attempt to get a rule for a specific traffic packet item.
+ * Attempt to get the index to a matching FlowEntry rule within the Switch's FlowTable for a given traffic packet item.
  *
- * @param switchID
- * @param srcIP
- * @param dstIP
- * @return {@code FlowEntry}
+ * @param switchID {@code uint}
+ * @param srcIP {@code uint}
+ * @param dstIP {@code uint}
+ * @return {@code int} index of the matching FlowEntry within the FlowTable.
+ *         Else return -1 is no matching FlowEntry was found.
  */
 int Switch::getFlowEntry(uint switchID, uint srcIP, uint dstIP) {
     // iterate through flowTable rules
-    int index=0;
+    int flowTableIndex = 0;
     for (auto const &flowEntry: flowTable) {
         // ensure valid src
         if (srcIP >= flowEntry.srcIP_lo || srcIP <= flowEntry.srcIP_hi) {
@@ -467,13 +462,13 @@ int Switch::getFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                 } else if (flowEntry.actionType == DROP) {
                     actionName = "DROP";
                 }
-                printf("found matching flowtable rule: (srcIP= %u-%u dstIP %u-%u action=%s:%u pri= %u pktCount= %u)\n",
+                printf("DEBUG: found matching FlowEntry: (srcIP= %u-%u dstIP %u-%u action=%s:%u pri= %u pktCount= %u)\n",
                        flowEntry.srcIP_lo, flowEntry.srcIP_hi, flowEntry.dstIP_lo, flowEntry.dstIP_hi,
                        actionName.c_str(), flowEntry.actionVal, flowEntry.pri, flowEntry.pktCount);
-                return index;
+                return flowTableIndex;
             }
         }
-        index++;
+        flowTableIndex++;
     }
     return -1;
 }
@@ -485,13 +480,17 @@ int Switch::getFlowEntry(uint switchID, uint srcIP, uint dstIP) {
  * matching rule in the flow table).  This information is passed to the neighbour in a
  * RELAY packet.
  *
- * @param message
+ * @param message {@code Message}
  */
 void Switch::respondRELAYPacket(Message message) {
     rRelayCount++;
     uint rSwitchID = static_cast<uint>(stoi(get<1>(message[0])));
     uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
     uint dstIP = static_cast<uint>(stoi(get<1>(message[2])));
+
+    printf("INFO: parsed RELAY packet:\n"
+           "\tswitchID: %u srcIP: %u dstIP: %u",
+           rSwitchID, srcIP, dstIP);
 
     // TODO figure out way to update flow entry
     int fi = getFlowEntry(rSwitchID, srcIP, dstIP);
@@ -510,14 +509,13 @@ void Switch::respondRELAYPacket(Message message) {
                 // right switch port 2
                 sendRELAYPacket(connections[PORT_2], srcIP, dstIP);
             } else {
-                printf("ERROR: given FORWARD to sw%u this does not match any neighbors",
-                       flowEntry.actionVal);
+                printf("ERROR: given FORWARD to unsupported port: %u\n", flowEntry.actionVal);
             }
         } else if (flowEntry.actionType == DROP) {
 
         }
         flowEntry.pktCount++;
-        flowTable[fi]=flowEntry;
+        flowTable[fi] = flowEntry;
     } else if (fi < 0) { // did not find rule
         sendQUERYPacket(connections[PORT_0], srcIP, dstIP);
         // TODO: wait for response and possibly reply?
@@ -537,6 +535,8 @@ void Switch::sendQUERYPacket(Connection connection, uint srcIP, uint dstIP) {
     queryMessage.emplace_back(MessageArg("srcIP", to_string(srcIP)));
     queryMessage.emplace_back(MessageArg("dstIP", to_string(dstIP)));
     Packet queryPacket = Packet(QUERY, queryMessage);
+    printf("INFO: sending QUERY packet: connection: %s packet: %s\n",
+            connection.getSendFIFOName().c_str(), queryPacket.toString().c_str());
     write(connection.openSendFIFO(), queryPacket.toString().c_str(),
           strlen(queryPacket.toString().c_str()));
     tQueryCount++;
@@ -547,7 +547,7 @@ void Switch::sendQUERYPacket(Connection connection, uint srcIP, uint dstIP) {
  */
 void Switch::respondACKPacket() {
     rAckCount++;
-    printf("ACK packet received:\n");
+    printf("INFO: ACK packet received:\n");
 }
 
 
@@ -569,8 +569,9 @@ void Switch::respondADDPacket(Message message) {
     uint pri = static_cast<uint>(stoi(get<1>(message[6])));
     uint pktCount = static_cast<uint>(stoi(get<1>(message[7])));
 
-    printf("Parse ADD packet: Adding new flowTable rule:\n"
-           "\tsrcIP_lo: %u srcIP_hi: %u dstIP_lo: %u dstIP_hi: %u actionType: %u actionVal: %u pri: %u pktCount: %u\n",
+    printf("INFO: parsed ADD packet:\n"
+           "\tAdding new flowTable rule:\n"
+           "\t\tsrcIP_lo: %u srcIP_hi: %u dstIP_lo: %u dstIP_hi: %u actionType: %u actionVal: %u pri: %u pktCount: %u\n",
            srcIP_lo, srcIP_hi, dstIP_lo, dstIP_hi, actionType, actionVal, pri, pktCount);
 
     FlowEntry newRule = {
@@ -587,7 +588,11 @@ void Switch::respondADDPacket(Message message) {
 }
 
 /**
+ * Send a RELAY packet out to the specified connection.
  *
+ * @param connection {@code Connection}
+ * @param srcIP {@code uint}
+ * @param dstIP {@code uint}
  */
 void Switch::sendRELAYPacket(Connection connection, uint srcIP, uint dstIP) {
     Message relayMessage;
@@ -595,6 +600,8 @@ void Switch::sendRELAYPacket(Connection connection, uint srcIP, uint dstIP) {
     relayMessage.emplace_back(make_tuple("srcIP", to_string(srcIP)));
     relayMessage.emplace_back(make_tuple("dstIP", to_string(dstIP)));
     Packet relayPacket = Packet(RELAY, relayMessage);
+    printf("INFO: sending RELAY packet: connection: %s packet: %s\n",
+            connection.getSendFIFOName().c_str(), relayPacket.toString().c_str());
     write(connection.openSendFIFO(), relayPacket.toString().c_str(),
           strlen(relayPacket.toString().c_str()));
     tRelayCount++;
