@@ -45,25 +45,15 @@ public:
 
     Switch(uint switchID, int leftSwitchID, int rightSwitchID, uint IPLow, uint IPHigh);
 
-    void list();
-
     uint getID();
 
-    uint getIPHigh();
-
     uint getIPLow();
+
+    uint getIPHigh();
 
     int getLeftSwitchID();
 
     int getRightSwitchID();
-
-    void respondACKPacket();
-
-    void respondADDPacket(Message message);
-
-    void respondRELAYPacket(Message message);
-
-    int getFlowEntry(uint srcIP, uint dstIP);
 
     void start();
 
@@ -110,11 +100,21 @@ private:
 
     string &parseTrafficFileLine(string &line);
 
+    void list();
+
+    int getFlowEntry(uint srcIP, uint dstIP);
+
     void sendOPENPacket(Connection connection);
 
     void sendQUERYPacket(Connection connection, uint srcIP, uint dstIP);
 
     void sendRELAYPacket(Connection connection, uint srcIP, uint dstIP);
+
+    void respondACKPacket();
+
+    void respondADDPacket(Message message);
+
+    void respondRELAYPacket(Message message);
 };
 
 #endif //A2SDN_SWITCH_H
