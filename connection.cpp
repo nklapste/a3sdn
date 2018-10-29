@@ -35,6 +35,14 @@ Connection::Connection(uint srcID, uint dstID) {
 }
 
 /**
+ * Null/dummy connection.
+ */
+Connection::Connection() {
+    sendFIFOName = "/dev/null";
+    receiveFIFOName="/dev/null";
+}
+
+/**
  * Getter for the ReceiveFIFO filename.
  *
  * @return {@code std::string}
@@ -60,7 +68,7 @@ string Connection::getSendFIFOName() {
 int Connection::openReceiveFIFO() {
     printf("DEBUG: opening receiveFIFO: %s\n", receiveFIFOName.c_str());
     int i = open(receiveFIFOName.c_str(), O_RDONLY | O_NONBLOCK);
-    if (!i) {
+    if (errno || !i) {
         perror("ERROR: opening receive FIFO");
     }
     return i;
@@ -74,7 +82,7 @@ int Connection::openReceiveFIFO() {
 int Connection::openSendFIFO() {
     printf("DEBUG: opening sendFIFO: %s\n", receiveFIFOName.c_str());
     int i = open(sendFIFOName.c_str(), O_WRONLY | O_NONBLOCK);
-    if (!i) {
+    if (errno || !i) {
         perror("ERROR: opening send FIFO");
     }
     return i;
@@ -106,3 +114,4 @@ void Connection::makeFIFO(string &FIFOName) {
         errno = 0;
     }
 }
+
