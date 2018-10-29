@@ -26,6 +26,7 @@
 
 #define BUFFER_SIZE 1024
 
+#define PDFS_SIZE connections.size()+3
 #define PDFS_STDIN 0
 #define PDFS_SIGNAL connections.size()+2
 
@@ -78,7 +79,7 @@ void Controller::list() {
  * Start the {@code Controller} loop.
  */
 void Controller::start() {
-    struct pollfd pfds[connections.size() + 3];
+    struct pollfd pfds[PDFS_SIZE];
     char buf[BUFFER_SIZE];
 
     // setup file descriptions or stdin and all connection FIFOs
@@ -112,7 +113,7 @@ void Controller::start() {
         for (auto &pfd : pfds) {
             pfd.events = POLLIN;
         }
-        int ret = poll(pfds, connections.size() + 3, 0);
+        int ret = poll(pfds, PDFS_SIZE, 0);
         if (errno || ret < 0) {
             perror("ERROR: poll failure");
             exit(errno);
@@ -368,10 +369,10 @@ void Controller::respondOPENPacket(Connection connection, Message message) {
     rOpenCount++;
     // Upon receiving an OPEN packet, the controller updates its stored information about the switch,
     // and replies with a packet of type ACK
-    uint switchID = static_cast<uint>(stoi(get<1>(message[0])));
-    int leftSwitchID = stoi(get<1>(message[1]));
-    int rightSwitchID = stoi(get<1>(message[2]));
-    uint switchIPLow = static_cast<uint>(stoi(get<1>(message[3])));
+    uint switchID     = static_cast<uint>(stoi(get<1>(message[0])));
+    int leftSwitchID  =                   stoi(get<1>(message[1]));
+    int rightSwitchID =                   stoi(get<1>(message[2]));
+    uint switchIPLow  = static_cast<uint>(stoi(get<1>(message[3])));
     uint switchIPHigh = static_cast<uint>(stoi(get<1>(message[4])));
     printf("DEBUG: parsed OPEN packet: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
            switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh);
@@ -397,8 +398,8 @@ void Controller::respondQUERYPacket(Connection connection, Message message) {
     //packet to the controller.  The
     //controller replies with a rule stored in a packet of type
     uint switchID = static_cast<uint>(stoi(get<1>(message[0])));
-    uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
-    uint dstIP = static_cast<uint>(stoi(get<1>(message[2])));
+    uint srcIP    = static_cast<uint>(stoi(get<1>(message[1])));
+    uint dstIP    = static_cast<uint>(stoi(get<1>(message[2])));
     printf("DEBUG: parsed QUERY packet: switchID: %u srcIP: %u dstIP: %u\n",
            switchID, srcIP, dstIP);
 
