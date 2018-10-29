@@ -13,10 +13,22 @@
 
 #include "packet.h"
 
+/**
+ * Getter for a packets type.
+ *
+ * @return {@code std::string}
+ */
 string Packet::getType() {
     return type;
 }
 
+/**
+ * Constructor for a packet. Using a raw packet string representation.
+ *
+ * Useful for reconstructing a packets from a received packet string.
+ *
+ * @param packetRaw {@code std::string}
+ */
 Packet::Packet(string &packetRaw) {
     string delimiter = ":";
     string typeRaw = packetRaw.substr(0, packetRaw.find(delimiter));
@@ -46,7 +58,7 @@ Packet::Packet(string &packetRaw) {
  */
 string Packet::parseType(string &type) {
     if (type == OPEN || type == ACK || type == QUERY || type == ADD || type == RELAY) {
-
+        // valid packet type
     } else {
         errno = EINVAL;
         perror("Invalid type for packet");
@@ -54,11 +66,10 @@ string Packet::parseType(string &type) {
     return type;
 }
 
-
 /**
- * Parse a string into a valid {@code Packet} {@code Message}
+ * Parse a string into a valid {@code Message}.
  *
- * @param messageRaw {@code std::string
+ * @param messageRaw {@code std::string}
  * @return {@code Message}
  */
 Message Packet::parseMessage(string &messageRaw) {
@@ -87,6 +98,14 @@ Message Packet::getMessage() {
     return message;
 }
 
+/**
+ * Constructor for a packet using a packet type and a {@code Message}.
+ *
+ * Useful for constructing a packet from raw data.
+ *
+ * @param type {@code std::string}
+ * @param message {@code Message}
+ */
 Packet::Packet(string type, Message message) {
     Packet::type = parseType(type);
     Packet::message = std::move(message);
