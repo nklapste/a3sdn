@@ -1,3 +1,5 @@
+#include <utility>
+
 /**
  * a2sdn controller.cpp
  *
@@ -132,8 +134,6 @@ void Controller::start() {
                 printf("ERROR: invalid Controller command: %s\n"
                        "\tPlease use either 'list' or 'exit'\n", cmd.c_str());
             }
-            fflush(stdout);
-            fflush(stdin);
         }
 
         /*
@@ -144,7 +144,6 @@ void Controller::start() {
             if (pfds[i].revents & POLLIN) {
                 printf("DEBUG: pfds[%lu] has connection POLLIN event: %s\n", i,
                        connections[i - 1].getReceiveFIFOName().c_str());
-                memset(buf, 0, sizeof buf);
                 ssize_t r = read(pfds[i].fd, buf, BUFFER_SIZE);
                 if (!r) {
                     printf("WARNING: receiveFIFO closed\n");
@@ -189,6 +188,7 @@ void Controller::start() {
                 list();
             }
         }
+        memset(buf, 0, sizeof buf);
     }
 }
 
@@ -377,7 +377,7 @@ void Controller::respondOPENPacket(Connection connection, Message message) {
     switches.emplace_back(Switch(switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh));
 
     // send ack back to switch
-    sendACKPacket(connection);
+    sendACKPacket(std::move(connection));
 }
 
 /**
@@ -404,5 +404,5 @@ void Controller::respondQUERYPacket(Connection connection, Message message) {
     FlowEntry flowEntry = makeFlowEntry(switchID, srcIP, dstIP);
 
     // create and send new add packet
-    sendADDPacket(connection, flowEntry);
+    sendADDPacket(std::move(connection), flowEntry);
 }
