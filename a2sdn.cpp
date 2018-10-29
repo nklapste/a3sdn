@@ -15,7 +15,6 @@
 #include "controller.h"
 #include "switch.h"
 
-#define MAXIP   1000
 #define CONTROLLER_MODE "cont"
 
 using namespace std;
