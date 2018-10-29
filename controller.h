@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "connection.h"
+#include "flow.h"
 #include "packet.h"
 #include "switch.h"
 
@@ -23,10 +24,9 @@
 #define EXIT_CMD "exit"
 
 #define CONTROLLER_ID 0
+#define CONTROLLER_MODE "cont"
 
 using namespace std;
-
-typedef tuple<uint, uint> IPRange;
 
 class Controller {
 public:
