@@ -35,17 +35,17 @@ IPRange parseIPRange(const string &IPRangeString) {
     uint IPLow = static_cast<uint>(stoi(IPRangeString.substr(0, IPRangeString.find(delimiter))));
     uint IPHigh = static_cast<uint>(stoi(
             IPRangeString.substr(IPRangeString.find(delimiter) + 1, IPRangeString.size() - 1)));
-    if (IPLow > IPHigh) {
-        printf("ERROR: invalid IP range:\n"
-               "\tIPLow: %u greater than IPHigh: %u", IPLow, IPHigh);
-        exit(EINVAL);
-    }
     if (IPHigh > MAX_IP) {
         printf("ERROR: invalid IPHigh: %u MAX_IP: %u", IPHigh, MAX_IP);
         exit(EINVAL);
     }
     if (IPLow < MIN_IP) {
         printf("ERROR: invalid IPLow: %u MIN_IP: %u", IPLow, MIN_IP);
+        exit(EINVAL);
+    }
+    if (IPLow > IPHigh) {
+        printf("ERROR: invalid IP range:\n"
+               "\tIPLow: %u greater than IPHigh: %u", IPLow, IPHigh);
         exit(EINVAL);
     }
     return make_tuple(IPLow, IPHigh);
