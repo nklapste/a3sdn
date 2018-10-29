@@ -8,18 +8,8 @@
 #include <iterator>
 #include <sstream>
 #include <tuple>
-#include <utility>
 
 #include "packet.h"
-
-/**
- * Getter for a packets type.
- *
- * @return {@code std::string}
- */
-string Packet::getType() {
-    return type;
-}
 
 /**
  * Constructor for a packet. Using a raw packet string representation.
@@ -40,6 +30,28 @@ Packet::Packet(string &packetRaw) {
         string messageRaw = packetRaw.substr(packetRaw.find(delimiter) + 2, packetRaw.length());
         message = parseMessage(messageRaw);
     }
+}
+
+/**
+ * Constructor for a packet using a packet type and a {@code Message}.
+ *
+ * Useful for constructing a packet from raw data.
+ *
+ * @param type {@code std::string}
+ * @param message {@code Message}
+ */
+Packet::Packet(string type, Message message) {
+    Packet::type = parseType(type);
+    Packet::message = std::move(message);
+}
+
+/**
+ * Getter for a packets {@code type}.
+ *
+ * @return {@code std::string}
+ */
+string Packet::getType() {
+    return type;
 }
 
 /**
@@ -66,6 +78,15 @@ string Packet::parseType(string &type) {
 }
 
 /**
+ * Getter method for a {@code Packet}'s {@code Message}.
+ *
+ * @return {@code Message}
+ */
+Message Packet::getMessage() {
+    return message;
+}
+
+/**
  * Parse a string into a valid {@code Message}.
  *
  * @param messageRaw {@code std::string}
@@ -86,28 +107,6 @@ Message Packet::parseMessage(string &messageRaw) {
         message.emplace_back(messageArg);
     }
     return message;
-}
-
-/**
- * Getter method for a {@code Packet}'s message.
- *
- * @return {@code Message}
- */
-Message Packet::getMessage() {
-    return message;
-}
-
-/**
- * Constructor for a packet using a packet type and a {@code Message}.
- *
- * Useful for constructing a packet from raw data.
- *
- * @param type {@code std::string}
- * @param message {@code Message}
- */
-Packet::Packet(string type, Message message) {
-    Packet::type = parseType(type);
-    Packet::message = std::move(message);
 }
 
 /**
