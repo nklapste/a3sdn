@@ -38,12 +38,15 @@ IPRange parseIPRange(const string &IPRangeString) {
     if (IPLow > IPHigh) {
         printf("ERROR: invalid IP range:\n"
                "\tIPLow: %u greater than IPHigh: %u", IPLow, IPHigh);
-        exit(1);
+        exit(EINVAL);
     }
-    if (IPHigh - IPLow > MAXIP) {
-        printf("ERROR: invalid IP range:\n"
-               "\tIP range is too large: %u", IPHigh - IPLow);
-        exit(1);
+    if(IPHigh>MAX_IP){
+        printf("ERROR: invalid IPHigh: %u MAX_IP: %u", IPHigh, MAX_IP);
+        exit(EINVAL);
+    }
+    if(IPLow<MIN_IP){
+        printf("ERROR: invalid IPLow: %u MIN_IP: %u", IPLow, MIN_IP);
+        exit(EINVAL);
     }
     return make_tuple(IPLow, IPHigh);
 }
@@ -77,7 +80,7 @@ int main(int argc, char **argv) {
         printf("ERROR: invalid argument format:\n"
                "\tPlease follow controller mode: 'a2sdn cont nSwitch'\n"
                "\tOr follow switch mode:         'a2sdn swi trafficFile [null|swj] [null|swk] IPLow-IPhigh'\n");
-        exit(1);
+        exit(EINVAL);
     }
     string mode = argv[1];
 
@@ -86,7 +89,7 @@ int main(int argc, char **argv) {
         if (argc != 3) {
             printf("ERROR: invalid arguments for controller mode:\n"
                    "\tFor controller mode: 'a2sdn cont nSwitch'\n");
-            exit(1);
+            exit(EINVAL);
         }
         Controller controller = Controller((uint) stoi(argv[2]));
         controller.start();
@@ -94,8 +97,8 @@ int main(int argc, char **argv) {
         // parse switch mode arguments
         if (argc != 6) {
             printf("ERROR: invalid arguments for switch mode:\n"
-                   "\tFor switch mode: 'a2sdn swi trafficFile [null|swj] [null|swk] IPLow-IPhig'\n");
-            exit(1);
+                   "\tFor switch mode: 'a2sdn swi trafficFile [null|swj] [null|swk] IPLow-IPHigh'\n");
+            exit(EINVAL);
         }
         string switchId = argv[1];
         string trafficFile = argv[2];
