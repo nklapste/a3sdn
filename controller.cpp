@@ -26,6 +26,10 @@
 
 #define BUFFER_SIZE 1024
 
+#define PDFS_STDIN 0
+#define PDFS_SIGNAL connections.size()+2
+
+
 using namespace std;
 
 /**
@@ -78,7 +82,7 @@ void Controller::start() {
     char buf[BUFFER_SIZE];
 
     // setup file descriptions or stdin and all connection FIFOs
-    pfds[0].fd = STDIN_FILENO;
+    pfds[PDFS_STDIN].fd = STDIN_FILENO;
     for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
         pfds[i].fd = connections[i - 1].openReceiveFIFO();
     }
@@ -94,7 +98,7 @@ void Controller::start() {
     err = sigprocmask(SIG_BLOCK, &sigset, nullptr);
     assert(err == 0);
     /* This is the main loop */
-    pfds[connections.size() + 2].fd = signalfd(-1, &sigset, 0);;
+    pfds[PDFS_SIGNAL].fd = signalfd(-1, &sigset, 0);;
 
     // enter the controller loop
     for (;;) {
@@ -105,19 +109,16 @@ void Controller::start() {
          *             type.
          *       exit: The program writes the above information and exits.
          */
-        pfds[0].events = POLLIN;
-        pfds[connections.size() + 2].events = POLLIN;
-        for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
-            pfds[i].events = POLLIN;
+        for (auto &pfd : pfds) {
+            pfd.events = POLLIN;
         }
-
         int ret = poll(pfds, connections.size() + 3, 0);
         if (errno || ret < 0) {
             perror("ERROR: poll failure");
             exit(errno);
         }
-        if (pfds[0].revents & POLLIN) {
-            ssize_t r = read(pfds[0].fd, buf, BUFFER_SIZE);
+        if (pfds[PDFS_STDIN].revents & POLLIN) {
+            ssize_t r = read(pfds[PDFS_STDIN].fd, buf, BUFFER_SIZE);
             if (!r) {
                 printf("WARNING: stdin closed\n");
             }
@@ -175,10 +176,10 @@ void Controller::start() {
         /*
          * In addition, upon receiving signal USER1, the switch displays the information specified by the list command.
          */
-        if (pfds[connections.size() + 2].revents & POLLIN) {
+        if (pfds[PDFS_SIGNAL].revents & POLLIN) {
             struct signalfd_siginfo info{};
             /* We have a valid signal, read the info from the fd */
-            ssize_t r = read(pfds[connections.size() + 2].fd, &info, sizeof(info));
+            ssize_t r = read(pfds[PDFS_SIGNAL].fd, &info, sizeof(info));
             if (!r) {
                 printf("WARNING: signal reading error\n");
             }
@@ -188,6 +189,7 @@ void Controller::start() {
                 list();
             }
         }
+        // clear buffer
         memset(buf, 0, sizeof buf);
     }
 }
