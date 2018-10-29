@@ -209,11 +209,16 @@ void Controller::start() {
  * @return {@code FlowEntry}
  */
 FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
+    printf("DEBUG: making FlowEntry for: switchID: %u srcIP: %u dstIP: %u\n",
+           switchID, srcIP, dstIP);
     auto it = find_if(switches.begin(), switches.end(), [&switchID](Switch &sw) { return sw.getID() == switchID; });
     if (it != switches.end()) {
+        printf("DEBUG: found matching switch: %u\n", switchID);
+
         // found element. it is an iterator to the first matching element.
         auto index = std::distance(switches.begin(), it);
         Switch requestSwitch = switches[index];
+
         // check src IP is invalid
         if (srcIP < 0 || srcIP > MAX_IP) {
             // src IP is invalid make a drop rule
@@ -227,17 +232,27 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                     .pri        = MIN_PRI,
                     .pktCount   = 0
             };
+            printf("DEBUG: invalid srcIP: %u creating drop rule\n", srcIP);
+
             return drop_rule;
         } else {
             // dst is out of range of switches range
             // make a drop rule
+
+
+            printf("DEBUG: valid srcIP: %u\n", srcIP);
+
             if (dstIP < requestSwitch.getIPLow() || dstIP > requestSwitch.getIPHigh()) { // out of range of
                 // get left switch
                 int leftSwitchID = requestSwitch.getLeftSwitchID();
+
+                printf("DEBUG: leftSwitchID: %i\n", leftSwitchID);
                 if (leftSwitchID > 0) {
+                    printf("DEBUG: methere\n");
+
                     auto it2 = find_if(switches.begin(), switches.end(),
                                        [&leftSwitchID](Switch &sw) { return sw.getID() == leftSwitchID; });
-                    if (it != switches.end()) {
+                    if (it2 != switches.end()) {
                         auto index2 = std::distance(switches.begin(), it2);
                         Switch requestLeftSwitch = switches[index2];
                         if (dstIP < requestLeftSwitch.getIPLow() || dstIP > requestLeftSwitch.getIPHigh()) {
@@ -250,21 +265,36 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                                     .actionType = FORWARD,
                                     .actionVal  = PORT_1,
                                     .pri        = MIN_PRI,
-                                    .pktCount   = 0
+                                    .pktCount   = 0,
                             };
+                            printf("DEBUG: left\n");
+
                             return forwardLeftRule;
                         }
                     }
                 }
                 // get the right switch
-                int rightSwitch = requestSwitch.getRightSwitchID();
-                if (rightSwitch > 0) {
+                int rightSwitchID = requestSwitch.getRightSwitchID();
+                printf("DEBUG: rightSwitchID: %i\n", rightSwitchID);
+
+                if (rightSwitchID > 0) {
+                    printf("DEBUG: methere\n");
+
                     auto it3 = find_if(switches.begin(), switches.end(),
-                                       [&rightSwitch](Switch &sw) { return sw.getID() == rightSwitch; });
-                    if (it != switches.end()) {
+                                       [&rightSwitchID](Switch &sw) { return sw.getID() == rightSwitchID; });
+
+                    if (it3 != switches.end()) {
+                        printf("DEBUG: methere\n");
+
                         auto index3 = std::distance(switches.begin(), it3);
+                        printf("DEBUG: index3: %ld\n", index3);
+
                         Switch requestRightSwitch = switches[index3];
+                        printf("DEBUG: bad\n");
+
                         if (dstIP < requestRightSwitch.getIPLow() || dstIP > requestRightSwitch.getIPHigh()) {
+                            printf("DEBUG: bad\n");
+
                         } else {
                             FlowEntry forwardRightRule = {
                                     .srcIP_lo   = MIN_IP,
@@ -274,12 +304,15 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                                     .actionType = FORWARD,
                                     .actionVal  = PORT_2,
                                     .pri        = MIN_PRI,
-                                    .pktCount   = 0
+                                    .pktCount   = 0,
                             };
+                            printf("DEBUG: right\n");
                             return forwardRightRule;
                         }
                     }
                 }
+                printf("DEBUG: drop2\n");
+
                 // all other options exhausted make a drop rule
                 FlowEntry drop_rule = {
                         .srcIP_lo   = MIN_IP,
@@ -293,6 +326,7 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                 };
                 return drop_rule;
             } else {
+                printf("DEBUG: deliver\n");
                 FlowEntry deliver_rule = {
                         .srcIP_lo   = MIN_IP,
                         .srcIP_hi   = MAX_IP,
@@ -347,7 +381,7 @@ void Controller::sendACKPacket(Connection connection) {
 void Controller::sendADDPacket(Connection connection, FlowEntry flowEntry) {
     Message addMessage;
     addMessage.emplace_back(MessageArg("srcIP_lo", to_string(flowEntry.srcIP_lo)));
-    addMessage.emplace_back(MessageArg("srcIP_hi", to_string(flowEntry.srcIP_lo)));
+    addMessage.emplace_back(MessageArg("srcIP_hi", to_string(flowEntry.srcIP_hi)));
     addMessage.emplace_back(MessageArg("dstIP_lo", to_string(flowEntry.dstIP_lo)));
     addMessage.emplace_back(MessageArg("dstIP_hi", to_string(flowEntry.dstIP_hi)));
     addMessage.emplace_back(MessageArg("actionType", to_string(flowEntry.actionType)));
