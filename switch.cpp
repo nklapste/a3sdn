@@ -157,22 +157,12 @@ void Switch::start() {
     struct pollfd pfds[connections.size() + 3];
     char buf[1024];
 
-    // get fd for stdin
+    // setup file descriptions or stdin and all connection FIFOs
     pfds[0].fd = STDIN_FILENO;
-    string line;
-    ifstream trafficFileStream(trafficFile);
-
-    // get the fd for every receiving FIFO
     for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
         pfds[i].fd = connections[i - 1].openReceiveFIFO();
     }
 
-    // When a switch starts, it sends an OPEN packet to the controller.
-    // The carried message contains the switch number, the numbers of its neighbouring switches (if any),
-    // and the range of IP addresses served by the switch.
-    sendOPENPacket(connections[0]);
-
-    // TODO: wait for ack?
     int err;
     sigset_t sigset;
     /* Create a sigset of all the signals that we're interested in */
@@ -185,6 +175,14 @@ void Switch::start() {
     assert(err == 0);
     /* This is the main loop */
     pfds[connections.size() + 2].fd = signalfd(-1, &sigset, 0);;
+
+    string line;
+    ifstream trafficFileStream(trafficFile);
+
+    // When a switch starts, it sends an OPEN packet to the controller.
+    // The carried message contains the switch number, the numbers of its neighbouring switches (if any),
+    // and the range of IP addresses served by the switch.
+    sendOPENPacket(connections[0]);
 
     // enter the switch loop
     for (;;) {

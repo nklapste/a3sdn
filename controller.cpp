@@ -91,7 +91,6 @@ void Controller::start() {
     assert(err == 0);
     /* This is the main loop */
     pfds[connections.size() + 2].fd = signalfd(-1, &sigset, 0);;
-    pfds[connections.size() + 2].events = POLLIN;
 
     // enter the controller loop
     for (;;) {
