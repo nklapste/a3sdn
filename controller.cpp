@@ -43,12 +43,12 @@ Controller::Controller(uint nSwitches) : nSwitches(nSwitches) {
     if (nSwitches > MAX_SWITCHES) {
         printf("ERROR: too many switches for controller: %u\n"
                "\tMAX_SWITCHES=%u\n", nSwitches, MAX_SWITCHES);
-        exit(1);
+        exit(EINVAL);
     }
     if (nSwitches < MIN_SWITCHES) {
         printf("ERROR: too little switches for controller: %u\n"
                "\tMIN_SWITCHES=%u\n", nSwitches, MIN_SWITCHES);
-        exit(1);
+        exit(EINVAL);
     }
     printf("DEBUG: creating controller: nSwitches: %u\n", nSwitches);
 
@@ -312,7 +312,7 @@ FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
         }
     } else {
         // no switch with that ID is found.
-        printf("ERROR: attempted to make rule for switch that is not supported: switchID: %u", switchID);
+        printf("ERROR: attempted to make rule for unexpected switch: sw%u\n", switchID);
         // TODO: is this okay behavior
         FlowEntry drop_rule = {
                 .srcIP_lo   = 0,

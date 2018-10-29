@@ -100,6 +100,20 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
                uint IPHigh) {
     printf("DEBUG: creating switch: %s trafficFile: %s swj: %s swk: %s IPLow: %u IPHigh: %u\n",
            switchID.c_str(), trafficFile.c_str(), leftSwitchID.c_str(), rightSwitchID.c_str(), IPLow, IPHigh);
+    if (IPLow > IPHigh) {
+        printf("ERROR: invalid IP range:\n"
+               "\tIPLow: %u greater than IPHigh: %u", IPLow, IPHigh);
+        exit(EINVAL);
+    }
+    if(IPHigh>MAX_IP){
+        printf("ERROR: invalid IPHigh: %u MAX_IP: %u", IPHigh, MAX_IP);
+        exit(EINVAL);
+    }
+    if(IPLow<MIN_IP){
+        printf("ERROR: invalid IPLow: %u MIN_IP: %u", IPLow, MIN_IP);
+        exit(EINVAL);
+    }
+
     /*
      *   [srcIP lo= 0, srcIP hi= MAXIP, destIP lo= IPlow, destIP hi= IPhigh,
      *   actionType= FORWARD, actionVal= 3, pri= MINPRI, pktCount= 0]
