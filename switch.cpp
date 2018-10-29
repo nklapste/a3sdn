@@ -142,7 +142,7 @@ uint Switch::getIPHigh() {
 }
 
 /**
- * Getter for a switch's {@code leftSwitchID}
+ * Getter for a switch's {@code leftSwitchID}.
  *
  * Note: if the switch does not have a left neighboring switch {@code -1} will be returned.
  *
@@ -153,7 +153,7 @@ int Switch::getLeftSwitchID() {
 }
 
 /**
- * Getter for a switch's {@code rightSwitchID}
+ * Getter for a switch's {@code rightSwitchID}.
  *
  * Note: if the switch does not have a right neighboring switch {@code -1} will be returned.
  *
@@ -448,7 +448,7 @@ string &Switch::parseTrafficFileLine(string &line) {
  */
 void Switch::list() {
     uint counter = 0;
-    printf("sw%u Flow table:\n", switchID);
+    printf("sw%u FlowTable:\n", switchID);
     for (auto const &flowEntry: flowTable) {
         string actionName;
         if (flowEntry.actionType == DELIVER) {
