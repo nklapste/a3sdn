@@ -482,12 +482,13 @@ void Switch::list() {
  */
 int Switch::getFlowEntryIndex(uint srcIP, uint dstIP) {
     // iterate through flowTable rules
+    printf("DEBUG: searching for FlowEntry for: srcIP: %u dstIP: %u\n", srcIP, dstIP);
     int flowTableIndex = 0;
     for (auto const &flowEntry: flowTable) {
         // ensure valid src
-        if (srcIP >= flowEntry.srcIP_lo || srcIP <= flowEntry.srcIP_hi) {
+        if (srcIP >= flowEntry.srcIP_lo && srcIP <= flowEntry.srcIP_hi) {
             // ensure valid dst
-            if (dstIP >= flowEntry.dstIP_lo || dstIP <= flowEntry.dstIP_hi) {
+            if (dstIP >= flowEntry.dstIP_lo && dstIP <= flowEntry.dstIP_hi) {
                 string actionName;
                 if (flowEntry.actionType == DELIVER) {
                     actionName = "DELIVER";
