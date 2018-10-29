@@ -20,9 +20,6 @@
 #define MIN_SWITCHES 1
 #define MAX_SWITCHES 7
 
-#define LIST_CMD "list"
-#define EXIT_CMD "exit"
-
 #define CONTROLLER_ID 0
 #define CONTROLLER_MODE "cont"
 

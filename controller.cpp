@@ -24,6 +24,9 @@
 
 #include "controller.h"
 
+#define LIST_CMD "list"
+#define EXIT_CMD "exit"
+
 #define BUFFER_SIZE 1024
 
 #define PDFS_SIZE connections.size()+3
