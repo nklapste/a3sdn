@@ -23,6 +23,14 @@
 #include "controller.h"
 #include "switch.h"
 
+#define BUFFER_SIZE 1024
+#define PDFS_SIZE 5
+#define PDFS_STDIN 0
+#define PDFS_CONTROLLER 1
+#define PDFS_LEFT_SWITCH 2
+#define PDFS_RIGHT_SWITCH 3
+#define PDFS_SIGNAL 4
+
 using namespace std;
 
 /**
@@ -49,13 +57,11 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
             .dstIP_lo   = IPLow,
             .dstIP_hi   = IPHigh,
             .actionType = DELIVER,
-            .actionVal  = 3,
+            .actionVal  = PORT_3,
             .pri        = MIN_PRI,
             .pktCount   = 0
     };
 
-    Switch::IPHigh = IPHigh;
-    Switch::IPLow = IPLow;
     flowTable.push_back(init_rule);
 
     Switch::trafficFile = trafficFile;
@@ -69,20 +75,23 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
     // can potentially be a nullptr
     if (leftSwitchID != NULL_SWITCH_FLAG) {
         Switch::leftSwitchID = parseSwitchID(leftSwitchID);
+        connections.emplace_back(Connection(Switch::switchID, static_cast<uint>(Switch::leftSwitchID)));
 
     } else {
         Switch::leftSwitchID = NULL_SWITCH_ID;
+        connections.emplace_back(Connection());
+
     }
-    connections.emplace_back(Connection(Switch::switchID, Switch::leftSwitchID));
 
     // create Connection to the right switch
     // can potentially be a nullptr
     if (rightSwitchID != NULL_SWITCH_FLAG) {
         Switch::rightSwitchID = parseSwitchID(rightSwitchID);
+        connections.emplace_back(Connection(Switch::switchID, static_cast<uint>(Switch::rightSwitchID)));
     } else {
         Switch::rightSwitchID = NULL_SWITCH_ID;
+        connections.emplace_back(Connection());
     }
-    connections.emplace_back(Connection(Switch::switchID, Switch::rightSwitchID));
     printf("INFO: created switch: %s trafficFile: %s swj: %s swk: %s IPLow: %u IPHigh: %u\n",
            switchID.c_str(), trafficFile.c_str(), leftSwitchID.c_str(), rightSwitchID.c_str(), IPLow, IPHigh);
 }
@@ -154,13 +163,17 @@ int Switch::getRightSwitchID() {
  * Start the {@code Switch} loop.
  */
 void Switch::start() {
-    struct pollfd pfds[connections.size() + 3];
-    char buf[1024];
+    struct pollfd pfds[PDFS_SIZE];
+    char buf[BUFFER_SIZE];
 
     // setup file descriptions or stdin and all connection FIFOs
-    pfds[0].fd = STDIN_FILENO;
-    for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
-        pfds[i].fd = connections[i - 1].openReceiveFIFO();
+    pfds[PDFS_STDIN].fd = STDIN_FILENO;
+    pfds[PDFS_CONTROLLER].fd = connections[0].openReceiveFIFO();
+    if (leftSwitchID >= 1) {
+        pfds[PDFS_LEFT_SWITCH].fd = connections[1].openReceiveFIFO();
+    }
+    if (rightSwitchID >= 1) {
+        pfds[PDFS_RIGHT_SWITCH].fd = connections[2].openReceiveFIFO();
     }
 
     int err;
@@ -174,7 +187,7 @@ void Switch::start() {
     err = sigprocmask(SIG_BLOCK, &sigset, nullptr);
     assert(err == 0);
     /* This is the main loop */
-    pfds[connections.size() + 2].fd = signalfd(-1, &sigset, 0);;
+    pfds[PDFS_SIGNAL].fd = signalfd(-1, &sigset, 0);;
 
     string line;
     ifstream trafficFileStream(trafficFile);
@@ -182,7 +195,10 @@ void Switch::start() {
     // When a switch starts, it sends an OPEN packet to the controller.
     // The carried message contains the switch number, the numbers of its neighbouring switches (if any),
     // and the range of IP addresses served by the switch.
+    // TODO: error here
+
     sendOPENPacket(connections[0]);
+    // TODO: wait for ack?
 
     // enter the switch loop
     for (;;) {
@@ -210,19 +226,17 @@ void Switch::start() {
          *             type.
          *       exit: The program writes the above information and exits.
          */
-        pfds[0].events = POLLIN;
-        pfds[connections.size() + 2].events = POLLIN;
-        for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
-            pfds[i].events = POLLIN;
+        for (auto &pfd : pfds) {
+            pfd.events = POLLIN;
         }
-
-        int ret = poll(pfds, connections.size() + 3, 0);
+        int ret = poll(pfds, PDFS_SIZE, 0);
         if (errno || ret < 0) {
             // TODO: getting: ERROR: poll failure: Bad file descriptor
             perror("ERROR: poll failure");
+            exit(errno);
         }
-        if (pfds[0].revents & POLLIN) {
-            int r = read(pfds[0].fd, buf, 1024);
+        if (pfds[PDFS_STDIN].revents & POLLIN) {
+            ssize_t r = read(pfds[PDFS_STDIN].fd, buf, BUFFER_SIZE);
             if (!r) {
                 printf("WARNING: stdin closed\n");
             }
@@ -239,19 +253,24 @@ void Switch::start() {
                 printf("ERROR: invalid Controller command: %s\n"
                        "\tPlease use either 'list' or 'exit'\n", cmd.c_str());
             }
-            fflush(stdout);
-            fflush(stdin);
         }
 
         /*
          * 3. Poll the incoming FIFOs from the controller and the attached switches. The switch handles
          *    each incoming packet, as described in the Packet Types.
          */
-        for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
+
+        for (std::vector<Connection>::size_type i = 1; i < 4; i++) {
+            if (i == 2 && leftSwitchID < 1) {
+                continue;
+            }
+            if (i == 3 && rightSwitchID < 1) {
+                continue;
+            }
             if (pfds[i].revents & POLLIN) {
                 printf("DEBUG: pfds[%lu] has connection POLLIN event: %s\n", i,
                        connections[i - 1].getReceiveFIFOName().c_str());
-                int r = read(pfds[i].fd, buf, 1024);
+                ssize_t r = read(pfds[i].fd, buf, BUFFER_SIZE);
                 if (!r) {
                     printf("WARNING: receiveFIFO closed\n");
                 }
@@ -279,11 +298,10 @@ void Switch::start() {
         /*
          * In addition, upon receiving signal USER1, the switch displays the information specified by the list command.
          */
-        if (pfds[connections.size() + 2].revents & POLLIN) {
-            // TODO works but blocks stuff
-            struct signalfd_siginfo info;
+        if (pfds[PDFS_SIGNAL].revents & POLLIN) {
+            struct signalfd_siginfo info{};
             /* We have a valid signal, read the info from the fd */
-            int r = read(pfds[connections.size() + 2].fd, &info, sizeof(info));
+            ssize_t r = read(pfds[PDFS_SIGNAL].fd, &info, sizeof(info));
             if (!r) {
                 printf("WARNING: signal reading error\n");
             }
@@ -293,6 +311,8 @@ void Switch::start() {
                 list();
             }
         }
+        // clear buffer
+        memset(buf, 0, sizeof buf);
     }
 }
 
@@ -378,9 +398,9 @@ string &Switch::parseTrafficFileLine(string &line) {
     } else {
         printf("DEBUG: found line specifying self: %s\n", line.c_str());
         trafficFileItem tfItem = parseTrafficFileItem(line);
-        uint tfSwitchID = get<0>(tfItem);
-        uint srcIP = get<0>(tfItem);
-        uint dstIP = get<0>(tfItem);
+//        uint tfSwitchID = get<0>(tfItem);
+        uint srcIP = get<1>(tfItem);
+        uint dstIP = get<2>(tfItem);
 
         int fi = getFlowEntryIndex(srcIP, dstIP);
         if (fi >= 0) { // found rule
