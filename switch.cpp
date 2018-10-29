@@ -23,7 +23,11 @@
 #include "controller.h"
 #include "switch.h"
 
+#define LIST_CMD "list"
+#define EXIT_CMD "exit"
+
 #define BUFFER_SIZE 1024
+
 #define PDFS_SIZE 5
 #define PDFS_STDIN 0
 #define PDFS_CONTROLLER 1
@@ -261,10 +265,10 @@ void Switch::start() {
          */
 
         for (std::vector<Connection>::size_type i = 1; i < 4; i++) {
-            if (i == 2 && leftSwitchID < 1) {
+            if (i == 2 && leftSwitchID < MIN_SWITCHES) {
                 continue;
             }
-            if (i == 3 && rightSwitchID < 1) {
+            if (i == 3 && rightSwitchID < MIN_SWITCHES) {
                 continue;
             }
             if (pfds[i].revents & POLLIN) {
@@ -357,10 +361,21 @@ uint Switch::parseSwitchID(const string &switchID) {
     }
 
     if (std::regex_search(switchID, matches, rgx)) {
-        return static_cast<uint>(std::stoi(matches[2], nullptr, 10));
+        uint switchID_ = static_cast<uint>(std::stoi(matches[2], nullptr, 10));
+        if (switchID_<MIN_SWITCHES){
+            printf("ERROR: switchID is to low: %u\n"
+                   "\tMIN_SWITCHES=%u\n", switchID_, MIN_SWITCHES);
+            exit(EINVAL);
+        }else if (switchID_>MAX_SWITCHES){
+            printf("ERROR: switchID is to high: %u\n"
+                   "\tMAX_SWITCHES=%u\n", switchID_, MAX_SWITCHES);
+            exit(EINVAL);
+        } else {
+            return switchID_;
+        }
     } else {
-        printf("ERROR: invalid switch id argument: %s\n", switchID.c_str());
-        exit(1);
+        printf("ERROR: invalid switchID argument: %s\n", switchID.c_str());
+        exit(EINVAL);
     }
 }
 
