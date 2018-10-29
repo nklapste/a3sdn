@@ -66,8 +66,8 @@ string Connection::getSendFIFOName() {
  * @return {@code int} the file description of the ReceiveFIFO.
  */
 int Connection::openReceiveFIFO() {
-    printf("DEBUG: opening receiveFIFO: %s\n", receiveFIFOName.c_str());
-    int i = open(receiveFIFOName.c_str(), O_RDONLY | O_NONBLOCK);
+    printf("DEBUG: opening receiveFIFO: %s\n", getReceiveFIFOName().c_str());
+    int i = open(getReceiveFIFOName().c_str(), O_RDONLY | O_NONBLOCK);
     if (errno || i == -1) {
         perror("ERROR: opening receiveFIFO");
         exit(errno);
@@ -81,8 +81,8 @@ int Connection::openReceiveFIFO() {
  * @return {@code int} the file description of the SendFIFO.
  */
 int Connection::openSendFIFO() {
-    printf("DEBUG: opening sendFIFO: %s\n", receiveFIFOName.c_str());
-    int i = open(sendFIFOName.c_str(), O_WRONLY | O_NONBLOCK);
+    printf("DEBUG: opening sendFIFO: %s\n", getSendFIFOName().c_str());
+    int i = open(getSendFIFOName().c_str(), O_WRONLY | O_NONBLOCK);
     if (errno || i == -1) {
         perror("ERROR: opening sendFIFO");
         exit(errno);
