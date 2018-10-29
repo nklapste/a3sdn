@@ -8,8 +8,8 @@
 #ifndef A2SDN_FIFO_H
 #define A2SDN_FIFO_H
 
-#include <sys/types.h>
 #include <string>
+#include <sys/types.h>
 
 using namespace std;
 

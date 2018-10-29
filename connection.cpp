@@ -5,12 +5,10 @@
  * @version 0.0.0
  */
 
-#include <stdio.h>
-#include <string.h>
 #include <fcntl.h>
+#include <sys/signalfd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>
 
 #include "connection.h"
 

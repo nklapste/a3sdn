@@ -11,9 +11,7 @@
 #include <string>
 #include <tuple>
 #include <iostream>
-#include <fstream>
 #include "controller.h"
-#include "switch.h"
 
 #define CONTROLLER_MODE "cont"
 

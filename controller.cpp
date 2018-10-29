@@ -5,33 +5,23 @@
  * @version 0.0.0
  */
 
+#include <algorithm>
+#include <assert.h>
+#include <iostream>
+#include <signal.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/signalfd.h>
 #include <sys/types.h>
 #include <tuple>
-#include <iostream>
-#include <fstream>
-
-#include "controller.h"
-#include "packet.h"
+#include <unistd.h>
 
 /*FIFO stuff*/
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <iostream>
-#include <fcntl.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sstream>
 #include <poll.h>
-#include <algorithm>
 
-#include <sys/signalfd.h>
-#include <unistd.h>
-#include <signal.h>
-#include <sys/signalfd.h>
-#include <string.h>
+#include "controller.h"
 
-#include <assert.h>
 
 using namespace std;
 

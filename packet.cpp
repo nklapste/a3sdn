@@ -5,11 +5,10 @@
  * @version 0.0.0
  */
 
-#include <utility>
 #include <iterator>
 #include <sstream>
-#include <string>
 #include <tuple>
+#include <utility>
 
 #include "packet.h"
 
