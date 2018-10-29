@@ -98,6 +98,10 @@ private:
     uint tRelayCount = 0;
     uint tQueryCount = 0;
 
+    uint parseSwitchID(const string &switchID);
+
+    trafficFileItem parseTrafficFileItem(string &trafficFileLine);
+
     string &parseTrafficFileLine(string &line);
 
     void list();
