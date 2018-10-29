@@ -104,6 +104,7 @@ void Controller::start() {
     pfds[connections.size() + 2].fd = signalfd(-1, &sigset, 0);;
     pfds[connections.size() + 2].events = POLLIN;
 
+    // enter the controller loop
     for (;;) {
         /*
          * 1. Poll the keyboard for a user command. The user can issue one of the following commands.
@@ -286,7 +287,7 @@ FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
                         }
                     }
                 }
-                // all other options exhausted
+                // all other options exhausted make a drop rule
                 FlowEntry drop_rule = {
                         .srcIP_lo   = MIN_IP,
                         .srcIP_hi   = MAX_IP,
@@ -317,7 +318,7 @@ FlowEntry Controller::makeRule(uint switchID, uint srcIP, uint dstIP) {
         printf("ERROR: attempted to make rule for unexpected switch: sw%u\n", switchID);
         // TODO: is this okay behavior
         FlowEntry drop_rule = {
-                .srcIP_lo   = 0,
+                .srcIP_lo   = MIN_IP,
                 .srcIP_hi   = MAX_IP,
                 .dstIP_lo   = dstIP,
                 .dstIP_hi   = dstIP,
@@ -378,8 +379,7 @@ void Controller::openResponse(Connection connection, Message message) {
     printf("DEBUG: parsed OPEN packet: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
            switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh);
 
-    switches.emplace_back(
-            Switch(switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh));
+    switches.emplace_back(Switch(switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh));
 
     // send ack back to switch
     Packet ackPacket = Packet(ACK, Message());

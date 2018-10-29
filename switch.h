@@ -15,7 +15,8 @@
 #include "packet.h"
 #include "flow.h"
 
-#define NULL_ID "null"
+#define NULL_SWITCH_FLAG "null"
+#define NULL_SWITCH_ID -1
 
 using namespace std;
 
@@ -92,19 +93,19 @@ private:
     /**
      * Counts of {@code Packets} received.
      */
-    uint rOpenCount  = 0;
-    uint rAddCount   = 0;
-    uint rAckCount   = 0;
+    uint rOpenCount = 0;
+    uint rAddCount = 0;
+    uint rAckCount = 0;
     uint rRelayCount = 0;
     uint rQueryCount = 0;
-    uint admitCount  = 0; /* special for Switch indicates as DELIVERed packet */
+    uint admitCount = 0; /* special for Switch indicates number of DELIVERed packets */
 
     /**
      * Counts of {@code Packets} transmitted.
      */
-    uint tOpenCount  = 0;
-    uint tAddCount   = 0;
-    uint tAckCount   = 0;
+    uint tOpenCount = 0;
+    uint tAddCount = 0;
+    uint tAckCount = 0;
     uint tRelayCount = 0;
     uint tQueryCount = 0;
 
