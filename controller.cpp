@@ -22,6 +22,8 @@
 
 #include "controller.h"
 
+#define BUFFER_SIZE 1024
+
 using namespace std;
 
 /**
@@ -71,7 +73,7 @@ void Controller::list() {
  */
 void Controller::start() {
     struct pollfd pfds[connections.size() + 3];
-    char buf[1024];
+    char buf[BUFFER_SIZE];
 
     // setup file descriptions or stdin and all connection FIFOs
     pfds[0].fd = STDIN_FILENO;
@@ -110,9 +112,10 @@ void Controller::start() {
         int ret = poll(pfds, connections.size() + 3, 0);
         if (errno || ret < 0) {
             perror("ERROR: poll failure");
+            exit(errno);
         }
         if (pfds[0].revents & POLLIN) {
-            int r = read(pfds[0].fd, buf, 1024);
+            ssize_t r = read(pfds[0].fd, buf, BUFFER_SIZE);
             if (!r) {
                 printf("WARNING: stdin closed\n");
             }
@@ -142,7 +145,7 @@ void Controller::start() {
                 printf("DEBUG: pfds[%lu] has connection POLLIN event: %s\n", i,
                        connections[i - 1].getReceiveFIFOName().c_str());
                 memset(buf, 0, sizeof buf);
-                int r = read(pfds[i].fd, buf, 1024);
+                ssize_t r = read(pfds[i].fd, buf, BUFFER_SIZE);
                 if (!r) {
                     printf("WARNING: receiveFIFO closed\n");
                 }
@@ -174,10 +177,9 @@ void Controller::start() {
          * In addition, upon receiving signal USER1, the switch displays the information specified by the list command.
          */
         if (pfds[connections.size() + 2].revents & POLLIN) {
-            // TODO works but blocks stuff
-            struct signalfd_siginfo info;
+            struct signalfd_siginfo info{};
             /* We have a valid signal, read the info from the fd */
-            int r = read(pfds[connections.size() + 2].fd, &info, sizeof(info));
+            ssize_t r = read(pfds[connections.size() + 2].fd, &info, sizeof(info));
             if (!r) {
                 printf("WARNING: signal reading error\n");
             }
@@ -209,14 +211,13 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
         // check src IP is invalid
         if (srcIP < 0 || srcIP > MAX_IP) {
             // src IP is invalid make a drop rule
-            // TODO: create DROP rule
             FlowEntry drop_rule = {
                     .srcIP_lo   = MIN_IP,
                     .srcIP_hi   = MAX_IP,
                     .dstIP_lo   = dstIP,
                     .dstIP_hi   = dstIP,
                     .actionType = DROP,
-                    .actionVal  = 0,
+                    .actionVal  = PORT_0,
                     .pri        = MIN_PRI,
                     .pktCount   = 0
             };
@@ -280,7 +281,7 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                         .dstIP_lo   = dstIP,
                         .dstIP_hi   = dstIP,
                         .actionType = DROP,
-                        .actionVal  = 0,
+                        .actionVal  = PORT_0,
                         .pri        = MIN_PRI,
                         .pktCount   = 0
                 };
@@ -309,7 +310,7 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                 .dstIP_lo   = dstIP,
                 .dstIP_hi   = dstIP,
                 .actionType = DROP,
-                .actionVal  = 0,
+                .actionVal  = PORT_0,
                 .pri        = MIN_PRI,
                 .pktCount   = 0
         };
