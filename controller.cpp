@@ -122,7 +122,6 @@ void Controller::start() {
         if (errno || ret < 0) {
             perror("ERROR: poll failure");
         }
-        // TODO: error handling
         if (pfds[0].revents & POLLIN) {
             int r = read(pfds[0].fd, buf, 1024);
             if (!r) {
