@@ -65,11 +65,11 @@ void Switch::list() {
     printf("sw%u Flow table:\n", switchID);
     for (auto const &flowEntry: flowTable) {
         string actionName;
-        if (flowEntry.actionType == 0) {
+        if (flowEntry.actionType == DELIVER) {
             actionName = "DELIVER";
-        } else if (flowEntry.actionType == 1) {
+        } else if (flowEntry.actionType == FORWARD) {
             actionName = "FORWARD";
-        } else if (flowEntry.actionType == 2) {
+        } else if (flowEntry.actionType == DROP) {
             actionName = "DROP";
         }
         printf("[%u] (srcIP= %u-%u dstIP %u-%u action=%s:%u pri= %u pktCount= %u)\n",
@@ -119,7 +119,7 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
      *   actionType= FORWARD, actionVal= 3, pri= MINPRI, pktCount= 0]
      */
     FlowEntry init_rule = {
-            .srcIP_lo   = 0,
+            .srcIP_lo   = MIN_IP,
             .srcIP_hi   = MAX_IP,
             .dstIP_lo   = IPLow,
             .dstIP_hi   = IPHigh,
@@ -142,20 +142,20 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
 
     // create Connection to the left switch
     // can potentially be a nullptr
-    if (leftSwitchID != NULL_ID) {
+    if (leftSwitchID != NULL_SWITCH_FLAG) {
         Switch::leftSwitchID = parseSwitchID(leftSwitchID);
 
     } else {
-        Switch::leftSwitchID = -1;
+        Switch::leftSwitchID = NULL_SWITCH_ID;
     }
     connections.emplace_back(Connection(Switch::switchID, Switch::leftSwitchID));
 
     // create Connection to the right switch
     // can potentially be a nullptr
-    if (rightSwitchID != NULL_ID) {
+    if (rightSwitchID != NULL_SWITCH_FLAG) {
         Switch::rightSwitchID = parseSwitchID(rightSwitchID);
     } else {
-        Switch::rightSwitchID = -1;
+        Switch::rightSwitchID = NULL_SWITCH_ID;
     }
     connections.emplace_back(Connection(Switch::switchID, Switch::rightSwitchID));
 
@@ -214,8 +214,8 @@ void Switch::start() {
     assert(err == 0);
     /* This is the main loop */
     pfds[connections.size() + 2].fd = signalfd(-1, &sigset, 0);;
-    pfds[connections.size() + 2].events = POLLIN;
 
+    // enter the switch loop
     for (;;) {
         /*
          * 1.  Read and process a single line from the traffic line (if the EOF has not been reached yet). The
