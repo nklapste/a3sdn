@@ -39,7 +39,7 @@ Connection::Connection(uint srcID, uint dstID) {
  */
 Connection::Connection() {
     sendFIFOName = "/dev/null";
-    receiveFIFOName="/dev/null";
+    receiveFIFOName = "/dev/null";
 }
 
 /**
@@ -68,8 +68,9 @@ string Connection::getSendFIFOName() {
 int Connection::openReceiveFIFO() {
     printf("DEBUG: opening receiveFIFO: %s\n", receiveFIFOName.c_str());
     int i = open(receiveFIFOName.c_str(), O_RDONLY | O_NONBLOCK);
-    if (errno || !i) {
-        perror("ERROR: opening receive FIFO");
+    if (errno || i == -1) {
+        perror("ERROR: opening receiveFIFO");
+        exit(errno);
     }
     return i;
 }
@@ -82,8 +83,9 @@ int Connection::openReceiveFIFO() {
 int Connection::openSendFIFO() {
     printf("DEBUG: opening sendFIFO: %s\n", receiveFIFOName.c_str());
     int i = open(sendFIFOName.c_str(), O_WRONLY | O_NONBLOCK);
-    if (errno || !i) {
-        perror("ERROR: opening send FIFO");
+    if (errno || i == -1) {
+        perror("ERROR: opening sendFIFO");
+        exit(errno);
     }
     return i;
 }
