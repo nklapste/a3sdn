@@ -219,9 +219,9 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
         auto index = std::distance(switches.begin(), it);
         Switch requestSwitch = switches[index];
 
-        // check src IP is invalid
+        // check srcIP is invalid
         if (srcIP < 0 || srcIP > MAX_IP) {
-            // src IP is invalid make a drop rule
+            printf("DEBUG: invalid srcIP: %u creating DROP FlowEntry\n", srcIP);
             FlowEntry drop_rule = {
                     .srcIP_lo   = MIN_IP,
                     .srcIP_hi   = MAX_IP,
@@ -232,24 +232,16 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                     .pri        = MIN_PRI,
                     .pktCount   = 0
             };
-            printf("DEBUG: invalid srcIP: %u creating drop rule\n", srcIP);
-
             return drop_rule;
         } else {
-            // dst is out of range of switches range
-            // make a drop rule
-
-
             printf("DEBUG: valid srcIP: %u\n", srcIP);
-
             if (dstIP < requestSwitch.getIPLow() || dstIP > requestSwitch.getIPHigh()) { // out of range of
-                // get left switch
+                printf("DEBUG: invalid dstIP: %u checking if neighboring switches are valid\n", dstIP);
+
+                // get and test left switch
                 int leftSwitchID = requestSwitch.getLeftSwitchID();
-
-                printf("DEBUG: leftSwitchID: %i\n", leftSwitchID);
+                printf("DEBUG: checking leftSwitchID: %i\n", leftSwitchID);
                 if (leftSwitchID > 0) {
-                    printf("DEBUG: methere\n");
-
                     auto it2 = find_if(switches.begin(), switches.end(),
                                        [&leftSwitchID](Switch &sw) { return sw.getID() == leftSwitchID; });
                     if (it2 != switches.end()) {
@@ -267,33 +259,27 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                                     .pri        = MIN_PRI,
                                     .pktCount   = 0,
                             };
-                            printf("DEBUG: left\n");
+                            printf("DEBUG: left switch valid creating FORWARD FlowEntry\n");
 
                             return forwardLeftRule;
                         }
                     }
                 }
-                // get the right switch
+                // get and test the right switch
                 int rightSwitchID = requestSwitch.getRightSwitchID();
-                printf("DEBUG: rightSwitchID: %i\n", rightSwitchID);
-
+                printf("DEBUG: checking rightSwitchID: %i\n", rightSwitchID);
                 if (rightSwitchID > 0) {
-                    printf("DEBUG: methere\n");
 
                     auto it3 = find_if(switches.begin(), switches.end(),
                                        [&rightSwitchID](Switch &sw) { return sw.getID() == rightSwitchID; });
 
                     if (it3 != switches.end()) {
-                        printf("DEBUG: methere\n");
 
                         auto index3 = std::distance(switches.begin(), it3);
-                        printf("DEBUG: index3: %ld\n", index3);
 
                         Switch requestRightSwitch = switches[index3];
-                        printf("DEBUG: bad\n");
 
                         if (dstIP < requestRightSwitch.getIPLow() || dstIP > requestRightSwitch.getIPHigh()) {
-                            printf("DEBUG: bad\n");
 
                         } else {
                             FlowEntry forwardRightRule = {
@@ -306,14 +292,12 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                                     .pri        = MIN_PRI,
                                     .pktCount   = 0,
                             };
-                            printf("DEBUG: right\n");
+                            printf("DEBUG: right switch valid creating FORWARD FlowEntry\n");
                             return forwardRightRule;
                         }
                     }
                 }
-                printf("DEBUG: drop2\n");
-
-                // all other options exhausted make a drop rule
+                printf("DEBUG: left and right switch invalid creating DROP FlowEntry\n");
                 FlowEntry drop_rule = {
                         .srcIP_lo   = MIN_IP,
                         .srcIP_hi   = MAX_IP,
@@ -326,7 +310,7 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                 };
                 return drop_rule;
             } else {
-                printf("DEBUG: deliver\n");
+                printf("DEBUG: valid dstIP: %u creating FORWARD FlowEntry\n", dstIP);
                 FlowEntry deliver_rule = {
                         .srcIP_lo   = MIN_IP,
                         .srcIP_hi   = MAX_IP,
@@ -341,8 +325,7 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
             }
         }
     } else {
-        // no switch with that ID is found.
-        printf("ERROR: attempted to make rule for unexpected switch: sw%u\n", switchID);
+        printf("ERROR: attempted to make FlowEntry for unexpected switch: sw%u creating DROP FlowEntry\n", switchID);
         // TODO: is this okay behavior
         FlowEntry drop_rule = {
                 .srcIP_lo   = MIN_IP,
