@@ -41,17 +41,11 @@ IPRange parseIPRange(const string &IPRangeString) {
         exit(EINVAL);
     }
     if (IPLow > IPHigh) {
-        printf("ERROR: invalid IP range:\n"
-               "\tIPLow: %u greater than IPHigh: %u", IPLow, IPHigh);
+        printf("ERROR: invalid IP range: IPLow: %u greater than IPHigh: %u", IPLow, IPHigh);
         exit(EINVAL);
     }
     return make_tuple(IPLow, IPHigh);
 }
-
-
-////////////////////////
-// Main entrypoint
-////////////////////////
 
 /**
  * Parse the command line arguements from main().

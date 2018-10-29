@@ -48,8 +48,7 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
         exit(EINVAL);
     }
     if (IPLow > IPHigh) {
-        printf("ERROR: invalid IP range:\n"
-               "\tIPLow: %u greater than IPHigh: %u", IPLow, IPHigh);
+        printf("ERROR: invalid IP range: IPLow: %u greater than IPHigh: %u", IPLow, IPHigh);
         exit(EINVAL);
     }
 
