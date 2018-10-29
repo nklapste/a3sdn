@@ -32,6 +32,7 @@
 #include <string.h>
 
 #include <assert.h>
+
 using namespace std;
 
 /**
@@ -100,8 +101,8 @@ void Controller::start() {
     err = sigprocmask(SIG_BLOCK, &sigset, nullptr);
     assert(err == 0);
     /* This is the main loop */
-    pfds[connections.size()+2].fd = signalfd(-1, &sigset, 0);;
-    pfds[connections.size()+2].events = POLLIN;
+    pfds[connections.size() + 2].fd = signalfd(-1, &sigset, 0);;
+    pfds[connections.size() + 2].events = POLLIN;
 
     for (;;) {
         /*
@@ -112,13 +113,13 @@ void Controller::start() {
          *       exit: The program writes the above information and exits.
          */
         pfds[0].events = POLLIN;
-        pfds[connections.size()+2].events = POLLIN;
+        pfds[connections.size() + 2].events = POLLIN;
         for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
             pfds[i].events = POLLIN;
         }
 
         int ret = poll(pfds, connections.size() + 3, 0);
-        if (errno || ret<0){
+        if (errno || ret < 0) {
             perror("ERROR: poll failure");
         }
         // TODO: error handling
@@ -185,12 +186,12 @@ void Controller::start() {
         /*
          * In addition, upon receiving signal USER1, the switch displays the information specified by the list command.
          */
-        if(pfds[connections.size()+2].revents & POLLIN){
+        if (pfds[connections.size() + 2].revents & POLLIN) {
             // TODO works but blocks stuff
             struct signalfd_siginfo info;
             /* We have a valid signal, read the info from the fd */
-            int r = read(pfds[connections.size()+2].fd, &info, sizeof(info));
-            if(!r){
+            int r = read(pfds[connections.size() + 2].fd, &info, sizeof(info));
+            if (!r) {
                 printf("WARNING: signal reading error\n");
             }
             unsigned sig = info.ssi_signo;
@@ -360,7 +361,7 @@ void Controller::queryResponse(Connection connection, Message message) {
     addMessage.emplace_back(MessageArg("pktCount", to_string(flowEntry.pktCount)));
     Packet addPacket = Packet(ADD, addMessage);
     printf("INFO: sending ADD packet: connection: %s packet: %s\n",
-            connection.getSendFIFOName().c_str(), addPacket.toString().c_str());
+           connection.getSendFIFOName().c_str(), addPacket.toString().c_str());
     write(connection.openSendFIFO(), addPacket.toString().c_str(),
           strlen(addPacket.toString().c_str()));
     tAddCount++;
@@ -384,7 +385,7 @@ void Controller::openResponse(Connection connection, Message message) {
     // send ack back to switch
     Packet ackPacket = Packet(ACK, Message());
     printf("INFO: sending ACK packet: connection: %s packet: %s\n",
-            connection.getSendFIFOName().c_str(), ackPacket.toString().c_str());
+           connection.getSendFIFOName().c_str(), ackPacket.toString().c_str());
     write(connection.openSendFIFO(), ackPacket.toString().c_str(),
           strlen(ackPacket.toString().c_str()));
     tAckCount++;
