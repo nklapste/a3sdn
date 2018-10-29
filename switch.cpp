@@ -199,8 +199,6 @@ void Switch::start() {
     // When a switch starts, it sends an OPEN packet to the controller.
     // The carried message contains the switch number, the numbers of its neighbouring switches (if any),
     // and the range of IP addresses served by the switch.
-    // TODO: error here
-
     sendOPENPacket(connections[0]);
     // TODO: wait for ack?
 
@@ -235,7 +233,6 @@ void Switch::start() {
         }
         int ret = poll(pfds, PDFS_SIZE, 0);
         if (errno || ret < 0) {
-            // TODO: getting: ERROR: poll failure: Bad file descriptor
             perror("ERROR: poll failure");
             exit(errno);
         }
