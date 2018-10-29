@@ -17,21 +17,21 @@ class Connection {
 public:
     Connection(uint srcID, uint dstID);
 
-    string getSendFIFOName();
-
     string getReceiveFIFOName();
 
-    int openSendFIFO();
+    string getSendFIFOName();
 
     int openReceiveFIFO();
+
+    int openSendFIFO();
 
 private:
     string receiveFIFOName;
     string sendFIFOName;
 
-    void makeFIFO(string &FIFOName);
-
     const string makeFIFOName(uint senderId, uint receiverId);
+
+    void makeFIFO(string &FIFOName);
 };
 
 #endif //A2SDN_FIFO_H
