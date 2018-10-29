@@ -85,7 +85,7 @@ int Connection::openSendFIFO() {
  *
  * @param senderId {@code uint}
  * @param receiverId {@code uint}
- * @return
+ * @return {code const std::string} name of the FIFO for the Connection.
  */
 const string Connection::makeFIFOName(uint senderId, uint receiverId) {
     return "fifo-" + std::to_string(senderId) + "-" + std::to_string(receiverId);
