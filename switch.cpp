@@ -28,29 +28,16 @@ using namespace std;
 /**
  * Initialize a switch.
  *
- * @param switchID
- * @param leftSwitchID
- * @param rightSwitchID
- * @param trafficFile
- * @param IPLow
- * @param IPHigh
+ * @param switchID {@code std::string}
+ * @param leftSwitchID {@code std::string}
+ * @param rightSwitchID {@code std::string}
+ * @param trafficFile {@code std::string}
+ * @param IPRangeStr {@code std::string}
  */
-Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, string &trafficFile, uint IPLow,
-               uint IPHigh) {
-    printf("DEBUG: creating switch: %s trafficFile: %s swj: %s swk: %s IPLow: %u IPHigh: %u\n",
-           switchID.c_str(), trafficFile.c_str(), leftSwitchID.c_str(), rightSwitchID.c_str(), IPLow, IPHigh);
-    if (IPHigh > MAX_IP) {
-        printf("ERROR: invalid IPHigh: %u MAX_IP: %u", IPHigh, MAX_IP);
-        exit(EINVAL);
-    }
-    if (IPLow < MIN_IP) {
-        printf("ERROR: invalid IPLow: %u MIN_IP: %u", IPLow, MIN_IP);
-        exit(EINVAL);
-    }
-    if (IPLow > IPHigh) {
-        printf("ERROR: invalid IP range: IPLow: %u greater than IPHigh: %u", IPLow, IPHigh);
-        exit(EINVAL);
-    }
+Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, string &trafficFile, string &IPRangeStr) {
+    IPRange ipRange = parseIPRange(IPRangeStr);
+    IPLow = get<0>(ipRange);
+    IPHigh = get<1>(ipRange);
 
     /*
      *   [srcIP lo= 0, srcIP hi= MAXIP, destIP lo= IPlow, destIP hi= IPhigh,
@@ -96,8 +83,8 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
         Switch::rightSwitchID = NULL_SWITCH_ID;
     }
     connections.emplace_back(Connection(Switch::switchID, Switch::rightSwitchID));
-
-    printf("INFO: I am switch: %i\n", S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    printf("INFO: created switch: %s trafficFile: %s swj: %s swk: %s IPLow: %u IPHigh: %u\n",
+           switchID.c_str(), trafficFile.c_str(), leftSwitchID.c_str(), rightSwitchID.c_str(), IPLow, IPHigh);
 }
 
 /**
@@ -311,6 +298,32 @@ void Switch::start() {
 }
 
 /**
+ * Parse the IP range argument. Which follows the format IPLow-IPHigh.
+ *
+ * @param IPRangeString {@code std::string}
+ * @return {@code IPRange} a tuple of (IPLow, IPHigh)
+ */
+IPRange Switch::parseIPRange(const string &IPRangeString) {
+    string delimiter = "-";
+    uint IPLow = static_cast<uint>(stoi(IPRangeString.substr(0, IPRangeString.find(delimiter))));
+    uint IPHigh = static_cast<uint>(stoi(
+            IPRangeString.substr(IPRangeString.find(delimiter) + 1, IPRangeString.size() - 1)));
+    if (IPHigh > MAX_IP) {
+        printf("ERROR: invalid IPHigh: %u MAX_IP: %u", IPHigh, MAX_IP);
+        exit(EINVAL);
+    }
+    if (IPLow < MIN_IP) {
+        printf("ERROR: invalid IPLow: %u MIN_IP: %u", IPLow, MIN_IP);
+        exit(EINVAL);
+    }
+    if (IPLow > IPHigh) {
+        printf("ERROR: invalid IP range: IPLow: %u greater than IPHigh: %u", IPLow, IPHigh);
+        exit(EINVAL);
+    }
+    return make_tuple(IPLow, IPHigh);
+}
+
+/**
  * Parse the switch id. Should match the format {@code 'swi'} where {@code 'i'} is a numeric character.
  *
  * @param switchID {@code std::string}
@@ -370,7 +383,7 @@ string &Switch::parseTrafficFileLine(string &line) {
         uint srcIP = get<0>(tfItem);
         uint dstIP = get<0>(tfItem);
 
-        int fi = getFlowEntry(srcIP, dstIP);
+        int fi = getFlowEntryIndex(srcIP, dstIP);
         if (fi >= 0) { // found rule
             FlowEntry flowEntry = flowTable.at(fi);
             // we now have a valid rule that applies to the traffic item and the switch
@@ -436,7 +449,7 @@ void Switch::list() {
  * @return {@code int} index of the matching FlowEntry within the FlowTable.
  *         Else return -1 is no matching FlowEntry was found.
  */
-int Switch::getFlowEntry(uint srcIP, uint dstIP) {
+int Switch::getFlowEntryIndex(uint srcIP, uint dstIP) {
     // iterate through flowTable rules
     int flowTableIndex = 0;
     for (auto const &flowEntry: flowTable) {
@@ -464,7 +477,7 @@ int Switch::getFlowEntry(uint srcIP, uint dstIP) {
 }
 
 /**
- * Send a OPEN packet describing the swtich through the given connection.
+ * Send a OPEN packet describing the Switch through the given connection.
  *
  * @param connection {@code Connection}
  */
@@ -585,8 +598,7 @@ void Switch::respondRELAYPacket(Message message) {
            "\tswitchID: %u srcIP: %u dstIP: %u",
            rSwitchID, srcIP, dstIP);
 
-    // TODO figure out way to update flow entry
-    int fi = getFlowEntry(srcIP, dstIP);
+    int fi = getFlowEntryIndex(srcIP, dstIP);
     if (fi >= 0) { // found rule
         FlowEntry flowEntry = flowTable.at(fi);
         // we now have a valid rule that ap

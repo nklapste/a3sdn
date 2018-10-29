@@ -9,43 +9,11 @@
  */
 
 #include <string>
-#include <tuple>
-#include <iostream>
-#include "controller.h"
 
-#define CONTROLLER_MODE "cont"
+#include "controller.h"
+#include "switch.h"
 
 using namespace std;
-
-////////////////////////////////
-// Argument Parsing functions
-////////////////////////////////
-
-/**
- * Parse the IP range argument. Which follows the format IPLow-IPHigh.
- *
- * @param IPRangeString
- * @return {@code IPRange} a tuple of (IPLow, IPHigh)
- */
-IPRange parseIPRange(const string &IPRangeString) {
-    string delimiter = "-";
-    uint IPLow = static_cast<uint>(stoi(IPRangeString.substr(0, IPRangeString.find(delimiter))));
-    uint IPHigh = static_cast<uint>(stoi(
-            IPRangeString.substr(IPRangeString.find(delimiter) + 1, IPRangeString.size() - 1)));
-    if (IPHigh > MAX_IP) {
-        printf("ERROR: invalid IPHigh: %u MAX_IP: %u", IPHigh, MAX_IP);
-        exit(EINVAL);
-    }
-    if (IPLow < MIN_IP) {
-        printf("ERROR: invalid IPLow: %u MIN_IP: %u", IPLow, MIN_IP);
-        exit(EINVAL);
-    }
-    if (IPLow > IPHigh) {
-        printf("ERROR: invalid IP range: IPLow: %u greater than IPHigh: %u", IPLow, IPHigh);
-        exit(EINVAL);
-    }
-    return make_tuple(IPLow, IPHigh);
-}
 
 /**
  * Parse the command line arguements from main().
@@ -62,9 +30,9 @@ void parseArgs(int argc, char **argv){
 /**
  * Main entry point for a2sdn.
  *
- * @param argc
- * @param argv
- * @return
+ * @param argc {@code int}
+ * @param argv {@code char **}
+ * @return {@code int}
  */
 int main(int argc, char **argv) {
     if (argc < 3 || argc > 6) {
@@ -95,8 +63,8 @@ int main(int argc, char **argv) {
         string trafficFile = argv[2];
         string leftSwitchId = argv[3];
         string rightSwitchId = argv[4];
-        IPRange IPRange1 = parseIPRange(argv[5]);
-        Switch aSwitch = Switch(switchId, leftSwitchId, rightSwitchId, trafficFile, get<0>(IPRange1), get<1>(IPRange1));
+        string IPRangeStr = argv[5];
+        Switch aSwitch = Switch(switchId, leftSwitchId, rightSwitchId, trafficFile, IPRangeStr);
         aSwitch.start();
     }
     return 0;

@@ -34,6 +34,8 @@ using namespace std;
 #define PORT_2 2 // right switch port/connection index
 #define PORT_3 3 // self switch port
 
+typedef tuple<uint, uint> IPRange;
+
 /**
  * Traffic file item.
  */
@@ -41,7 +43,7 @@ typedef tuple<uint, uint, uint> trafficFileItem;
 
 class Switch {
 public:
-    Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, string &trafficFile, uint IPLow, uint IPHigh);
+    Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, string &trafficFile, string &IPRangeStr);
 
     Switch(uint switchID, int leftSwitchID, int rightSwitchID, uint IPLow, uint IPHigh);
 
@@ -59,17 +61,17 @@ public:
 
 private:
     /**
-     * ID of the switch itself
+     * ID of the switch itself. (Port 3)
      */
     uint switchID;
 
     /**
-     * ID of the "left" switch to connect to
+     * ID of the "left" switch to connect to. (Port 1)
      */
     int leftSwitchID;
 
     /**
-     * ID of the "right" switch to connect to
+     * ID of the "right" switch to connect to. (Port 2)
      */
     int rightSwitchID;
 
@@ -98,6 +100,8 @@ private:
     uint tRelayCount = 0;
     uint tQueryCount = 0;
 
+    IPRange parseIPRange(const string &IPRange);
+
     uint parseSwitchID(const string &switchID);
 
     trafficFileItem parseTrafficFileItem(string &trafficFileLine);
@@ -106,7 +110,7 @@ private:
 
     void list();
 
-    int getFlowEntry(uint srcIP, uint dstIP);
+    int getFlowEntryIndex(uint srcIP, uint dstIP);
 
     void sendOPENPacket(Connection connection);
 
