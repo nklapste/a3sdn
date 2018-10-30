@@ -108,16 +108,23 @@ const string Connection::makeFIFOName(uint senderId, uint receiverId) {
 /**
  * Make a FIFO for a {@code Connection}.
  *
- * @param FIFOName the name to be given to the FIFO.
+ * If the FIFO already exists ignore the error {@code 17} as this does not affect
+ * the limited scope of a2sdn.
+ *
+ * @param FIFOName {@code std::string} name to be given to the FIFO.
  */
 void Connection::makeFIFO(string &FIFOName) {
     printf("DEBUG: making FIFO at: %s\n", FIFOName.c_str());
     int status = mkfifo(FIFOName.c_str(), S_IRUSR | S_IWUSR | S_IRGRP |
                                           S_IWGRP | S_IROTH | S_IWOTH);
-    // TODO: ignore if FIFO is already made
     if (errno || status == -1) {
-        perror("ERROR: error creating FIFO connection");
-        errno = 0;
+        if (errno == 17) { /* FIFO already exists - non-issue for a2sdn */
+            perror("WARNING: error creating FIFO connection");
+            errno = 0;
+        } else { /* unexpected FIFO creation error */
+            perror("ERROR: unexpected error creating FIFO connection");
+            exit(errno);
+        }
     }
 }
 
