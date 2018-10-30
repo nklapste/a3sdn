@@ -35,7 +35,11 @@ Connection::Connection(uint srcID, uint dstID) {
 }
 
 /**
- * Null/dummy connection.
+ * Initialize a Null/dummy connection.
+ *
+ * Set the FIFONames to /dev/null just for safety.
+ *
+ * i.e. if we open this dummy connection nothing bad will happen we literally get nothing.
  */
 Connection::Connection() {
     sendFIFOName = "/dev/null";
