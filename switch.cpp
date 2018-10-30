@@ -51,10 +51,7 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
     IPLow = get<0>(ipRange);
     IPHigh = get<1>(ipRange);
 
-    /*
-     *   [srcIP lo= 0, srcIP hi= MAXIP, destIP lo= IPlow, destIP hi= IPhigh,
-     *   actionType= FORWARD, actionVal= 3, pri= MINPRI, pktCount= 0]
-     */
+    // create and add the Switch's initial FLowEntry rule
     FlowEntry init_rule = {
             .srcIPLow   = MIN_IP,
             .srcIPHigh   = MAX_IP,
