@@ -220,10 +220,10 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
         if (srcIP < 0 || srcIP > MAX_IP) {
             printf("DEBUG: invalid srcIP: %u creating DROP FlowEntry\n", srcIP);
             FlowEntry drop_rule = {
-                    .srcIP_lo   = MIN_IP,
-                    .srcIP_hi   = MAX_IP,
-                    .dstIP_lo   = dstIP,
-                    .dstIP_hi   = dstIP,
+                    .srcIPLow   = MIN_IP,
+                    .srcIPHigh   = MAX_IP,
+                    .dstIPLow   = dstIP,
+                    .dstIPHigh   = dstIP,
                     .actionType = DROP,
                     .actionVal  = PORT_0,
                     .pri        = MIN_PRI,
@@ -248,10 +248,10 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                         } else {
                             printf("DEBUG: left switch valid creating FORWARD FlowEntry\n");
                             FlowEntry forwardLeftRule = {
-                                    .srcIP_lo   = MIN_IP,
-                                    .srcIP_hi   = MAX_IP,
-                                    .dstIP_lo   = dstIP,
-                                    .dstIP_hi   = dstIP,
+                                    .srcIPLow   = MIN_IP,
+                                    .srcIPHigh   = MAX_IP,
+                                    .dstIPLow   = dstIP,
+                                    .dstIPHigh   = dstIP,
                                     .actionType = FORWARD,
                                     .actionVal  = PORT_1,
                                     .pri        = MIN_PRI,
@@ -280,10 +280,10 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                         } else {
                             printf("DEBUG: right switch valid creating FORWARD FlowEntry\n");
                             FlowEntry forwardRightRule = {
-                                    .srcIP_lo   = MIN_IP,
-                                    .srcIP_hi   = MAX_IP,
-                                    .dstIP_lo   = dstIP,
-                                    .dstIP_hi   = dstIP,
+                                    .srcIPLow   = MIN_IP,
+                                    .srcIPHigh   = MAX_IP,
+                                    .dstIPLow   = dstIP,
+                                    .dstIPHigh   = dstIP,
                                     .actionType = FORWARD,
                                     .actionVal  = PORT_2,
                                     .pri        = MIN_PRI,
@@ -295,10 +295,10 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                 }
                 printf("DEBUG: left and right switch invalid creating DROP FlowEntry\n");
                 FlowEntry drop_rule = {
-                        .srcIP_lo   = MIN_IP,
-                        .srcIP_hi   = MAX_IP,
-                        .dstIP_lo   = dstIP,
-                        .dstIP_hi   = dstIP,
+                        .srcIPLow   = MIN_IP,
+                        .srcIPHigh   = MAX_IP,
+                        .dstIPLow   = dstIP,
+                        .dstIPHigh   = dstIP,
                         .actionType = DROP,
                         .actionVal  = PORT_0,
                         .pri        = MIN_PRI,
@@ -308,10 +308,10 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
             } else {
                 printf("DEBUG: valid dstIP: %u creating FORWARD FlowEntry\n", dstIP);
                 FlowEntry deliver_rule = {
-                        .srcIP_lo   = MIN_IP,
-                        .srcIP_hi   = MAX_IP,
-                        .dstIP_lo   = dstIP,
-                        .dstIP_hi   = dstIP,
+                        .srcIPLow   = MIN_IP,
+                        .srcIPHigh   = MAX_IP,
+                        .dstIPLow   = dstIP,
+                        .dstIPHigh   = dstIP,
                         .actionType = DELIVER,
                         .actionVal  = PORT_3,
                         .pri        = MIN_PRI,
@@ -324,10 +324,10 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
         printf("ERROR: attempted to make FlowEntry for unexpected switch: sw%u creating DROP FlowEntry\n", switchID);
         // TODO: is this okay behavior
         FlowEntry drop_rule = {
-                .srcIP_lo   = MIN_IP,
-                .srcIP_hi   = MAX_IP,
-                .dstIP_lo   = dstIP,
-                .dstIP_hi   = dstIP,
+                .srcIPLow   = MIN_IP,
+                .srcIPHigh   = MAX_IP,
+                .dstIPLow   = dstIP,
+                .dstIPHigh   = dstIP,
                 .actionType = DROP,
                 .actionVal  = PORT_0,
                 .pri        = MIN_PRI,
@@ -359,10 +359,10 @@ void Controller::sendACKPacket(Connection connection) {
  */
 void Controller::sendADDPacket(Connection connection, FlowEntry flowEntry) {
     Message addMessage;
-    addMessage.emplace_back(MessageArg("srcIP_lo", to_string(flowEntry.srcIP_lo)));
-    addMessage.emplace_back(MessageArg("srcIP_hi", to_string(flowEntry.srcIP_hi)));
-    addMessage.emplace_back(MessageArg("dstIP_lo", to_string(flowEntry.dstIP_lo)));
-    addMessage.emplace_back(MessageArg("dstIP_hi", to_string(flowEntry.dstIP_hi)));
+    addMessage.emplace_back(MessageArg("srcIPLow", to_string(flowEntry.srcIPLow)));
+    addMessage.emplace_back(MessageArg("srcIPHigh", to_string(flowEntry.srcIPHigh)));
+    addMessage.emplace_back(MessageArg("dstIPLow", to_string(flowEntry.dstIPLow)));
+    addMessage.emplace_back(MessageArg("dstIPHigh", to_string(flowEntry.dstIPHigh)));
     addMessage.emplace_back(MessageArg("actionType", to_string(flowEntry.actionType)));
     addMessage.emplace_back(MessageArg("actionVal", to_string(flowEntry.actionVal)));
     addMessage.emplace_back(MessageArg("pri", to_string(flowEntry.pri)));
