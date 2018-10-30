@@ -9,6 +9,7 @@
 #define A2SDN_FLOW_H
 
 #include <sys/types.h>
+#include <tuple>
 #include <vector>
 
 /**
@@ -37,6 +38,26 @@ struct FlowEntry {
     uint pri;
     uint pktCount;
 };
+
+/* == > and < operators defined for sorting and deduping purposes */
+inline bool operator==(const FlowEntry& lhs, const FlowEntry& rhs)
+{
+    return tie(lhs.srcIP_lo, lhs.srcIP_hi, lhs.dstIP_lo, lhs.dstIP_hi, lhs.actionType, lhs.actionVal, lhs.pri) ==
+           tie(rhs.srcIP_lo, rhs.srcIP_hi, rhs.dstIP_lo, rhs.dstIP_hi, rhs.actionType, rhs.actionVal, rhs.pri);
+}
+
+inline bool operator<(const FlowEntry& lhs, const FlowEntry& rhs)
+{
+    return tie(lhs.srcIP_lo, lhs.srcIP_hi, lhs.dstIP_lo, lhs.dstIP_hi, lhs.actionType, lhs.actionVal, lhs.pri, lhs.pktCount) <
+            tie(rhs.srcIP_lo, rhs.srcIP_hi, rhs.dstIP_lo, rhs.dstIP_hi, rhs.actionType, rhs.actionVal, rhs.pri, rhs.pktCount);
+}
+
+inline bool operator>(const FlowEntry& lhs, const FlowEntry& rhs)
+{
+    return tie(lhs.srcIP_lo, lhs.srcIP_hi, lhs.dstIP_lo, lhs.dstIP_hi, lhs.actionType, lhs.actionVal, lhs.pri, lhs.pktCount) >
+           tie(rhs.srcIP_lo, rhs.srcIP_hi, rhs.dstIP_lo, rhs.dstIP_hi, rhs.actionType, rhs.actionVal, rhs.pri, rhs.pktCount);
+}
+
 
 typedef vector<FlowEntry> FlowTable;
 
