@@ -88,16 +88,17 @@ void Controller::start() {
         pfds[i].fd = connections[i - 1].openReceiveFIFO();
     }
 
-    int err;
     sigset_t sigset;
     /* Create a sigset of all the signals that we're interested in */
-    err = sigemptyset(&sigset);
-    assert(err == 0);
-    err = sigaddset(&sigset, SIGUSR1);
-    assert(err == 0);
+    sigemptyset(&sigset);
+    sigaddset(&sigset, SIGUSR1);
     /* We must block the signals in order for signalfd to receive them */
-    err = sigprocmask(SIG_BLOCK, &sigset, nullptr);
-    assert(err == 0);
+    sigprocmask(SIG_BLOCK, &sigset, nullptr);
+    if (errno) {
+        perror("ERROR: setting signal mask");
+        exit(errno);
+    }
+
     /* This is the main loop */
     pfds[PDFS_SIGNAL].fd = signalfd(-1, &sigset, 0);;
 
