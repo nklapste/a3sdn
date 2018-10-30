@@ -42,7 +42,7 @@ public:
 
     Switch(uint switchID, int leftSwitchID, int rightSwitchID, uint IPLow, uint IPHigh);
 
-    uint getID();
+    uint getID() const;
 
     uint getIPLow();
 
@@ -53,6 +53,22 @@ public:
     int getRightSwitchID();
 
     void start();
+
+    /* == > and < operators defined for sorting and deduping purposes */
+    bool operator == (const Switch &sw)
+    {
+        return this->getID() == sw.getID();
+    }
+
+    bool operator > (const Switch &sw)
+    {
+        return this->getID() > sw.getID();
+    }
+
+    bool operator < (const Switch &sw)
+    {
+        return this->getID() < sw.getID();
+    }
 
 private:
     /**

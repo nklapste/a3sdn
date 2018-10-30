@@ -396,6 +396,10 @@ void Controller::respondOPENPacket(Connection connection, Message message) {
     // add the switch to the controllers list of known switches
     switches.emplace_back(Switch(switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh));
 
+    // sort and dedupe the list of switches
+    sort( switches.begin(), switches.end() );
+    switches.erase( unique( switches.begin(), switches.end() ), switches.end() );
+
     // send ack back to switch
     sendACKPacket(std::move(connection));
 }
