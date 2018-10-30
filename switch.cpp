@@ -119,7 +119,7 @@ Switch::Switch(uint switchID, int leftSwitchID, int rightSwitchID, uint IPLow, u
  *
  * @return {@code uint}
  */
-uint Switch::getID() {
+uint Switch::getID() const {
     return switchID;
 }
 
@@ -128,7 +128,7 @@ uint Switch::getID() {
  *
  * @return {@code uint}
  */
-uint Switch::getIPLow() {
+uint Switch::getIPLow() const {
     return IPLow;
 }
 
@@ -137,7 +137,7 @@ uint Switch::getIPLow() {
  *
  * @return {@code uint}
  */
-uint Switch::getIPHigh() {
+uint Switch::getIPHigh() const {
     return IPHigh;
 }
 
@@ -148,7 +148,7 @@ uint Switch::getIPHigh() {
  *
  * @return {@code int}
  */
-int Switch::getLeftSwitchID() {
+int Switch::getLeftSwitchID() const {
     return leftSwitchID;
 }
 
@@ -159,7 +159,7 @@ int Switch::getLeftSwitchID() {
  *
  * @return {@code int}
  */
-int Switch::getRightSwitchID() {
+int Switch::getRightSwitchID() const {
     return rightSwitchID;
 }
 
@@ -609,6 +609,10 @@ void Switch::respondADDPacket(Message message) {
             .pktCount   = pktCount
     };
     flowTable.emplace_back(newRule);
+
+    // sort and dedupe the flowTable
+    sort(flowTable.begin(), flowTable.end());
+    flowTable.erase(unique(flowTable.begin(), flowTable.end()), flowTable.end());
 }
 
 /**

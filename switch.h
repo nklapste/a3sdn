@@ -44,30 +44,30 @@ public:
 
     uint getID() const;
 
-    uint getIPLow();
+    uint getIPLow() const;
 
-    uint getIPHigh();
+    uint getIPHigh() const;
 
-    int getLeftSwitchID();
+    int getLeftSwitchID() const;
 
-    int getRightSwitchID();
+    int getRightSwitchID() const;
 
     void start();
 
     /* == > and < operators defined for sorting and deduping purposes */
     bool operator == (const Switch &sw)
     {
-        return this->getID() == sw.getID();
+        return getID() == sw.getID();
     }
 
     bool operator > (const Switch &sw)
     {
-        return this->getID() > sw.getID();
+        return getID() > sw.getID();
     }
 
     bool operator < (const Switch &sw)
     {
-        return this->getID() < sw.getID();
+        return getID() < sw.getID();
     }
 
 private:
