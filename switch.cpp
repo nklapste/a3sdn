@@ -318,7 +318,7 @@ void Switch::start() {
 }
 
 /**
- * Parse the IP range argument. Which follows the format IPLow-IPHigh.
+ * Parse the {@code IPRange} argument. Which follows the format IPLow-IPHigh.
  *
  * @param IPRangeString {@code std::string}
  * @return {@code IPRange} a tuple of (IPLow, IPHigh)
@@ -649,7 +649,7 @@ void Switch::respondRELAYPacket(Message message) {
                 printf("ERROR: given FORWARD to unsupported port: %u\n", flowEntry.actionVal);
             }
         } else if (flowEntry.actionType == DROP) {
-
+            // do nothing on drop
         }
         flowEntry.pktCount++;
         flowTable[fi] = flowEntry;
