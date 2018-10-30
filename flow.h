@@ -29,10 +29,10 @@
 using namespace std;
 
 struct FlowEntry {
-    uint srcIP_lo;
-    uint srcIP_hi;
-    uint dstIP_lo;
-    uint dstIP_hi;
+    uint srcIPLow;
+    uint srcIPHigh;
+    uint dstIPLow;
+    uint dstIPHigh;
     uint actionType;
     uint actionVal;
     uint pri;
@@ -42,20 +42,20 @@ struct FlowEntry {
 /* == > and < operators defined for sorting and deduping purposes */
 inline bool operator==(const FlowEntry& lhs, const FlowEntry& rhs)
 {
-    return tie(lhs.srcIP_lo, lhs.srcIP_hi, lhs.dstIP_lo, lhs.dstIP_hi, lhs.actionType, lhs.actionVal, lhs.pri) ==
-           tie(rhs.srcIP_lo, rhs.srcIP_hi, rhs.dstIP_lo, rhs.dstIP_hi, rhs.actionType, rhs.actionVal, rhs.pri);
+    return tie(lhs.srcIPLow, lhs.srcIPHigh, lhs.dstIPLow, lhs.dstIPHigh, lhs.actionType, lhs.actionVal, lhs.pri) ==
+           tie(rhs.srcIPLow, rhs.srcIPHigh, rhs.dstIPLow, rhs.dstIPHigh, rhs.actionType, rhs.actionVal, rhs.pri);
 }
 
 inline bool operator<(const FlowEntry& lhs, const FlowEntry& rhs)
 {
-    return tie(lhs.srcIP_lo, lhs.srcIP_hi, lhs.dstIP_lo, lhs.dstIP_hi, lhs.actionType, lhs.actionVal, lhs.pri, lhs.pktCount) <
-            tie(rhs.srcIP_lo, rhs.srcIP_hi, rhs.dstIP_lo, rhs.dstIP_hi, rhs.actionType, rhs.actionVal, rhs.pri, rhs.pktCount);
+    return tie(lhs.srcIPLow, lhs.srcIPHigh, lhs.dstIPLow, lhs.dstIPHigh, lhs.actionType, lhs.actionVal, lhs.pri, lhs.pktCount) <
+            tie(rhs.srcIPLow, rhs.srcIPHigh, rhs.dstIPLow, rhs.dstIPHigh, rhs.actionType, rhs.actionVal, rhs.pri, rhs.pktCount);
 }
 
 inline bool operator>(const FlowEntry& lhs, const FlowEntry& rhs)
 {
-    return tie(lhs.srcIP_lo, lhs.srcIP_hi, lhs.dstIP_lo, lhs.dstIP_hi, lhs.actionType, lhs.actionVal, lhs.pri, lhs.pktCount) >
-           tie(rhs.srcIP_lo, rhs.srcIP_hi, rhs.dstIP_lo, rhs.dstIP_hi, rhs.actionType, rhs.actionVal, rhs.pri, rhs.pktCount);
+    return tie(lhs.srcIPLow, lhs.srcIPHigh, lhs.dstIPLow, lhs.dstIPHigh, lhs.actionType, lhs.actionVal, lhs.pri, lhs.pktCount) >
+           tie(rhs.srcIPLow, rhs.srcIPHigh, rhs.dstIPLow, rhs.dstIPHigh, rhs.actionType, rhs.actionVal, rhs.pri, rhs.pktCount);
 }
 
 

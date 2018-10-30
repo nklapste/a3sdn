@@ -56,10 +56,10 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
      *   actionType= FORWARD, actionVal= 3, pri= MINPRI, pktCount= 0]
      */
     FlowEntry init_rule = {
-            .srcIP_lo   = MIN_IP,
-            .srcIP_hi   = MAX_IP,
-            .dstIP_lo   = IPLow,
-            .dstIP_hi   = IPHigh,
+            .srcIPLow   = MIN_IP,
+            .srcIPHigh   = MAX_IP,
+            .dstIPLow   = IPLow,
+            .dstIPHigh   = IPHigh,
             .actionType = DELIVER,
             .actionVal  = PORT_3,
             .pri        = MIN_PRI,
@@ -460,7 +460,7 @@ void Switch::list() {
         }
         printf("[%u] (srcIP= %u-%u dstIP %u-%u action=%s:%u pri= %u pktCount= %u)\n",
                counter,
-               flowEntry.srcIP_lo, flowEntry.srcIP_hi, flowEntry.dstIP_lo, flowEntry.dstIP_hi,
+               flowEntry.srcIPLow, flowEntry.srcIPHigh, flowEntry.dstIPLow, flowEntry.dstIPHigh,
                actionName.c_str(), flowEntry.actionVal, flowEntry.pri, flowEntry.pktCount);
         counter++;
     }
@@ -486,9 +486,9 @@ int Switch::getFlowEntryIndex(uint srcIP, uint dstIP) {
     int flowTableIndex = 0;
     for (auto const &flowEntry: flowTable) {
         // ensure valid src
-        if (srcIP >= flowEntry.srcIP_lo && srcIP <= flowEntry.srcIP_hi) {
+        if (srcIP >= flowEntry.srcIPLow && srcIP <= flowEntry.srcIPHigh) {
             // ensure valid dst
-            if (dstIP >= flowEntry.dstIP_lo && dstIP <= flowEntry.dstIP_hi) {
+            if (dstIP >= flowEntry.dstIPLow && dstIP <= flowEntry.dstIPHigh) {
                 string actionName;
                 if (flowEntry.actionType == DELIVER) {
                     actionName = "DELIVER";
@@ -498,7 +498,7 @@ int Switch::getFlowEntryIndex(uint srcIP, uint dstIP) {
                     actionName = "DROP";
                 }
                 printf("DEBUG: found matching FlowEntry: (srcIP= %u-%u dstIP %u-%u action=%s:%u pri= %u pktCount= %u)\n",
-                       flowEntry.srcIP_lo, flowEntry.srcIP_hi, flowEntry.dstIP_lo, flowEntry.dstIP_hi,
+                       flowEntry.srcIPLow, flowEntry.srcIPHigh, flowEntry.dstIPLow, flowEntry.dstIPHigh,
                        actionName.c_str(), flowEntry.actionVal, flowEntry.pri, flowEntry.pktCount);
                 return flowTableIndex;
             }
@@ -595,14 +595,14 @@ void Switch::respondADDPacket(Message message) {
 
     printf("INFO: parsed ADD packet:\n"
            "\tAdding new flowTable rule:\n"
-           "\t\tsrcIP_lo: %u srcIP_hi: %u dstIP_lo: %u dstIP_hi: %u actionType: %u actionVal: %u pri: %u pktCount: %u\n",
+           "\t\tsrcIP_lo: %u srcIPHigh: %u dstIPLow: %u dstIPHigh: %u actionType: %u actionVal: %u pri: %u pktCount: %u\n",
            srcIP_lo, srcIP_hi, dstIP_lo, dstIP_hi, actionType, actionVal, pri, pktCount);
 
     FlowEntry newRule = {
-            .srcIP_lo   = srcIP_lo,
-            .srcIP_hi   = srcIP_hi,
-            .dstIP_lo   = dstIP_lo,
-            .dstIP_hi   = dstIP_hi,
+            .srcIPLow   = srcIP_lo,
+            .srcIPHigh   = srcIP_hi,
+            .dstIPLow   = dstIP_lo,
+            .dstIPHigh   = dstIP_hi,
             .actionType = actionType,
             .actionVal  = actionVal,
             .pri        = pri,
