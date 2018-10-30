@@ -5,12 +5,25 @@
  * @version 0.0.0
  */
 
-
 #ifndef A2SDN_FLOW_H
 #define A2SDN_FLOW_H
 
 #include <sys/types.h>
 #include <vector>
+
+/**
+ * Min/Max definitions for various FlowEntry components.
+ */
+#define MIN_IP 0      /* srcIP_lo min */
+#define MAX_IP 1000   /* srcIP_hi max */
+#define MIN_PRI 4     /* pri min */
+
+/**
+ * Definitions of the various FlowEntry actionTypes.
+ */
+#define DELIVER 0
+#define FORWARD 1
+#define DROP 2
 
 using namespace std;
 

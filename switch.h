@@ -20,15 +20,10 @@
 
 using namespace std;
 
-#define DELIVER 0
-#define FORWARD 1
-#define DROP 2
 
-#define MIN_IP 0
-#define MAX_IP 1000
-
-#define MIN_PRI 4
-
+/**
+ * Definitions of the various ports used by the switches.
+ */
 #define PORT_0 0 // controller port/connection index
 #define PORT_1 1 // left switch port/connection index
 #define PORT_2 2 // right switch port/connection index

@@ -33,7 +33,6 @@
 #define PDFS_STDIN 0
 #define PDFS_SIGNAL connections.size()+2
 
-
 using namespace std;
 
 /**
@@ -189,7 +188,7 @@ void Controller::start() {
             }
             unsigned sig = info.ssi_signo;
             if (sig == SIGUSR1) {
-                printf("DEBUG: received SIGUSR1\n");
+                printf("DEBUG: received SIGUSR1 signal\n");
                 list();
             }
         }
@@ -249,6 +248,7 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                         Switch requestLeftSwitch = switches[index2];
                         if (dstIP < requestLeftSwitch.getIPLow() || dstIP > requestLeftSwitch.getIPHigh()) {
                         } else {
+                            printf("DEBUG: left switch valid creating FORWARD FlowEntry\n");
                             FlowEntry forwardLeftRule = {
                                     .srcIP_lo   = MIN_IP,
                                     .srcIP_hi   = MAX_IP,
@@ -259,8 +259,6 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                                     .pri        = MIN_PRI,
                                     .pktCount   = 0,
                             };
-                            printf("DEBUG: left switch valid creating FORWARD FlowEntry\n");
-
                             return forwardLeftRule;
                         }
                     }
@@ -282,6 +280,7 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                         if (dstIP < requestRightSwitch.getIPLow() || dstIP > requestRightSwitch.getIPHigh()) {
 
                         } else {
+                            printf("DEBUG: right switch valid creating FORWARD FlowEntry\n");
                             FlowEntry forwardRightRule = {
                                     .srcIP_lo   = MIN_IP,
                                     .srcIP_hi   = MAX_IP,
@@ -292,7 +291,6 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                                     .pri        = MIN_PRI,
                                     .pktCount   = 0,
                             };
-                            printf("DEBUG: right switch valid creating FORWARD FlowEntry\n");
                             return forwardRightRule;
                         }
                     }
@@ -397,6 +395,7 @@ void Controller::respondOPENPacket(Connection connection, Message message) {
     printf("DEBUG: parsed OPEN packet: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
            switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh);
 
+    // add the switch to the controllers list of known switches
     switches.emplace_back(Switch(switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh));
 
     // send ack back to switch
@@ -411,12 +410,6 @@ void Controller::respondOPENPacket(Connection connection, Message message) {
  */
 void Controller::respondQUERYPacket(Connection connection, Message message) {
     rQueryCount++;
-    // When processing an incoming packet header (the header may be read from
-    //the traffic file, or relayed to the switch by one of its neighbours), if a switch does not find
-    //a matching rule in the flow table, the switch sends a
-    //QUERY
-    //packet to the controller.  The
-    //controller replies with a rule stored in a packet of type
     uint switchID = static_cast<uint>(stoi(get<1>(message[0])));
     uint srcIP    = static_cast<uint>(stoi(get<1>(message[1])));
     uint dstIP    = static_cast<uint>(stoi(get<1>(message[2])));
