@@ -135,7 +135,9 @@ private:
 
     void respondRELAYPacket(Message message);
 
-    int resolvePacket(Message message);
+    void resloveUnsolvedPackets();
+
+    int resolvePacket(uint srcIP, uint dstIP);
 };
 
 #endif //A2SDN_SWITCH_H
