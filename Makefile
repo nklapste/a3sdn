@@ -11,7 +11,7 @@
 
 target = submit
 allFiles = README.md LICENSE Makefile connection.cpp connection.h controller.cpp controller.h flow.h packet.cpp packet.h \
-            switch.cpp switch.h a2sdn.cpp
+            switch.cpp switch.h a2sdn.cpp tf1.txt tf2.txt tf3.txt cmput379_assignment_2_report.pdf
 
 compile:
 	g++ -std=c++11 -Wall connection.cpp connection.h controller.cpp controller.h flow.h packet.cpp packet.h switch.cpp switch.h a2sdn.cpp -o a2sdn
