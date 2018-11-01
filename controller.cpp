@@ -252,8 +252,8 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                             FlowEntry forwardLeftRule = {
                                     .srcIPLow   = MIN_IP,
                                     .srcIPHigh   = MAX_IP,
-                                    .dstIPLow   = dstIP,
-                                    .dstIPHigh   = dstIP,
+                                    .dstIPLow   = requestLeftSwitch.getIPLow() ,
+                                    .dstIPHigh   = requestLeftSwitch.getIPHigh(),
                                     .actionType = FORWARD,
                                     .actionVal  = PORT_1,
                                     .pri        = MIN_PRI,
@@ -284,8 +284,8 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                             FlowEntry forwardRightRule = {
                                     .srcIPLow   = MIN_IP,
                                     .srcIPHigh   = MAX_IP,
-                                    .dstIPLow   = dstIP,
-                                    .dstIPHigh   = dstIP,
+                                    .dstIPLow   = requestRightSwitch.getIPLow(),
+                                    .dstIPHigh   = requestRightSwitch.getIPHigh(),
                                     .actionType = FORWARD,
                                     .actionVal  = PORT_2,
                                     .pri        = MIN_PRI,
@@ -308,7 +308,7 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                 };
                 return drop_rule;
             } else {
-                printf("DEBUG: valid dstIP: %u creating FORWARD FlowEntry\n", dstIP);
+                printf("DEBUG: valid dstIP: %u creating DELIVER FlowEntry\n", dstIP);
                 FlowEntry deliver_rule = {
                         .srcIPLow   = MIN_IP,
                         .srcIPHigh   = MAX_IP,
