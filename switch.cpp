@@ -228,7 +228,7 @@ void Switch::start() {
         for (auto &pfd : pfds) {
             pfd.events = POLLIN;
         }
-        int ret = poll(pfds, PDFS_SIZE, 0);
+        int ret = poll(pfds, PDFS_SIZE, 20);
         if (errno || ret < 0) {
             perror("ERROR: poll failure");
             exit(errno);
