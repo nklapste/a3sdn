@@ -410,28 +410,7 @@ string &Switch::parseTrafficFileLine(string &line) {
 //        uint tfSwitchID = get<0>(tfItem);
         uint srcIP = get<1>(tfItem);
         uint dstIP = get<2>(tfItem);
-
-        int fi = getFlowEntryIndex(srcIP, dstIP);
-        if (fi >= 0) { // found rule
-            FlowEntry flowEntry = flowTable.at(fi);
-            // we now have a valid rule that applies to the traffic item and the switch
-            if (flowEntry.actionType == DELIVER) {
-                // this is our packet
-                admitCount++;
-            } else if (flowEntry.actionType == FORWARD) {
-                if (flowEntry.actionVal == PORT_1) {
-                    sendRELAYPacket(connections[PORT_1], srcIP, dstIP);
-                } else if (flowEntry.actionVal == PORT_2) {
-                    sendRELAYPacket(connections[PORT_2], srcIP, dstIP);
-                } else {
-                    printf("ERROR: given FORWARD to unknown port: %u\n", flowEntry.actionVal);
-                }
-            } else if (flowEntry.actionType == DROP) {
-                // do nothing
-            }
-            flowEntry.pktCount++;
-            flowTable[fi] = flowEntry;
-        } else if (fi < 0) { // did not find rule
+        if (resolvePacket(srcIP, dstIP) <= 0) { // did not find rule
             sendQUERYPacket(connections[0], srcIP, dstIP);
         }
     }
@@ -612,13 +591,24 @@ void Switch::respondADDPacket(Message message) {
     // sort and dedupe the flowTable
     sort(flowTable.begin(), flowTable.end());
     flowTable.erase(unique(flowTable.begin(), flowTable.end()), flowTable.end());
+    resloveUnsolvedPackets();
+}
 
-    std::vector<Packet>::iterator iter;
-    for (iter = unsolvedPackets.begin(); iter != unsolvedPackets.end(); ) {
-        if (resolvePacket(iter->getMessage()))
+/**
+ * Attempt to resolve any unsolved {@code packet}s.
+ *
+ * Note: this should be done after responding to a ADD packet.
+ */
+void Switch::resloveUnsolvedPackets() {
+    for (auto iter = unsolvedPackets.begin(); iter != unsolvedPackets.end();) {
+        Message message = iter->getMessage();
+        uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
+        uint dstIP = static_cast<uint>(stoi(get<1>(message[2])));
+        if (resolvePacket(srcIP, dstIP) >= 1) {
             iter = unsolvedPackets.erase(iter);
-        else
+        } else {
             ++iter;
+        }
     }
 }
 
@@ -630,7 +620,6 @@ void Switch::respondADDPacket(Message message) {
  * RELAY packet.
  *
  * @param message {@code Message}
- * @return {@code 1} if the relay packet was accepted (DROP, FORWARD, DELIVER), otherwise return {@code 0}.
  */
 void Switch::respondRELAYPacket(Message message) {
     rRelayCount++;
@@ -642,14 +631,19 @@ void Switch::respondRELAYPacket(Message message) {
            "\tswitchID: %u srcIP: %u dstIP: %u",
            rSwitchID, srcIP, dstIP);
 
-    if (resolvePacket(message)<=0) { // did not find rule
+    if (resolvePacket(srcIP, dstIP) <= 0) { // did not find rule
         sendQUERYPacket(connections[PORT_0], srcIP, dstIP);
     }
 }
 
-int Switch::resolvePacket(Message message) {
-    uint srcIP     = static_cast<uint>(stoi(get<1>(message[1])));
-    uint dstIP     = static_cast<uint>(stoi(get<1>(message[2])));
+/**
+ * Resolve a packet's routing via lookup in the {@code FlowTable}.
+ *
+ * @param srcIP {@code uint}
+ * @param dstIP {@code uint}
+ * @return {@code 1} if the relay packet was accepted (DROP, FORWARD, DELIVER), otherwise return {@code 0}.
+ */
+int Switch::resolvePacket(uint srcIP, uint dstIP) {
     printf("INFO: resolving packet:\n"
            "\tsrcIP: %u dstIP: %u", srcIP, dstIP);
     int fi = getFlowEntryIndex(srcIP, dstIP);
