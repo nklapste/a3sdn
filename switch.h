@@ -91,7 +91,7 @@ private:
     uint IPLow;
     FlowTable flowTable;
     vector<Connection> connections;
-
+    vector<Packet> unsolvedPackets;
     /**
      * Counts of {@code Packets} received.
      */
@@ -123,6 +123,8 @@ private:
 
     int getFlowEntryIndex(uint srcIP, uint dstIP);
 
+    int resolveUnsolvedPacket(Packet packet);
+
     void sendOPENPacket(Connection connection);
 
     void sendQUERYPacket(Connection connection, uint srcIP, uint dstIP);
@@ -133,7 +135,7 @@ private:
 
     void respondADDPacket(Message message);
 
-    void respondRELAYPacket(Message message);
+    int respondRELAYPacket(Message message);
 };
 
 #endif //A2SDN_SWITCH_H
