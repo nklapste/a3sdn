@@ -132,6 +132,7 @@ void Controller::start() {
                 list();
             } else if (cmd == EXIT_CMD) {
                 list();
+                printf("INFO: exit command received: terminating\n");
                 exit(0);
             } else {
                 printf("ERROR: invalid Controller command: %s\n"
