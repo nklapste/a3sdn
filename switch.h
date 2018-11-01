@@ -123,8 +123,6 @@ private:
 
     int getFlowEntryIndex(uint srcIP, uint dstIP);
 
-    int resolveUnsolvedPacket(Packet packet);
-
     void sendOPENPacket(Connection connection);
 
     void sendQUERYPacket(Connection connection, uint srcIP, uint dstIP);
@@ -136,6 +134,7 @@ private:
     void respondADDPacket(Message message);
 
     int respondRELAYPacket(Message message);
+
 };
 
 #endif //A2SDN_SWITCH_H

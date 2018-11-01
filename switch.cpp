@@ -228,7 +228,7 @@ void Switch::start() {
         for (auto &pfd : pfds) {
             pfd.events = POLLIN;
         }
-        int ret = poll(pfds, PDFS_SIZE, 20);
+        int ret = poll(pfds, PDFS_SIZE, 1);
         if (errno || ret < 0) {
             perror("ERROR: poll failure");
             exit(errno);
@@ -279,17 +279,6 @@ void Switch::start() {
                     respondACKPacket();
                 } else if (packet.getType() == ADD) {
                     respondADDPacket(packet.getMessage());
-
-                    // after getting a new FlowEntry attempt to resolve any unslovedPackets
-                    auto it = unsolvedPackets.begin();
-                    while(it != unsolvedPackets.end()) {
-                        if(respondRELAYPacket(it->getMessage()) == 1) {
-                            // if we respond with a DROP, DELIVER, or FORWARD we have solved the packet
-                            it = unsolvedPackets.erase(it);
-                        }
-                        else ++it;
-                    }
-
                 } else if (packet.getType() == RELAY) {
                     respondRELAYPacket(packet.getMessage());
                 } else {
@@ -623,6 +612,14 @@ void Switch::respondADDPacket(Message message) {
     // sort and dedupe the flowTable
     sort(flowTable.begin(), flowTable.end());
     flowTable.erase(unique(flowTable.begin(), flowTable.end()), flowTable.end());
+
+    std::vector<Packet>::iterator iter;
+    for (iter = unsolvedPackets.begin(); iter != unsolvedPackets.end(); ) {
+        if (respondRELAYPacket(iter->getMessage()))
+            iter = unsolvedPackets.erase(iter);
+        else
+            ++iter;
+    }
 }
 
 /**
