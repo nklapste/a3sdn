@@ -279,6 +279,17 @@ void Switch::start() {
                     respondACKPacket();
                 } else if (packet.getType() == ADD) {
                     respondADDPacket(packet.getMessage());
+
+                    // after getting a new FlowEntry attempt to resolve any unslovedPackets
+                    auto it = unsolvedPackets.begin();
+                    while(it != unsolvedPackets.end()) {
+                        if(respondRELAYPacket(it->getMessage()) == 1) {
+                            // if we respond with a DROP, DELIVER, or FORWARD we have solved the packet
+                            it = unsolvedPackets.erase(it);
+                        }
+                        else ++it;
+                    }
+
                 } else if (packet.getType() == RELAY) {
                     respondRELAYPacket(packet.getMessage());
                 } else {
@@ -433,7 +444,6 @@ string &Switch::parseTrafficFileLine(string &line) {
             flowTable[fi] = flowEntry;
         } else if (fi < 0) { // did not find rule
             sendQUERYPacket(connections[0], srcIP, dstIP);
-            // TODO: wait for response and possibly reply?
         }
     }
     return line;
@@ -541,6 +551,9 @@ void Switch::sendQUERYPacket(Connection connection, uint srcIP, uint dstIP) {
            connection.getSendFIFOName().c_str(), queryPacket.toString().c_str());
     write(connection.openSendFIFO(), queryPacket.toString().c_str(),
           strlen(queryPacket.toString().c_str()));
+    // set packet whether from the traffic file or from a relay into the unsolvedPackets vector
+    // to be solved later
+    unsolvedPackets.emplace_back(Packet(RELAY, queryMessage));
     tQueryCount++;
 }
 
@@ -620,8 +633,9 @@ void Switch::respondADDPacket(Message message) {
  * RELAY packet.
  *
  * @param message {@code Message}
+ * @return {@code 1} if the relay packet was accepted (DROP, FORWARD, DELIVER), otherwise return {@code 0}.
  */
-void Switch::respondRELAYPacket(Message message) {
+int Switch::respondRELAYPacket(Message message) {
     rRelayCount++;
     uint rSwitchID = static_cast<uint>(stoi(get<1>(message[0])));
     uint srcIP     = static_cast<uint>(stoi(get<1>(message[1])));
@@ -654,8 +668,9 @@ void Switch::respondRELAYPacket(Message message) {
         }
         flowEntry.pktCount++;
         flowTable[fi] = flowEntry;
+        return 1;
     } else if (fi < 0) { // did not find rule
         sendQUERYPacket(connections[PORT_0], srcIP, dstIP);
-        // TODO: wait for response and possibly reply?
+        return 0;
     }
 }
