@@ -615,7 +615,7 @@ void Switch::respondADDPacket(Message message) {
 
     std::vector<Packet>::iterator iter;
     for (iter = unsolvedPackets.begin(); iter != unsolvedPackets.end(); ) {
-        if (respondRELAYPacket(iter->getMessage()))
+        if (resolvePacket(iter->getMessage()))
             iter = unsolvedPackets.erase(iter);
         else
             ++iter;
@@ -632,7 +632,7 @@ void Switch::respondADDPacket(Message message) {
  * @param message {@code Message}
  * @return {@code 1} if the relay packet was accepted (DROP, FORWARD, DELIVER), otherwise return {@code 0}.
  */
-int Switch::respondRELAYPacket(Message message) {
+void Switch::respondRELAYPacket(Message message) {
     rRelayCount++;
     uint rSwitchID = static_cast<uint>(stoi(get<1>(message[0])));
     uint srcIP     = static_cast<uint>(stoi(get<1>(message[1])));
@@ -642,6 +642,16 @@ int Switch::respondRELAYPacket(Message message) {
            "\tswitchID: %u srcIP: %u dstIP: %u",
            rSwitchID, srcIP, dstIP);
 
+    if (resolvePacket(message)<=0) { // did not find rule
+        sendQUERYPacket(connections[PORT_0], srcIP, dstIP);
+    }
+}
+
+int Switch::resolvePacket(Message message) {
+    uint srcIP     = static_cast<uint>(stoi(get<1>(message[1])));
+    uint dstIP     = static_cast<uint>(stoi(get<1>(message[2])));
+    printf("INFO: resolving packet:\n"
+           "\tsrcIP: %u dstIP: %u", srcIP, dstIP);
     int fi = getFlowEntryIndex(srcIP, dstIP);
     if (fi >= 0) { // found rule
         FlowEntry flowEntry = flowTable.at(fi);
@@ -666,8 +676,7 @@ int Switch::respondRELAYPacket(Message message) {
         flowEntry.pktCount++;
         flowTable[fi] = flowEntry;
         return 1;
-    } else if (fi < 0) { // did not find rule
-        sendQUERYPacket(connections[PORT_0], srcIP, dstIP);
+    } else {
         return 0;
     }
 }

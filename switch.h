@@ -133,8 +133,9 @@ private:
 
     void respondADDPacket(Message message);
 
-    int respondRELAYPacket(Message message);
+    void respondRELAYPacket(Message message);
 
+    int resolvePacket(Message message);
 };
 
 #endif //A2SDN_SWITCH_H
