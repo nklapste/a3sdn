@@ -1,5 +1,5 @@
 # ------------------------------------------------------------
-# Nathan Klapstein - CMPUT 379 A2
+# Nathan Klapstein - CMPUT 379 A3
 #
 # It is preferred to use Cmake over Makefiles. It is not
 # the stone age anymore.
@@ -10,10 +10,11 @@
 # ------------------------------------------------------------
 
 target = submit
-allFiles = Makefile a2sdn.cpp
+allFiles = README.md LICENSE Makefile gate.h gate.cpp connection.cpp connection.h controller.cpp controller.h flow.h packet.cpp packet.h \
+            switch.cpp switch.h a3sdn.cpp tf1.txt tf2.txt tf3.txt
 
 compile:
-	g++ -std=c++11 -Wall a2sdn.cpp -o a2sdn
+	g++-7 -std=c++11 -Wall gate.cpp gate.h connection.cpp connection.h controller.cpp controller.h flow.h packet.cpp packet.h switch.cpp switch.h a3sdn.cpp -o a3sdn
 
 tar:
 	touch $(target).tar.gz
@@ -23,4 +24,3 @@ tar:
 
 clean:
 	rm -f *~ out.* *.o
-

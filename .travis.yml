@@ -1,0 +1,32 @@
+language: cpp
+compiler: gcc
+os: linux
+
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-7
+
+stages:
+  - test
+
+before_script:
+  - export CC=gcc-7
+  - export CXX=g++-7
+
+jobs:
+  include:
+  - stage: test
+    name: "make"
+    script:
+      - make clean
+      - make
+      - make tar
+  - name: "cmake"
+    script:
+      - cmake .
+      - cmake --build .
+
