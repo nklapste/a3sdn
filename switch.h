@@ -14,6 +14,7 @@
 #include "connection.h"
 #include "packet.h"
 #include "flow.h"
+#include "gate.h"
 
 #define NULL_SWITCH_FLAG "null"
 #define NULL_SWITCH_ID -1
@@ -36,13 +37,13 @@ typedef tuple<uint, uint> IPRange;
  */
 typedef tuple<uint, uint, uint> trafficFileItem;
 
-class Switch {
+class Switch : public Gate {
 public:
     Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, string &trafficFile, string &IPRangeStr);
 
     Switch(uint switchID, int leftSwitchID, int rightSwitchID, uint IPLow, uint IPHigh);
 
-    uint getID() const;
+    string getServerAddr();
 
     uint getIPLow() const;
 
@@ -52,30 +53,9 @@ public:
 
     int getRightSwitchID() const;
 
-    void start();
-
-    /* == > and < operators defined for sorting and deduping purposes */
-    bool operator == (const Switch &sw)
-    {
-        return getID() == sw.getID();
-    }
-
-    bool operator > (const Switch &sw)
-    {
-        return getID() > sw.getID();
-    }
-
-    bool operator < (const Switch &sw)
-    {
-        return getID() < sw.getID();
-    }
+    void start() override;
 
 private:
-    /**
-     * ID of the switch itself. (Port 3)
-     */
-    uint switchID;
-
     /**
      * ID of the "left" switch to connect to. (Port 1)
      */
@@ -87,29 +67,15 @@ private:
     int rightSwitchID;
 
     string trafficFile;
+    string serverAddr;
+
     uint IPHigh;
     uint IPLow;
     FlowTable flowTable;
     vector<Connection> connections;
     vector<Packet> unsolvedPackets;
-    /**
-     * Counts of {@code Packets} received.
-     */
-    uint rOpenCount = 0;
-    uint rAddCount = 0;
-    uint rAckCount = 0;
-    uint rRelayCount = 0;
-    uint rQueryCount = 0;
-    uint admitCount = 0; /* special for Switch indicates number of DELIVERed packets */
 
-    /**`
-     * Counts of {@code Packets} transmitted.
-     */
-    uint tOpenCount = 0;
-    uint tAddCount = 0;
-    uint tAckCount = 0;
-    uint tRelayCount = 0;
-    uint tQueryCount = 0;
+    uint admitCount = 0; /* special for Switch indicates number of DELIVERed packets */
 
     IPRange parseIPRange(const string &IPRange);
 
@@ -118,8 +84,6 @@ private:
     trafficFileItem parseTrafficFileItem(string &trafficFileLine);
 
     string &parseTrafficFileLine(string &line);
-
-    void list();
 
     int getFlowEntryIndex(uint srcIP, uint dstIP);
 
@@ -135,9 +99,11 @@ private:
 
     void respondRELAYPacket(Message message);
 
-    void resloveUnsolvedPackets();
+    void resolveUnsolvedPackets();
 
     int resolvePacket(uint srcIP, uint dstIP);
+
+    void list() override;
 };
 
 #endif //A2SDN_SWITCH_H

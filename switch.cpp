@@ -68,15 +68,15 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
     Switch::trafficFile = trafficFile;
 
     // create Connection to controller
-    Switch::switchID = parseSwitchID(switchID);
-    connections.emplace_back(Connection(Switch::switchID, CONTROLLER_ID));
+    gateID = parseSwitchID(switchID);
+    connections.emplace_back(Connection(getGateID(), CONTROLLER_ID));
 
 
     // create Connection to the left switch
     // can potentially be a nullptr
     if (leftSwitchID != NULL_SWITCH_FLAG) {
         Switch::leftSwitchID = parseSwitchID(leftSwitchID);
-        connections.emplace_back(Connection(Switch::switchID, static_cast<uint>(Switch::leftSwitchID)));
+        connections.emplace_back(Connection(getGateID(), static_cast<uint>(Switch::leftSwitchID)));
 
     } else {
         Switch::leftSwitchID = NULL_SWITCH_ID;
@@ -88,7 +88,7 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
     // can potentially be a nullptr
     if (rightSwitchID != NULL_SWITCH_FLAG) {
         Switch::rightSwitchID = parseSwitchID(rightSwitchID);
-        connections.emplace_back(Connection(Switch::switchID, static_cast<uint>(Switch::rightSwitchID)));
+        connections.emplace_back(Connection(getGateID(), static_cast<uint>(Switch::rightSwitchID)));
     } else {
         Switch::rightSwitchID = NULL_SWITCH_ID;
         connections.emplace_back(Connection());
@@ -107,17 +107,9 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
  * @param IPHigh {@code uint}
  */
 Switch::Switch(uint switchID, int leftSwitchID, int rightSwitchID, uint IPLow, uint IPHigh) :
-        switchID(switchID), leftSwitchID(leftSwitchID), rightSwitchID(rightSwitchID),
+        leftSwitchID(leftSwitchID), rightSwitchID(rightSwitchID),
         IPLow(IPLow), IPHigh(IPHigh) {
-}
-
-/**
- * Getter for a switch's {@code switchID}.
- *
- * @return {@code uint}
- */
-uint Switch::getID() const {
-    return switchID;
+    gateID = switchID;
 }
 
 /**
@@ -402,7 +394,7 @@ string &Switch::parseTrafficFileLine(string &line) {
         printf("WARNING: ignoring invalid line: %s\n", line.c_str());
     } else if (line.substr(0, 1) == "#") {
         printf("DEBUG: ignoring comment line\n");
-    } else if (line.substr(0, 3) != "sw" + to_string(switchID)) {
+    } else if (line.substr(0, 3) != "sw" + to_string(getGateID())) {
         printf("DEBUG: ignoring line specifying another switch\n");
     } else {
         printf("DEBUG: found line specifying self: %s\n", line.c_str());
@@ -423,7 +415,7 @@ string &Switch::parseTrafficFileLine(string &line) {
  */
 void Switch::list() {
     uint counter = 0;
-    printf("sw%u FlowTable:\n", switchID);
+    printf("sw%u FlowTable:\n", getGateID());
     for (auto const &flowEntry: flowTable) {
         string actionName;
         if (flowEntry.actionType == DELIVER) {
@@ -490,7 +482,7 @@ int Switch::getFlowEntryIndex(uint srcIP, uint dstIP) {
  */
 void Switch::sendOPENPacket(Connection connection) {
     Message openMessage;
-    openMessage.emplace_back(make_tuple("switchID", to_string(switchID)));
+    openMessage.emplace_back(make_tuple("switchID", to_string(getGateID())));
     openMessage.emplace_back(make_tuple("leftSwitchID", to_string(leftSwitchID)));
     openMessage.emplace_back(make_tuple("rightSwitchID", to_string(rightSwitchID)));
     openMessage.emplace_back(make_tuple("IPLow", to_string(IPLow)));
@@ -511,7 +503,7 @@ void Switch::sendOPENPacket(Connection connection) {
  */
 void Switch::sendQUERYPacket(Connection connection, uint srcIP, uint dstIP) {
     Message queryMessage;
-    queryMessage.emplace_back(MessageArg("switchID", to_string(switchID)));
+    queryMessage.emplace_back(MessageArg("switchID", to_string(getGateID())));
     queryMessage.emplace_back(MessageArg("srcIP", to_string(srcIP)));
     queryMessage.emplace_back(MessageArg("dstIP", to_string(dstIP)));
     Packet queryPacket = Packet(QUERY, queryMessage);
@@ -534,7 +526,7 @@ void Switch::sendQUERYPacket(Connection connection, uint srcIP, uint dstIP) {
  */
 void Switch::sendRELAYPacket(Connection connection, uint srcIP, uint dstIP) {
     Message relayMessage;
-    relayMessage.emplace_back(make_tuple("switchID", to_string(switchID)));
+    relayMessage.emplace_back(make_tuple("switchID", to_string(getGateID())));
     relayMessage.emplace_back(make_tuple("srcIP", to_string(srcIP)));
     relayMessage.emplace_back(make_tuple("dstIP", to_string(dstIP)));
     Packet relayPacket = Packet(RELAY, relayMessage);
@@ -591,7 +583,7 @@ void Switch::respondADDPacket(Message message) {
     // sort and dedupe the flowTable
     sort(flowTable.begin(), flowTable.end());
     flowTable.erase(unique(flowTable.begin(), flowTable.end()), flowTable.end());
-    resloveUnsolvedPackets();
+    resolveUnsolvedPackets();
 }
 
 /**
@@ -599,7 +591,7 @@ void Switch::respondADDPacket(Message message) {
  *
  * Note: this should be done after responding to a ADD packet.
  */
-void Switch::resloveUnsolvedPackets() {
+void Switch::resolveUnsolvedPackets() {
     for (auto iter = unsolvedPackets.begin(); iter != unsolvedPackets.end();) {
         Message message = iter->getMessage();
         uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
@@ -673,4 +665,16 @@ int Switch::resolvePacket(uint srcIP, uint dstIP) {
     } else {
         return 0;
     }
+}
+
+/**
+ * Getter for the {@code Switch}'s {@code serverAddr} the IP address of the server's host.
+ *
+ * Can be either a symbolic name (e.g. util.cs.ualberta.ca, or localhost)
+ * or in dotted-decimal format (e.g. 1237.0.0.1).
+ *
+ * @return {@code std::string}
+ */
+string Switch::getServerAddr() {
+    return serverAddr;
 }

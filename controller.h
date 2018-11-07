@@ -16,6 +16,7 @@
 #include "flow.h"
 #include "packet.h"
 #include "switch.h"
+#include "gate.h"
 
 #define MIN_SWITCHES 1
 #define MAX_SWITCHES 7
@@ -25,35 +26,15 @@
 
 using namespace std;
 
-class Controller {
+class Controller : public Gate {
 public:
     explicit Controller(uint nSwitches);
 
-    void start();
+    void start() override;
 
 private:
     uint nSwitches;
     vector<Switch> switches;
-    vector<Connection> connections;
-    /**
-     * Counts of {@code Packets} received.
-     */
-    uint rOpenCount = 0;
-    uint rAddCount = 0;
-    uint rAckCount = 0;
-    uint rRelayCount = 0;
-    uint rQueryCount = 0;
-
-    /**
-     * Counts of {@code Packets} transmitted.
-     */
-    uint tOpenCount = 0;
-    uint tAddCount = 0;
-    uint tAckCount = 0;
-    uint tRelayCount = 0;
-    uint tQueryCount = 0;
-
-    void list();
 
     FlowEntry makeFlowEntry(uint switchID, uint srcIP, uint dstIP);
 
@@ -64,6 +45,8 @@ private:
     void respondOPENPacket(Connection connection, Message message);
 
     void respondQUERYPacket(Connection connection, Message message);
+
+    void list() override;
 };
 
 #endif //A2SDN_CONTROLLER_H
