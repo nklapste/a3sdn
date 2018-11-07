@@ -663,3 +663,12 @@ void Switch::listSwitchStats() {
         counter++;
     }
 }
+
+/**
+ * Handle starting a delay period after obtaining a {@code trafficFileDelayItem}.
+ *
+ * @param interval {@code uint}
+ */
+void Switch::handleDelay(uint interval) {
+    printf("INFO: entering a delay persiod for %ums", interval);
+}

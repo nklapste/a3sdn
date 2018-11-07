@@ -97,6 +97,8 @@ private:
     void list() override;
 
     void listSwitchStats();
+
+    void handleDelay(uint interval);
 };
 
 #endif //A2SDN_SWITCH_H
