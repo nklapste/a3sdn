@@ -1,28 +1,32 @@
 language: cpp
 compiler: gcc
-
 os: linux
+
+env:
+  global:
+    - CXX=g++-7
+    - CC=gcc-7
+
 addons:
   apt:
     sources:
-    - ubuntu-toolchain-r-test
+      - ubuntu-toolchain-r-test
     packages:
-    - g++-7
+      - g++-7
 
-before_script:
-- export CC=gcc-7
-- export CXX=g++-7
+stages:
+  - test
 
 jobs:
   include:
   - stage: test
     name: "make"
-    - make clean
-    - make
-    - make tar
     script:
+      - make clean
+      - make
+      - make tar
   - name: "cmake"
     script:
-    - cmake .
-    - cmake --build .
+      - cmake .
+      - cmake --build .
 
