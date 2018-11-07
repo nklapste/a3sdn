@@ -58,7 +58,22 @@ inline bool operator>(const FlowEntry& lhs, const FlowEntry& rhs)
            tie(rhs.srcIPLow, rhs.srcIPHigh, rhs.dstIPLow, rhs.dstIPHigh, rhs.actionType, rhs.actionVal, rhs.pri, rhs.pktCount);
 }
 
-
 typedef vector<FlowEntry> FlowTable;
+
+/**
+ * Convert a {@code actionType} number into its human readable string name.
+ *
+ * @param actionType {@code uint}
+ * @return {@code std::string} the human readable string name of the actionType.
+ */
+string toActionName(uint actionType){
+    if (actionType == DELIVER) {
+        return "DELIVER";
+    } else if (actionType == FORWARD) {
+        return  "FORWARD";
+    } else if (actionType == DROP) {
+        return  "DROP";
+    }
+}
 
 #endif //A2SDN_FLOW_H
