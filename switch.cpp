@@ -531,10 +531,12 @@ void Switch::respondADDPacket(Message message) {
     uint pri        = static_cast<uint>(stoi(get<1>(message[6])));
     uint pktCount   = static_cast<uint>(stoi(get<1>(message[7])));
 
+
+
     printf("INFO: parsed ADD packet:\n"
            "\tAdding new flowTable rule:\n"
-           "\t\tsrcIP_lo: %u srcIPHigh: %u dstIPLow: %u dstIPHigh: %u actionType: %u actionVal: %u pri: %u pktCount: %u\n",
-           srcIP_lo, srcIP_hi, dstIP_lo, dstIP_hi, actionType, actionVal, pri, pktCount);
+           "\t\tsrcIP_lo: %u srcIPHigh: %u dstIPLow: %u dstIPHigh: %u actionType: %s actionVal: %u pri: %u pktCount: %u\n",
+           srcIP_lo, srcIP_hi, dstIP_lo, dstIP_hi, toActionName(actionType).c_str(), actionVal, pri, pktCount);
 
     FlowEntry newRule = {
             .srcIPLow   = srcIP_lo,
@@ -654,18 +656,10 @@ void Switch::listSwitchStats() {
     uint counter = 0;
     printf("sw%u FlowTable:\n", getGateID());
     for (auto const &flowEntry: flowTable) {
-        string actionName;
-        if (flowEntry.actionType == DELIVER) {
-            actionName = "DELIVER";
-        } else if (flowEntry.actionType == FORWARD) {
-            actionName = "FORWARD";
-        } else if (flowEntry.actionType == DROP) {
-            actionName = "DROP";
-        }
         printf("[%u] (srcIP= %u-%u dstIP %u-%u action=%s:%u pri= %u pktCount= %u)\n",
                counter,
                flowEntry.srcIPLow, flowEntry.srcIPHigh, flowEntry.dstIPLow, flowEntry.dstIPHigh,
-               actionName.c_str(), flowEntry.actionVal, flowEntry.pri, flowEntry.pktCount);
+               toActionName(flowEntry.actionType).c_str(), flowEntry.actionVal, flowEntry.pri, flowEntry.pktCount);
         counter++;
     }
 }
