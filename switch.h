@@ -72,8 +72,6 @@ private:
     vector<Connection> connections;
     vector<Packet> unsolvedPackets;
 
-    uint admitCount = 0; /* special for Switch indicates number of DELIVERed packets */
-
     IPRange parseIPRange(const string &IPRange);
 
     string &switchParseTrafficFileLine(string &line);
@@ -97,6 +95,8 @@ private:
     int resolvePacket(uint srcIP, uint dstIP);
 
     void list() override;
+
+    void listSwitchStats();
 };
 
 #endif //A2SDN_SWITCH_H

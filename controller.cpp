@@ -62,17 +62,8 @@ Controller::Controller(uint nSwitches) : nSwitches(nSwitches) {
  * Print the switches connected to the controller and the statistics of packets sent and received.
  */
 void Controller::list() {
-    printf("Controller information:\n");
-    for (auto &sw: switches) {
-        printf("[sw%u] port1= %i, port2= %i, port3= %u-%u\n",
-               sw.getGateID(), sw.getLeftSwitchID(), sw.getRightSwitchID(), sw.getIPLow(), sw.getIPHigh());
-    }
-
-    printf("Packet Stats:\n");
-    printf("\tReceived:    OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYIN: %u\n",
-           rOpenCount, rAckCount, rQueryCount, rAddCount, rRelayCount);
-    printf("\tTransmitted: OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYOUT:%u\n",
-           tOpenCount, tAckCount, tQueryCount, tAddCount, tRelayCount);
+    listControllerStats();
+    listPacketStats();
 }
 
 /**
@@ -445,4 +436,15 @@ void Controller::respondQUERYPacket(Connection connection, Message message) {
 
     // create and send new add packet
     sendADDPacket(std::move(connection), flowEntry);
+}
+
+/**
+ * Print {@code Controller} specific statistics.
+ */
+void Controller::listControllerStats() {
+    printf("Controller information:\n");
+    for (auto &sw: switches) {
+        printf("[sw%u] port1= %i, port2= %i, port3= %u-%u\n",
+               sw.getGateID(), sw.getLeftSwitchID(), sw.getRightSwitchID(), sw.getIPLow(), sw.getIPHigh());
+    }
 }

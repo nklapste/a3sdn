@@ -402,29 +402,9 @@ string &Switch::switchParseTrafficFileLine(string &line) {
  * packet type, the program writes an aggregate count of handled packets of this type
  */
 void Switch::list() {
-    uint counter = 0;
-    printf("sw%u FlowTable:\n", getGateID());
-    for (auto const &flowEntry: flowTable) {
-        string actionName;
-        if (flowEntry.actionType == DELIVER) {
-            actionName = "DELIVER";
-        } else if (flowEntry.actionType == FORWARD) {
-            actionName = "FORWARD";
-        } else if (flowEntry.actionType == DROP) {
-            actionName = "DROP";
-        }
-        printf("[%u] (srcIP= %u-%u dstIP %u-%u action=%s:%u pri= %u pktCount= %u)\n",
-               counter,
-               flowEntry.srcIPLow, flowEntry.srcIPHigh, flowEntry.dstIPLow, flowEntry.dstIPHigh,
-               actionName.c_str(), flowEntry.actionVal, flowEntry.pri, flowEntry.pktCount);
-        counter++;
-    }
+    listSwitchStats();
 
-    printf("Packet Stats:\n");
-    printf("\tReceived:    OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYIN: %u, ADMIT:%u\n",
-           rOpenCount, rAckCount, rQueryCount, rAddCount, rRelayCount, admitCount);
-    printf("\tTransmitted: OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYOUT:%u\n",
-           tOpenCount, tAckCount, tQueryCount, tAddCount, tRelayCount);
+    listPacketStats();
 }
 
 /**
@@ -665,4 +645,27 @@ int Switch::resolvePacket(uint srcIP, uint dstIP) {
  */
 string Switch::getServerAddr() {
     return serverAddr;
+}
+
+/**
+ * Print {@code Switch} specific statistics.
+ */
+void Switch::listSwitchStats() {
+    uint counter = 0;
+    printf("sw%u FlowTable:\n", getGateID());
+    for (auto const &flowEntry: flowTable) {
+        string actionName;
+        if (flowEntry.actionType == DELIVER) {
+            actionName = "DELIVER";
+        } else if (flowEntry.actionType == FORWARD) {
+            actionName = "FORWARD";
+        } else if (flowEntry.actionType == DROP) {
+            actionName = "DROP";
+        }
+        printf("[%u] (srcIP= %u-%u dstIP %u-%u action=%s:%u pri= %u pktCount= %u)\n",
+               counter,
+               flowEntry.srcIPLow, flowEntry.srcIPHigh, flowEntry.dstIPLow, flowEntry.dstIPHigh,
+               actionName.c_str(), flowEntry.actionVal, flowEntry.pri, flowEntry.pktCount);
+        counter++;
+    }
 }
