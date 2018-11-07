@@ -9,8 +9,20 @@ addons:
     packages:
     - g++-7
 
-script:
+before_script:
 - export CC=gcc-7
 - export CXX=g++-7
-- cmake .
-- cmake --build .
+
+jobs:
+  include:
+  - stage: test
+    name: "make"
+    - make clean
+    - make
+    - make tar
+    script:
+  - name: "cmake"
+    script:
+    - cmake .
+    - cmake --build .
+
