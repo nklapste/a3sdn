@@ -40,19 +40,19 @@ struct FlowEntry {
 };
 
 /* == > and < operators defined for sorting and deduping purposes */
-inline bool operator==(const FlowEntry& lhs, const FlowEntry& rhs)
+inline bool operator == (const FlowEntry& lhs, const FlowEntry& rhs)
 {
     return tie(lhs.srcIPLow, lhs.srcIPHigh, lhs.dstIPLow, lhs.dstIPHigh, lhs.actionType, lhs.actionVal, lhs.pri) ==
            tie(rhs.srcIPLow, rhs.srcIPHigh, rhs.dstIPLow, rhs.dstIPHigh, rhs.actionType, rhs.actionVal, rhs.pri);
 }
 
-inline bool operator<(const FlowEntry& lhs, const FlowEntry& rhs)
+inline bool operator < (const FlowEntry& lhs, const FlowEntry& rhs)
 {
     return tie(lhs.srcIPLow, lhs.srcIPHigh, lhs.dstIPLow, lhs.dstIPHigh, lhs.actionType, lhs.actionVal, lhs.pri, lhs.pktCount) <
             tie(rhs.srcIPLow, rhs.srcIPHigh, rhs.dstIPLow, rhs.dstIPHigh, rhs.actionType, rhs.actionVal, rhs.pri, rhs.pktCount);
 }
 
-inline bool operator>(const FlowEntry& lhs, const FlowEntry& rhs)
+inline bool operator > (const FlowEntry& lhs, const FlowEntry& rhs)
 {
     return tie(lhs.srcIPLow, lhs.srcIPHigh, lhs.dstIPLow, lhs.dstIPHigh, lhs.actionType, lhs.actionVal, lhs.pri, lhs.pktCount) >
            tie(rhs.srcIPLow, rhs.srcIPHigh, rhs.dstIPLow, rhs.dstIPHigh, rhs.actionType, rhs.actionVal, rhs.pri, rhs.pktCount);
