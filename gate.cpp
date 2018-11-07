@@ -24,3 +24,12 @@ uint Gate::getGateID() const {
 uint Gate::getPortNum() const {
     return portNum;
 }
+
+
+void Gate::listPacketStats() {
+    printf("Packet Stats:\n");
+    printf("\tReceived:    OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYIN: %u, ADMIT:%u\n",
+           rOpenCount, rAckCount, rQueryCount, rAddCount, rRelayCount, admitCount);
+    printf("\tTransmitted: OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYOUT:%u\n",
+           tOpenCount, tAckCount, tQueryCount, tAddCount, tRelayCount);
+}

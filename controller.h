@@ -47,6 +47,8 @@ private:
     void respondQUERYPacket(Connection connection, Message message);
 
     void list() override;
+
+    void listControllerStats();
 };
 
 #endif //A2SDN_CONTROLLER_H

@@ -33,6 +33,8 @@ public:
 
     virtual void start() {};
 
+    void listPacketStats();
+
 private:
     uint portNum;
 protected:
@@ -46,6 +48,7 @@ protected:
     uint rAckCount = 0;
     uint rRelayCount = 0;
     uint rQueryCount = 0;
+    uint admitCount = 0;
 
     /**`
      * Counts of {@code Packets} transmitted.
