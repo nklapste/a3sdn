@@ -22,6 +22,7 @@
 
 #include "controller.h"
 #include "switch.h"
+#include "trafficfile.h"
 
 #define LIST_CMD "list"
 #define EXIT_CMD "exit"
@@ -203,7 +204,7 @@ void Switch::start() {
          */
         if (trafficFileStream.is_open()) {
             if (getline(trafficFileStream, line)) {
-                parseTrafficFileLine(line);
+                switchParseTrafficFileLine(line);
             } else {
                 trafficFileStream.close();
                 printf("DEBUG: finished reading traffic file\n");
@@ -365,22 +366,6 @@ uint Switch::parseSwitchID(const string &switchID) {
     }
 }
 
-/**
- * Parse a trafficFile item in string format into a {@code trafficItem}.
- *
- * @param trafficFileItem {@code std::string}
- * @return {@code trafficItem}
- */
-trafficFileItem Switch::parseTrafficFileItem(string &trafficFileItem) {
-    istringstream iss(trafficFileItem);
-    vector<string> trafficFileItems((istream_iterator<string>(iss)), istream_iterator<string>());
-    uint switchID = parseSwitchID(trafficFileItems.at(0));
-    uint srcIP = static_cast<uint>(stoi(trafficFileItems.at(1)));
-    uint dstIP = static_cast<uint>(stoi(trafficFileItems.at(2)));
-    printf("DEBUG: parsed trafficFileItem: switchID: %u srcIP: %u dst: %u\n",
-           switchID, srcIP, dstIP);
-    return make_tuple(switchID, srcIP, dstIP);
-}
 
 /**
  * Parse a line within the Switche's TrafficFile.
@@ -388,22 +373,25 @@ trafficFileItem Switch::parseTrafficFileItem(string &trafficFileItem) {
  * @param line {@code std::string}
  * @return {@code std::string}
  */
-string &Switch::parseTrafficFileLine(string &line) {
-    printf("DEBUG: read traffic file line: %s\n", line.c_str());
-    if (line.length() < 1) {
-        printf("WARNING: ignoring invalid line: %s\n", line.c_str());
-    } else if (line.substr(0, 1) == "#") {
-        printf("DEBUG: ignoring comment line\n");
-    } else if (line.substr(0, 3) != "sw" + to_string(getGateID())) {
-        printf("DEBUG: ignoring line specifying another switch\n");
-    } else {
-        printf("DEBUG: found line specifying self: %s\n", line.c_str());
-        trafficFileItem tfItem = parseTrafficFileItem(line);
-//        uint tfSwitchID = get<0>(tfItem);
-        uint srcIP = get<1>(tfItem);
-        uint dstIP = get<2>(tfItem);
-        if (resolvePacket(srcIP, dstIP) <= 0) { // did not find rule
-            sendQUERYPacket(connections[0], srcIP, dstIP);
+string &Switch::switchParseTrafficFileLine(string &line) {
+    int trafficFileLineType = getTrafficFileLineType(line);
+
+    if (trafficFileLineType == INVALID_LINE){
+        return line;
+    } else if (trafficFileLineType == DELAY_LINE) {
+        trafficFileDelayItem delayItem = parseTrafficDelayItem(line);
+        // TODO: act on delay item
+    } else if (trafficFileLineType == ROUTE_LINE) {
+        trafficFileRouteItem routeItem = parseTrafficRouteItem(line);
+        uint tfSwitchID = get<0>(routeItem);
+        if (tfSwitchID != getGateID()) {
+            printf("DEBUG: ignoring line specifying another switch\n");
+        } else {
+            uint srcIP = get<1>(routeItem);
+            uint dstIP = get<2>(routeItem);
+            if (resolvePacket(srcIP, dstIP) <= 0) { // did not find rule
+                sendQUERYPacket(connections[0], srcIP, dstIP);
+            }
         }
     }
     return line;
