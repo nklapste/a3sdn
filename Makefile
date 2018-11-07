@@ -10,8 +10,8 @@
 # ------------------------------------------------------------
 
 target = submit
-allFiles = README.md LICENSE Makefile connection.cpp connection.h controller.cpp controller.h flow.h packet.cpp packet.h \
-            switch.cpp switch.h a2sdn.cpp tf1.txt tf2.txt tf3.txt cmput379_assignment_2_report.pdf
+allFiles = README.md LICENSE Makefile gate.h gate.cpp connection.cpp connection.h controller.cpp controller.h flow.h packet.cpp packet.h \
+            switch.cpp switch.h a3sdn.cpp tf1.txt tf2.txt tf3.txt
 
 compile:
 	g++ -std=c++11 -Wall gate.cpp gate.h connection.cpp connection.h controller.cpp controller.h flow.h packet.cpp packet.h switch.cpp switch.h a3sdn.cpp -o a3sdn
