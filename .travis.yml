@@ -2,10 +2,6 @@ language: cpp
 compiler: gcc
 os: linux
 
-env:
-  global:
-    - CXX=g++-7
-    - CC=gcc-7
 
 addons:
   apt:
@@ -16,6 +12,10 @@ addons:
 
 stages:
   - test
+
+before_script:
+  - export CC=gcc-7
+  - export CXX=g++-7
 
 jobs:
   include:
