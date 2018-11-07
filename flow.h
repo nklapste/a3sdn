@@ -73,6 +73,9 @@ string toActionName(uint actionType){
         return  "FORWARD";
     } else if (actionType == DROP) {
         return  "DROP";
+    } else {
+        printf("WARNING: unknown actionType: %u unable to match to a human readable string name\n", actionType);
+        return to_string(actionType);
     }
 }
 
