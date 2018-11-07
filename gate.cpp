@@ -25,7 +25,9 @@ uint Gate::getPortNum() const {
     return portNum;
 }
 
-
+/**
+ * Print statistics on the packets sent and received by the {@code Gate}.
+ */
 void Gate::listPacketStats() {
     printf("Packet Stats:\n");
     printf("\tReceived:    OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYIN: %u, ADMIT:%u\n",

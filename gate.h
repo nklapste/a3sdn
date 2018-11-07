@@ -33,8 +33,6 @@ public:
 
     virtual void start() {};
 
-    void listPacketStats();
-
 private:
     uint portNum;
 protected:
@@ -60,6 +58,8 @@ protected:
     uint tQueryCount = 0;
 
     virtual void list() {}
+
+    void listPacketStats();
 
     uint gateID;
 };
