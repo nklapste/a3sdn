@@ -1,5 +1,5 @@
 # ------------------------------------------------------------
-# Nathan Klapstein - CMPUT 379 A2
+# Nathan Klapstein - CMPUT 379 A3
 #
 # It is preferred to use Cmake over Makefiles. It is not
 # the stone age anymore.
