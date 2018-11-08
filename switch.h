@@ -99,8 +99,6 @@ private:
     void listSwitchStats();
 
     void handleDelay(uint interval);
-
-    void listSwitchStats();
 };
 
 #endif //A2SDN_SWITCH_H
