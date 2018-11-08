@@ -32,11 +32,6 @@ using namespace std;
 
 typedef tuple<uint, uint> IPRange;
 
-/**
- * Traffic file item.
- */
-typedef tuple<uint, uint, uint> trafficFileItem;
-
 class Switch : public Gate {
 public:
     Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, string &trafficFile, string &IPRangeStr);
@@ -54,6 +49,8 @@ public:
     int getRightSwitchID() const;
 
     void start() override;
+
+    static uint parseSwitchID(const string &switchID);
 
 private:
     /**
@@ -77,11 +74,7 @@ private:
 
     IPRange parseIPRange(const string &IPRange);
 
-    uint parseSwitchID(const string &switchID);
-
-    trafficFileItem parseTrafficFileItem(string &trafficFileLine);
-
-    string &parseTrafficFileLine(string &line);
+    string &switchParseTrafficFileLine(string &line);
 
     int getFlowEntryIndex(uint srcIP, uint dstIP);
 
@@ -102,6 +95,10 @@ private:
     int resolvePacket(uint srcIP, uint dstIP);
 
     void list() override;
+
+    void listSwitchStats();
+
+    void handleDelay(uint interval);
 
     void listSwitchStats();
 };
