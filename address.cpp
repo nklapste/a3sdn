@@ -35,8 +35,7 @@ addrinfo * lookupHost (const string &domain) {
     hints.ai_flags |= AI_CANONNAME;
 
     errcode = getaddrinfo (domain.c_str(), nullptr, &hints, &res);
-    if (errcode != 0)
-    {
+    if (errcode != 0) {
         perror("ERROR: resolving domain");
         exit(errcode);
     }
@@ -46,8 +45,7 @@ addrinfo * lookupHost (const string &domain) {
     {
         inet_ntop(res->ai_family, res->ai_addr->sa_data, addrstr, 100);
 
-        switch (res->ai_family)
-        {
+        switch (res->ai_family) {
             case AF_INET:
                 ptr = &((struct sockaddr_in *) res->ai_addr)->sin_addr;
                 break;
@@ -61,7 +59,7 @@ addrinfo * lookupHost (const string &domain) {
         inet_ntop (res->ai_family, ptr, addrstr, 100);
         // for some reason if they give us an ipv6 the next ipv4
         // will have no canonname even though it should be the same
-        if (res->ai_canonname == nullptr){
+        if (res->ai_canonname == nullptr) {
             // set resolved addrinfo ai_canonname to the last resolved cannonname
             // or worst case our given domain
             res->ai_canonname = const_cast<char *>(canonname.c_str());
