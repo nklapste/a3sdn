@@ -53,7 +53,8 @@ Controller::Controller(uint nSwitches, Port port) : nSwitches(nSwitches), Gate(p
 
     // init all potential switch connections for the controller
     for (uint switch_i = 1; switch_i <= nSwitches; ++switch_i) {
-        connections.emplace_back(CONTROLLER_ID, switch_i);
+        connections.emplace_back(Connection());
+        // TODO: use TCP sockets for controller-switch connections
     }
     printf("INFO: created controller: nSwitches: %u portNumber: %u\n", nSwitches, port.getPortNum());
 }

@@ -19,6 +19,7 @@
 
 /* FIFO stuff */
 #include <poll.h>
+#include <sys/socket.h>
 
 #include "controller.h"
 #include "switch.h"
@@ -29,12 +30,14 @@
 
 #define BUFFER_SIZE 1024
 
-#define PDFS_SIZE 5
+#define PDFS_SIZE 6
+//#define PDFS_SIZE 5
 #define PDFS_STDIN 0
 #define PDFS_CONTROLLER 1
 #define PDFS_LEFT_SWITCH 2
 #define PDFS_RIGHT_SWITCH 3
 #define PDFS_SIGNAL 4
+#define PDFS_SOCKET 5
 
 using namespace std;
 
@@ -71,8 +74,9 @@ Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
     Switch::trafficFile = trafficFile;
 
     // create Connection to controller
+    // TODO: needs to be changed to TCP sockets
     gateID = switchID.getSwitchIDNum();
-    connections.emplace_back(Connection(getGateID(), CONTROLLER_ID));
+    connections.emplace_back(Connection());
 
 
     // create Connection to the left switch
@@ -190,6 +194,19 @@ void Switch::start() {
     sendOPENPacket(connections[0]);
     // TODO: wait for ack?
 
+//    // init client tcp connection
+//    // TODO: more research needed
+    errno = 0;
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    errno = 0;
+    if (errno) {
+        perror("ERROR: creating TCP socket");
+    }
+    pfds[PDFS_SOCKET].fd = connect(sockfd, address.getIPAddr(), sizeof(address.getIPAddr()));
+    if (errno) {
+        perror("ERROR: creating client TCP socket connection");
+    }
+
     // enter the switch loop
     for (;;) {
         /*
@@ -219,6 +236,7 @@ void Switch::start() {
         for (auto &pfd : pfds) {
             pfd.events = POLLIN;
         }
+        errno = 0;
         int ret = poll(pfds, PDFS_SIZE, 1);
         if (errno || ret < 0) {
             perror("ERROR: poll failure");
@@ -264,6 +282,8 @@ void Switch::start() {
                     printf("WARNING: receiveFIFO closed\n");
                 }
                 string cmd = string(buf);
+                printf("DEBUG: obtained raw: %s\n", cmd.c_str());
+                // TODO: ignore invalid packets
                 Packet packet = Packet(cmd);
                 printf("DEBUG: Parsed packet: %s\n", packet.toString().c_str());
                 if (packet.getType() == ACK) {
