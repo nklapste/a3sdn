@@ -12,7 +12,8 @@
 #include "address.h"
 
 /**
- * Attempt to resolve a IP address, hostname, or FQDN.
+ * Attempt to resolve a IP address, hostname, or Fully Qualified Domain Name (FQDN)
+ * into a valid {@code struct addrinfo} using {@code getaddrinfo}.
  *
  * TODO: only give IPv4
  *
@@ -69,8 +70,10 @@ addrinfo * lookupHost (const string &domain) {
 }
 
 /**
+ * Construct an {@code Address} from a string representation of a IP address, hostname,
+ * or Fully Qualified Domain Name (FQDN).
  *
- * @param domain
+ * @param domain {@code std::string}
  * @return {@code Address}
  */
 Address::Address(string domain) {
@@ -79,8 +82,8 @@ Address::Address(string domain) {
     Address::symbolicName = host->ai_canonname;
 }
 
-
 /**
+ * Getter for the symbolic (non-ip address) name of a given {@code Address}.
  *
  * @return {@code std::string}
  */
@@ -89,11 +92,10 @@ string Address::getSymbolicName() {
 }
 
 /**
+ * Getter for the {@code struct sockaddr} of a given {@code Address}.
  *
- * @return
+ * @return {@code struct sockaddr *}
  */
 struct sockaddr *Address::getIPAddr() {
     return ipAddr;
 }
-
-
