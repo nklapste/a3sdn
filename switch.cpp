@@ -419,6 +419,7 @@ void Switch::sendOPENPacket(Connection connection) {
     openMessage.emplace_back(make_tuple("rightSwitchID", to_string(rightSwitchID.getSwitchIDNum())));
     openMessage.emplace_back(make_tuple("IPLow", to_string(IPLow)));
     openMessage.emplace_back(make_tuple("IPHigh", to_string(IPHigh)));
+    openMessage.emplace_back(make_tuple("Port", to_string(port.getPortNum())));
     Packet openPacket = Packet(OPEN, openMessage);
     printf("INFO: sending OPEN packet: connection: %s packet: %s\n",
            connection.getSendFIFOName().c_str(), openPacket.toString().c_str());
