@@ -18,8 +18,6 @@
 #include "port.h"
 #include "switchid.h"
 
-#define NULL_SWITCH_FLAG "null"
-
 using namespace std;
 
 
