@@ -7,9 +7,9 @@
 
 #include <netdb.h>
 #include <cstring>
-#include "address.h"
-
 #include <arpa/inet.h>
+
+#include "address.h"
 
 /**
  * Attempt to resolve a IP address, hostname, or FQDN.
@@ -55,10 +55,10 @@ addrinfo * lookupHost (const string &domain) {
                 break;
             default:
                 printf("ERROR: unknown ai_family: %d\n", res->ai_family);
-                break;
+                exit(EINVAL);
         }
         inet_ntop (res->ai_family, ptr, addrstr, 100);
-        printf ("INFO: Resolved domain: %s IPv%d address: %s (%s)\n",
+        printf ("INFO: Resolved domain: %s IPv%d address: %s canonname: (%s)\n",
                 domain.c_str(), res->ai_family == PF_INET6 ? 6 : 4, addrstr, res->ai_canonname);
         if(res->ai_next == nullptr) {
             return res;
