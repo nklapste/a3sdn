@@ -8,6 +8,7 @@
 #include <string>
 
 #define NULL_SWITCH_ID_NUM 0
+#define NULL_SWITCH_ID_FLAG "null"
 
 using namespace std;
 

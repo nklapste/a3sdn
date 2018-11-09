@@ -57,7 +57,11 @@ SwitchID::SwitchID(uint switchIDNum) {
 }
 
 SwitchID::SwitchID(string switchIDString) {
-    SwitchID::switchIDNum = parseSwitchID(switchIDString);
+    if (switchIDString == NULL_SWITCH_ID_FLAG) {
+        SwitchID::switchIDNum = NULL_SWITCH_ID_NUM;
+    } else {
+        SwitchID::switchIDNum = parseSwitchID(switchIDString);
+    }
     SwitchID::switchIDString = "sw"+to_string(SwitchID::switchIDNum );
 }
 
