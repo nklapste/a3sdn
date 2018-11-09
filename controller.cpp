@@ -55,7 +55,7 @@ Controller::Controller(uint nSwitches, Port port) : nSwitches(nSwitches), Gate(p
     for (uint switch_i = 1; switch_i <= nSwitches; ++switch_i) {
         connections.emplace_back(CONTROLLER_ID, switch_i);
     }
-    printf("INFO: created controller: nSwitches: %u\n", nSwitches);
+    printf("INFO: created controller: nSwitches: %u portNumber: %u\n", nSwitches, port.getPortNum());
 }
 
 /**
