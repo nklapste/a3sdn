@@ -28,7 +28,7 @@ addrinfo * lookupHost (const string &domain) {
     int errcode;
     char addrstr[100];
     void *ptr = nullptr;
-
+    string canonname = domain;
     memset (&hints, 0, sizeof (hints));
     hints.ai_family = PF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
@@ -59,6 +59,16 @@ addrinfo * lookupHost (const string &domain) {
                 exit(EINVAL);
         }
         inet_ntop (res->ai_family, ptr, addrstr, 100);
+        // for some reason if they give us an ipv6 the next ipv4
+        // will have no canonname even though it should be the same
+        if (res->ai_canonname == nullptr){
+            // set resolved addrinfo ai_canonname to the last resolved cannonname
+            // or worst case our given domain
+            res->ai_canonname = const_cast<char *>(canonname.c_str());
+        } else {
+            // update cannon name with the cannon name found by getaddrinfo
+            canonname = res->ai_canonname;
+        }
         printf ("INFO: Resolved domain: %s IPv%d address: %s canonname: (%s)\n",
                 domain.c_str(), res->ai_family == PF_INET6 ? 6 : 4, addrstr, res->ai_canonname);
         if(res->ai_next == nullptr) {
