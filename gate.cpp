@@ -16,14 +16,6 @@ uint Gate::getGateID() const {
     return gateID;
 }
 
-/**
- * Getter for a {@code Gate}'s port number.
- *
- * @return {@code unit} the port number of the Gate.
- */
-uint Gate::getPortNum() const {
-    return portNum;
-}
 
 /**
  * Print statistics on the packets sent and received by the {@code Gate}.
@@ -34,4 +26,16 @@ void Gate::listPacketStats() {
            rOpenCount, rAckCount, rQueryCount, rAddCount, rRelayCount, admitCount);
     printf("\tTransmitted: OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYOUT:%u\n",
            tOpenCount, tAckCount, tQueryCount, tAddCount, tRelayCount);
+}
+
+/**
+ * Getter for a {@code Gate}'s port number.
+ *
+ * @return {@code Port} the port of the Gate.
+ */
+Port Gate::getPort() const {
+    return port;
+}
+
+Gate::Gate(Port port): port(port){
 }

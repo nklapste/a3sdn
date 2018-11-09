@@ -38,7 +38,7 @@ using namespace std;
  *
  * @param nSwitches {@code uint} the number of switches to potentially be connected to the controller.
  */
-Controller::Controller(uint nSwitches) : nSwitches(nSwitches) {
+Controller::Controller(uint nSwitches, Port port) : nSwitches(nSwitches), Gate(port) {
     if (nSwitches > MAX_SWITCHES) {
         printf("ERROR: too many switches for controller: %u\n"
                "\tMAX_SWITCHES=%u\n", nSwitches, MAX_SWITCHES);
@@ -229,11 +229,11 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                 printf("DEBUG: invalid dstIP: %u checking if neighboring switches are valid\n", dstIP);
 
                 // get and test left switch
-                int leftSwitchID = requestSwitch.getLeftSwitchID();
-                printf("DEBUG: checking leftSwitchID: %i\n", leftSwitchID);
-                if (leftSwitchID > 0) {
+                SwitchID leftSwitchID = requestSwitch.getLeftSwitchID();
+                printf("DEBUG: checking leftSwitch: %s\n", leftSwitchID.getSwitchIDString().c_str());
+                if (!leftSwitchID.isNullSwitchID()) {
                     auto it2 = find_if(switches.begin(), switches.end(),
-                                       [&leftSwitchID](Switch &sw) { return sw.getGateID() == leftSwitchID; });
+                                       [&leftSwitchID](Switch &sw) { return sw.getGateID() == leftSwitchID.getSwitchIDNum(); });
                     if (it2 != switches.end()) {
                         auto index2 = std::distance(switches.begin(), it2);
                         Switch requestLeftSwitch = switches[index2];
@@ -255,12 +255,12 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                     }
                 }
                 // get and test the right switch
-                int rightSwitchID = requestSwitch.getRightSwitchID();
-                printf("DEBUG: checking rightSwitchID: %i\n", rightSwitchID);
-                if (rightSwitchID > 0) {
+                SwitchID rightSwitchID = requestSwitch.getRightSwitchID();
+                printf("DEBUG: checking rightSwitch: %s\n", rightSwitchID.getSwitchIDString().c_str());
+                if (!rightSwitchID.isNullSwitchID()) {
 
                     auto it3 = find_if(switches.begin(), switches.end(),
-                                       [&rightSwitchID](Switch &sw) { return sw.getGateID() == rightSwitchID; });
+                                       [&rightSwitchID](Switch &sw) { return sw.getGateID() == rightSwitchID.getSwitchIDNum(); });
 
                     if (it3 != switches.end()) {
 
@@ -380,15 +380,17 @@ void Controller::sendADDPacket(Connection connection, FlowEntry flowEntry) {
 void Controller::respondOPENPacket(Connection connection, Message message) {
     rOpenCount++;
     uint switchID     = static_cast<uint>(stoi(get<1>(message[0])));
-    int leftSwitchID  =                   stoi(get<1>(message[1]));
-    int rightSwitchID =                   stoi(get<1>(message[2]));
+    uint leftSwitchID  = static_cast<uint>(stoi(get<1>(message[1])));
+    uint rightSwitchID = static_cast<uint>(stoi(get<1>(message[2])));
     uint switchIPLow  = static_cast<uint>(stoi(get<1>(message[3])));
     uint switchIPHigh = static_cast<uint>(stoi(get<1>(message[4])));
-    printf("DEBUG: parsed OPEN packet: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
+    Port port    = Port(static_cast<uint>(stoi(get<1>(message[5]))));
+    printf("DEBUG: parsed OPEN packet: switchID: %u leftSwitchID: %u rightSwitchID: %u switchIPLow: %u switchIPHigh: %u\n",
            switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh);
 
     // create the new switch from the parsed OPEN packet
-    Switch newSwitch = Switch(switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh);
+    Switch newSwitch = Switch(SwitchID(switchID), SwitchID(leftSwitchID), SwitchID(rightSwitchID),
+            switchIPLow, switchIPHigh, port);
 
     // check if we are creating or updating a switch
     auto it = find_if(switches.begin(), switches.end(), [&newSwitch](Switch &sw) {
@@ -397,13 +399,13 @@ void Controller::respondOPENPacket(Connection connection, Message message) {
     });
     if (it != switches.end()) {
         printf("DEBUG: updating existing switch: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
-               newSwitch.getGateID(), newSwitch.getRightSwitchID(), newSwitch.getLeftSwitchID(), newSwitch.getIPLow(),
+               newSwitch.getGateID(), newSwitch.getRightSwitchID().getSwitchIDNum(), newSwitch.getLeftSwitchID().getSwitchIDNum(), newSwitch.getIPLow(),
                newSwitch.getIPHigh());
         auto index = std::distance(switches.begin(), it);
         switches[index] = newSwitch;
     } else {
         printf("DEBUG: adding new switch: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
-               newSwitch.getGateID(), newSwitch.getRightSwitchID(), newSwitch.getLeftSwitchID(), newSwitch.getIPLow(),
+               newSwitch.getGateID(), newSwitch.getRightSwitchID().getSwitchIDNum(), newSwitch.getLeftSwitchID().getSwitchIDNum(), newSwitch.getIPLow(),
                newSwitch.getIPHigh());
         // add the switch to the controllers list of known switches
         switches.emplace_back(newSwitch);
@@ -445,6 +447,6 @@ void Controller::listControllerStats() {
     printf("Controller information:\n");
     for (auto &sw: switches) {
         printf("[sw%u] port1= %i, port2= %i, port3= %u-%u\n",
-               sw.getGateID(), sw.getLeftSwitchID(), sw.getRightSwitchID(), sw.getIPLow(), sw.getIPHigh());
+               sw.getGateID(), sw.getLeftSwitchID().getSwitchIDNum(), sw.getRightSwitchID().getSwitchIDNum(), sw.getIPLow(), sw.getIPHigh());
     }
 }

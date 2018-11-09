@@ -48,7 +48,7 @@ int getTrafficFileLineType(string &line){
 trafficFileRouteItem parseTrafficRouteItem(string &line) {
     istringstream iss(line);
     vector<string> trafficFileItems((istream_iterator<string>(iss)), istream_iterator<string>());
-    uint switchID = Switch::parseSwitchID(trafficFileItems.at(0));
+    uint switchID = SwitchID::parseSwitchID(trafficFileItems.at(0));
     uint srcIP = static_cast<uint>(stoi(trafficFileItems.at(1)));
     uint dstIP = static_cast<uint>(stoi(trafficFileItems.at(2)));
     printf("DEBUG: parsed trafficFileRouteItem: switchID: %u srcIP: %u dstIP: %u\n",
@@ -66,7 +66,7 @@ trafficFileRouteItem parseTrafficRouteItem(string &line) {
 trafficFileDelayItem parseTrafficDelayItem(string &line) {
     istringstream iss(line);
     vector<string> trafficFileItems((istream_iterator<string>(iss)), istream_iterator<string>());
-    uint switchID = Switch::parseSwitchID(trafficFileItems.at(0));
+    uint switchID = SwitchID::parseSwitchID(trafficFileItems.at(0));
     string flag = trafficFileItems.at(1);
     uint interval = static_cast<uint>(stoi(trafficFileItems.at(2)));
     printf("DEBUG: parsed trafficFileDelayItem: switchID: %u %s interval: %ums\n",

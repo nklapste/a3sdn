@@ -15,9 +15,10 @@
 #include "packet.h"
 #include "flow.h"
 #include "gate.h"
+#include "port.h"
+#include "switchid.h"
 
 #define NULL_SWITCH_FLAG "null"
-#define NULL_SWITCH_ID -1
 
 using namespace std;
 
@@ -34,9 +35,9 @@ typedef tuple<uint, uint> IPRange;
 
 class Switch : public Gate {
 public:
-    Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, string &trafficFile, string &IPRangeStr);
+    Switch(SwitchID switchID,  SwitchID leftSwitchID, SwitchID rightSwitchID, string &trafficFile, string &IPRangeStr, Port port);
 
-    Switch(uint switchID, int leftSwitchID, int rightSwitchID, uint IPLow, uint IPHigh);
+    Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID, uint IPLow, uint IPHigh, Port port);
 
     string getServerAddr();
 
@@ -44,24 +45,22 @@ public:
 
     uint getIPHigh() const;
 
-    int getLeftSwitchID() const;
+    SwitchID getLeftSwitchID() const;
 
-    int getRightSwitchID() const;
+    SwitchID getRightSwitchID() const;
 
     void start() override;
-
-    static uint parseSwitchID(const string &switchID);
 
 private:
     /**
      * ID of the "left" switch to connect to. (Port 1)
      */
-    int leftSwitchID;
+    SwitchID leftSwitchID;
 
     /**
      * ID of the "right" switch to connect to. (Port 2)
      */
-    int rightSwitchID;
+    SwitchID rightSwitchID;
 
     string trafficFile;
     string serverAddr;

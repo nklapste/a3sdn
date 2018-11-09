@@ -17,18 +17,6 @@
 using namespace std;
 
 /**
- * Parse the command line arguements from main().
- *
- * @param argc
- * @param argv
- * @return
- */
-void parseArgs(int argc, char **argv){
-
-}
-
-
-/**
  * Main entry point for a2sdn.
  *
  * @param argc {@code int}
@@ -56,7 +44,10 @@ int main(int argc, char **argv) {
                    "\tFor controller mode: 'a2sdn cont nSwitch'\n");
             exit(EINVAL);
         }
-        Controller controller = Controller((uint) stoi(argv[2]));
+        // TODO: port
+        Port port = Port(static_cast<uint>(stoi(argv[3])));
+        uint nSwitch = static_cast<uint>(stoi(argv[2]));
+        Controller controller = Controller(nSwitch, port);
         controller.start();
     } else {
         // parse switch mode arguments
@@ -70,7 +61,9 @@ int main(int argc, char **argv) {
         string leftSwitchId = argv[3];
         string rightSwitchId = argv[4];
         string IPRangeStr = argv[5];
-        Switch aSwitch = Switch(switchId, leftSwitchId, rightSwitchId, trafficFile, IPRangeStr);
+        Port port = Port(static_cast<uint>(stoi(argv[6])));
+        Switch aSwitch = Switch(SwitchID(switchId), SwitchID(leftSwitchId), SwitchID(rightSwitchId),
+                trafficFile, IPRangeStr, port);
         aSwitch.start();
     }
     return 0;

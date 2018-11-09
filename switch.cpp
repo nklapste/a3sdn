@@ -47,7 +47,10 @@ using namespace std;
  * @param trafficFile {@code std::string}
  * @param IPRangeStr {@code std::string}
  */
-Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, string &trafficFile, string &IPRangeStr) {
+Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
+        string &trafficFile, string &IPRangeStr, Port port): Gate(port),
+        leftSwitchID(leftSwitchID), rightSwitchID(rightSwitchID) {
+
     IPRange ipRange = parseIPRange(IPRangeStr);
     IPLow = get<0>(ipRange);
     IPHigh = get<1>(ipRange);
@@ -69,33 +72,27 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
     Switch::trafficFile = trafficFile;
 
     // create Connection to controller
-    gateID = parseSwitchID(switchID);
+    gateID = switchID.getSwitchIDNum();
     connections.emplace_back(Connection(getGateID(), CONTROLLER_ID));
 
 
     // create Connection to the left switch
     // can potentially be a nullptr
-    if (leftSwitchID != NULL_SWITCH_FLAG) {
-        Switch::leftSwitchID = parseSwitchID(leftSwitchID);
-        connections.emplace_back(Connection(getGateID(), static_cast<uint>(Switch::leftSwitchID)));
-
+    if (!leftSwitchID.isNullSwitchID()) {
+        connections.emplace_back(Connection(getGateID(), Switch::leftSwitchID.getSwitchIDNum()));
     } else {
-        Switch::leftSwitchID = NULL_SWITCH_ID;
         connections.emplace_back(Connection());
-
     }
 
     // create Connection to the right switch
     // can potentially be a nullptr
-    if (rightSwitchID != NULL_SWITCH_FLAG) {
-        Switch::rightSwitchID = parseSwitchID(rightSwitchID);
-        connections.emplace_back(Connection(getGateID(), static_cast<uint>(Switch::rightSwitchID)));
+    if (!rightSwitchID.isNullSwitchID()) {
+        connections.emplace_back(Connection(getGateID(), Switch::rightSwitchID.getSwitchIDNum()));
     } else {
-        Switch::rightSwitchID = NULL_SWITCH_ID;
         connections.emplace_back(Connection());
     }
-    printf("INFO: created switch: %s trafficFile: %s swj: %s swk: %s IPLow: %u IPHigh: %u\n",
-           switchID.c_str(), trafficFile.c_str(), leftSwitchID.c_str(), rightSwitchID.c_str(), IPLow, IPHigh);
+    printf("INFO: created switch: sw%u trafficFile: %s swj: %u swk: %u IPLow: %u IPHigh: %u\n",
+           switchID.getSwitchIDNum(), trafficFile.c_str(), leftSwitchID.getSwitchIDNum(), rightSwitchID.getSwitchIDNum(), IPLow, IPHigh);
 }
 
 /**
@@ -107,10 +104,10 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
  * @param IPLow {@code uint}
  * @param IPHigh {@code uint}
  */
-Switch::Switch(uint switchID, int leftSwitchID, int rightSwitchID, uint IPLow, uint IPHigh) :
+Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID, uint IPLow, uint IPHigh, Port port) :
         leftSwitchID(leftSwitchID), rightSwitchID(rightSwitchID),
-        IPLow(IPLow), IPHigh(IPHigh) {
-    gateID = switchID;
+        IPLow(IPLow), IPHigh(IPHigh), Gate(port) {
+    gateID = switchID.getSwitchIDNum();
 }
 
 /**
@@ -136,9 +133,9 @@ uint Switch::getIPHigh() const {
  *
  * Note: if the switch does not have a left neighboring switch {@code -1} will be returned.
  *
- * @return {@code int}
+ * @return {@code SwitchID}
  */
-int Switch::getLeftSwitchID() const {
+SwitchID Switch::getLeftSwitchID() const {
     return leftSwitchID;
 }
 
@@ -147,9 +144,9 @@ int Switch::getLeftSwitchID() const {
  *
  * Note: if the switch does not have a right neighboring switch {@code -1} will be returned.
  *
- * @return {@code int}
+ * @return {@code SwitchID}
  */
-int Switch::getRightSwitchID() const {
+SwitchID Switch::getRightSwitchID() const {
     return rightSwitchID;
 }
 
@@ -163,10 +160,10 @@ void Switch::start() {
     // setup file descriptions or stdin and all connection FIFOs
     pfds[PDFS_STDIN].fd = STDIN_FILENO;
     pfds[PDFS_CONTROLLER].fd = connections[0].openReceiveFIFO();
-    if (leftSwitchID >= 1) {
+    if (!leftSwitchID.isNullSwitchID()) {
         pfds[PDFS_LEFT_SWITCH].fd = connections[1].openReceiveFIFO();
     }
-    if (rightSwitchID >= 1) {
+    if (!rightSwitchID.isNullSwitchID()) {
         pfds[PDFS_RIGHT_SWITCH].fd = connections[2].openReceiveFIFO();
     }
 
@@ -252,10 +249,10 @@ void Switch::start() {
          */
 
         for (std::vector<Connection>::size_type i = 1; i < 4; i++) {
-            if (i == 2 && leftSwitchID < MIN_SWITCHES) {
+            if (i == 2 && leftSwitchID.getSwitchIDNum() < MIN_SWITCHES) {
                 continue;
             }
-            if (i == 3 && rightSwitchID < MIN_SWITCHES) {
+            if (i == 3 && rightSwitchID.getSwitchIDNum() < MIN_SWITCHES) {
                 continue;
             }
             if (pfds[i].revents & POLLIN) {
@@ -331,39 +328,6 @@ IPRange Switch::parseIPRange(const string &IPRangeString) {
         exit(EINVAL);
     }
     return make_tuple(IPLow, IPHigh);
-}
-
-/**
- * Parse the switch id. Should match the format {@code 'swi'} where {@code 'i'} is a numeric character.
- *
- * @param switchID {@code std::string}
- * @return {@code uint}
- */
-uint Switch::parseSwitchID(const string &switchID) {
-    regex rgx("(sw)([1-9]+[0-9]*)");
-    match_results<string::const_iterator> matches;
-
-    std::regex_match(switchID, matches, rgx);
-    for (std::size_t index = 1; index < matches.size(); ++index) {
-    }
-
-    if (std::regex_search(switchID, matches, rgx)) {
-        uint switchID_ = static_cast<uint>(std::stoi(matches[2], nullptr, 10));
-        if (switchID_<MIN_SWITCHES){
-            printf("ERROR: switchID is to low: %u\n"
-                   "\tMIN_SWITCHES=%u\n", switchID_, MIN_SWITCHES);
-            exit(EINVAL);
-        }else if (switchID_>MAX_SWITCHES){
-            printf("ERROR: switchID is to high: %u\n"
-                   "\tMAX_SWITCHES=%u\n", switchID_, MAX_SWITCHES);
-            exit(EINVAL);
-        } else {
-            return switchID_;
-        }
-    } else {
-        printf("ERROR: invalid switchID argument: %s\n", switchID.c_str());
-        exit(EINVAL);
-    }
 }
 
 
@@ -451,8 +415,8 @@ int Switch::getFlowEntryIndex(uint srcIP, uint dstIP) {
 void Switch::sendOPENPacket(Connection connection) {
     Message openMessage;
     openMessage.emplace_back(make_tuple("switchID", to_string(getGateID())));
-    openMessage.emplace_back(make_tuple("leftSwitchID", to_string(leftSwitchID)));
-    openMessage.emplace_back(make_tuple("rightSwitchID", to_string(rightSwitchID)));
+    openMessage.emplace_back(make_tuple("leftSwitchID", to_string(leftSwitchID.getSwitchIDNum())));
+    openMessage.emplace_back(make_tuple("rightSwitchID", to_string(rightSwitchID.getSwitchIDNum())));
     openMessage.emplace_back(make_tuple("IPLow", to_string(IPLow)));
     openMessage.emplace_back(make_tuple("IPHigh", to_string(IPHigh)));
     Packet openPacket = Packet(OPEN, openMessage);
