@@ -91,8 +91,8 @@ Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
     } else {
         connections.emplace_back(Connection());
     }
-    printf("INFO: created switch: sw%u trafficFile: %s swj: %u swk: %u IPLow: %u IPHigh: %u\n",
-           switchID.getSwitchIDNum(), trafficFile.c_str(), leftSwitchID.getSwitchIDNum(), rightSwitchID.getSwitchIDNum(), IPLow, IPHigh);
+    printf("INFO: created switch: sw%u trafficFile: %s swj: %u swk: %u IPLow: %u IPHigh: %u portNumber: %u\n",
+           switchID.getSwitchIDNum(), trafficFile.c_str(), leftSwitchID.getSwitchIDNum(), rightSwitchID.getSwitchIDNum(), IPLow, IPHigh, port.getPortNum());
 }
 
 /**
