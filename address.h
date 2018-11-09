@@ -20,11 +20,9 @@ public:
 
     struct sockaddr * getIPAddr();
 
-
 private:
     struct sockaddr * ipAddr;
     string symbolicName;
 };
-
 
 #endif //A3SDN_ADDRESS_H
