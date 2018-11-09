@@ -32,7 +32,7 @@ uint Port::getPortNum() {
  * @return {@code uint}
  */
 uint Port::validatePortNum(uint portNum) {
-    if (portNum>65535){
+    if (portNum > 65535) {
         errno = EINVAL;
         perror("ERROR: port number too large");
         exit(errno);
