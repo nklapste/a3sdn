@@ -12,6 +12,7 @@
 
 #include "controller.h"
 #include "switch.h"
+#include "address.h"
 
 using namespace std;
 
@@ -35,14 +36,19 @@ void parseArgs(int argc, char **argv){
  * @return {@code int}
  */
 int main(int argc, char **argv) {
+
+    // TODO: testing
+    Address::createAddressFromIPAddr("127.0.0.1");
+    Address::createAddressFromSybolicName("localhost");
+
     if (argc < 3 || argc > 6) {
         printf("ERROR: invalid argument format:\n"
                "\tPlease follow controller mode: 'a2sdn cont nSwitch'\n"
                "\tOr follow switch mode:         'a2sdn swi trafficFile [null|swj] [null|swk] IPLow-IPhigh'\n");
         exit(EINVAL);
     }
-    string mode = argv[1];
 
+    string mode = argv[1];
     if (mode == CONTROLLER_MODE) {
         // parse controller mode arguments
         if (argc != 3) {

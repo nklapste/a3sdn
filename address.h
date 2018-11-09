@@ -18,13 +18,13 @@ public:
 
     static Address createAddressFromSybolicName(string symbolicName);
 
-    string getIPAddr();
     string getSymbolicName();
 
+    struct sockaddr * getIPAddr();
 
 
 private:
-    string ipAddr;
+    struct sockaddr * ipAddr;
     string symbolicName;
 };
 
