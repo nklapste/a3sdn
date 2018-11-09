@@ -32,17 +32,17 @@ int main(int argc, char **argv) {
 
     if (argc < 3 || argc > 6) {
         printf("ERROR: invalid argument format:\n"
-               "\tPlease follow controller mode: 'a2sdn cont nSwitch'\n"
-               "\tOr follow switch mode:         'a2sdn swi trafficFile [null|swj] [null|swk] IPLow-IPhigh'\n");
+               "\tPlease follow controller mode: 'a3sdn cont nSwitch portNumber'\n"
+               "\tOr follow switch mode:         'a3sdn swi trafficFile [null|swj] [null|swk] IPLow-IPhigh portNumber'\n");
         exit(EINVAL);
     }
 
     string mode = argv[1];
     if (mode == CONTROLLER_MODE) {
         // parse controller mode arguments
-        if (argc != 3) {
+        if (argc != 4) {
             printf("ERROR: invalid arguments for controller mode:\n"
-                   "\tFor controller mode: 'a2sdn cont nSwitch'\n");
+                   "\tFor controller mode: 'a3sdn cont nSwitch portNumber'\n");
             exit(EINVAL);
         }
         // TODO: port
@@ -52,9 +52,9 @@ int main(int argc, char **argv) {
         controller.start();
     } else {
         // parse switch mode arguments
-        if (argc != 6) {
+        if (argc != 7) {
             printf("ERROR: invalid arguments for switch mode:\n"
-                   "\tFor switch mode: 'a2sdn swi trafficFile [null|swj] [null|swk] IPLow-IPHigh'\n");
+                   "\tFor switch mode: 'a3sdn swi trafficFile [null|swj] [null|swk] IPLow-IPHigh portNumber'\n");
             exit(EINVAL);
         }
         SwitchID switchId = SwitchID(argv[1]);
