@@ -58,7 +58,7 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
             .srcIPHigh   = MAX_IP,
             .dstIPLow   = IPLow,
             .dstIPHigh   = IPHigh,
-            .actionType = DELIVER,
+            .actionType = FORWARD,
             .actionVal  = PORT_3,
             .pri        = MIN_PRI,
             .pktCount   = 0
