@@ -11,10 +11,10 @@
 
 target = submit
 allFiles = README.md LICENSE Makefile gate.h gate.cpp connection.cpp connection.h controller.cpp controller.h flow.h  flow.cpp packet.cpp packet.h \
-            switch.cpp switch.h a3sdn.cpp tf1.txt tf2.txt tf3.txt trafficfile.cpp trafficfile.h address.cpp address.h port.cpp port.h switchid.cpp switchid.h
+            switch.cpp switch.h a3sdn.cpp tf1.txt tf2.txt tf3.txt trafficfile.cpp trafficfile.h address.cpp address.h port.cpp port.h switchid.cpp switchid.h iprange.cpp iprange.h
 
 compile:
-	g++-7 -std=c++11 -Wall port.cpp port.h switchid.cpp switchid.h address.cpp address.h trafficfile.cpp trafficfile.h gate.cpp gate.h connection.cpp connection.h controller.cpp controller.h flow.h flow.cpp packet.cpp packet.h switch.cpp switch.h a3sdn.cpp -o a3sdn
+	g++-7 -std=c++11 -Wall iprange.cpp iprange.h port.cpp port.h switchid.cpp switchid.h address.cpp address.h trafficfile.cpp trafficfile.h gate.cpp gate.h connection.cpp connection.h controller.cpp controller.h flow.h flow.cpp packet.cpp packet.h switch.cpp switch.h a3sdn.cpp -o a3sdn
 
 tar:
 	touch $(target).tar.gz

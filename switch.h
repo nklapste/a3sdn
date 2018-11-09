@@ -29,11 +29,9 @@ using namespace std;
 #define PORT_2 2 // right switch port/connection index
 #define PORT_3 3 // self switch port
 
-typedef tuple<uint, uint> IPRange;
-
 class Switch : public Gate {
 public:
-    Switch(SwitchID switchID,  SwitchID leftSwitchID, SwitchID rightSwitchID, string &trafficFile, string &IPRangeStr, Port port);
+    Switch(SwitchID switchID,  SwitchID leftSwitchID, SwitchID rightSwitchID, string &trafficFile, uint IPLow, uint IPHigh, Port port);
 
     Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID, uint IPLow, uint IPHigh, Port port);
 
@@ -68,8 +66,6 @@ private:
     FlowTable flowTable;
     vector<Connection> connections;
     vector<Packet> unsolvedPackets;
-
-    IPRange parseIPRange(const string &IPRange);
 
     string &switchParseTrafficFileLine(string &line);
 

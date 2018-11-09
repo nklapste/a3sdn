@@ -48,12 +48,8 @@ using namespace std;
  * @param IPRangeStr {@code std::string}
  */
 Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
-        string &trafficFile, string &IPRangeStr, Port port): Gate(port),
-        leftSwitchID(leftSwitchID), rightSwitchID(rightSwitchID) {
-
-    IPRange ipRange = parseIPRange(IPRangeStr);
-    IPLow = get<0>(ipRange);
-    IPHigh = get<1>(ipRange);
+        string &trafficFile, uint IPLow, uint IPHigh, Port port): Gate(port),
+        leftSwitchID(leftSwitchID), rightSwitchID(rightSwitchID), IPLow(IPLow), IPHigh(IPHigh) {
 
     // create and add the Switch's initial FLowEntry rule
     FlowEntry init_rule = {
@@ -303,33 +299,6 @@ void Switch::start() {
         memset(buf, 0, sizeof buf);
     }
 }
-
-/**
- * Parse the {@code IPRange} argument. Which follows the format IPLow-IPHigh.
- *
- * @param IPRangeString {@code std::string}
- * @return {@code IPRange} a tuple of (IPLow, IPHigh)
- */
-IPRange Switch::parseIPRange(const string &IPRangeString) {
-    string delimiter = "-";
-    uint IPLow = static_cast<uint>(stoi(IPRangeString.substr(0, IPRangeString.find(delimiter))));
-    uint IPHigh = static_cast<uint>(stoi(
-            IPRangeString.substr(IPRangeString.find(delimiter) + 1, IPRangeString.size() - 1)));
-    if (IPHigh > MAX_IP) {
-        printf("ERROR: invalid IPHigh: %u MAX_IP: %u", IPHigh, MAX_IP);
-        exit(EINVAL);
-    }
-    if (IPLow < MIN_IP) {
-        printf("ERROR: invalid IPLow: %u MIN_IP: %u", IPLow, MIN_IP);
-        exit(EINVAL);
-    }
-    if (IPLow > IPHigh) {
-        printf("ERROR: invalid IP range: IPLow: %u greater than IPHigh: %u", IPLow, IPHigh);
-        exit(EINVAL);
-    }
-    return make_tuple(IPLow, IPHigh);
-}
-
 
 /**
  * Parse a line within the Switche's TrafficFile.

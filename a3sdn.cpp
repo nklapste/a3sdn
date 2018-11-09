@@ -13,6 +13,7 @@
 #include "controller.h"
 #include "switch.h"
 #include "address.h"
+#include "iprange.h"
 
 using namespace std;
 
@@ -56,14 +57,16 @@ int main(int argc, char **argv) {
                    "\tFor switch mode: 'a2sdn swi trafficFile [null|swj] [null|swk] IPLow-IPHigh'\n");
             exit(EINVAL);
         }
-        string switchId = argv[1];
+        SwitchID switchId = SwitchID(argv[1]);
         string trafficFile = argv[2];
-        string leftSwitchId = argv[3];
-        string rightSwitchId = argv[4];
-        string IPRangeStr = argv[5];
+        SwitchID leftSwitchId = SwitchID(argv[3]);
+        SwitchID rightSwitchId = SwitchID(argv[4]);
+        IPRange ipRange = parseIPRange(argv[5]);
+        uint IPLow = get<0>(ipRange);
+        uint IPHigh = get<1>(ipRange);
+
         Port port = Port(static_cast<uint>(stoi(argv[6])));
-        Switch aSwitch = Switch(SwitchID(switchId), SwitchID(leftSwitchId), SwitchID(rightSwitchId),
-                trafficFile, IPRangeStr, port);
+        Switch aSwitch = Switch(switchId, leftSwitchId, rightSwitchId, trafficFile, IPLow, IPHigh, port);
         aSwitch.start();
     }
     return 0;
