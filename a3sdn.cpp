@@ -38,8 +38,8 @@ void parseArgs(int argc, char **argv){
 int main(int argc, char **argv) {
 
     // TODO: testing
-    Address::createAddressFromIPAddr("127.0.0.1");
-    Address::createAddressFromSybolicName("localhost");
+    Address("127.0.0.1");
+    Address("localhost");
 
     if (argc < 3 || argc > 6) {
         printf("ERROR: invalid argument format:\n"

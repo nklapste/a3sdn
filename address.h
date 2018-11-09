@@ -14,9 +14,7 @@ using namespace std;
 
 class Address {
 public:
-    static Address createAddressFromIPAddr(string ipAddr);
-
-    static Address createAddressFromSybolicName(string symbolicName);
+    explicit Address(string domain);
 
     string getSymbolicName();
 

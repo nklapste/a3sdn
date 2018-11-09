@@ -12,38 +12,38 @@
 #include <arpa/inet.h>
 
 /**
- * Resolve a host name.
+ * Attempt to resolve a IP address, hostname, or FQDN.
+ *
+ * TODO: only give IPv4
  *
  * Adapted from:
  * https://gist.github.com/jirihnidek/bf7a2363e480491da72301b228b35d5d
  *
- * @param host
+ * @param domain
  * @return {@code int}
  */
-addrinfo * lookupHost (const string &host) {
-    struct addrinfo hints, *res;
+addrinfo * lookupHost (const string &domain) {
+    struct addrinfo hints{}, *res;
     int errcode;
     char addrstr[100];
-    void *ptr;
+    void *ptr = nullptr;
 
     memset (&hints, 0, sizeof (hints));
     hints.ai_family = PF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags |= AI_CANONNAME;
 
-    errcode = getaddrinfo (host.c_str(), NULL, &hints, &res);
+    errcode = getaddrinfo (domain.c_str(), nullptr, &hints, &res);
     if (errcode != 0)
     {
-        // TODO: better errno
-        errno = 1;
-        perror("getaddrinfo");
-        return res;
+        perror("ERROR: resolving domain");
+        exit(errcode);
     }
 
-    printf ("DEBUG: Resolving hostname: %s\n", host.c_str());
+    printf ("DEBUG: Resolving hostname: %s\n", domain.c_str());
     while (res)
     {
-        inet_ntop (res->ai_family, res->ai_addr->sa_data, addrstr, 100);
+        inet_ntop(res->ai_family, res->ai_addr->sa_data, addrstr, 100);
 
         switch (res->ai_family)
         {
@@ -58,9 +58,9 @@ addrinfo * lookupHost (const string &host) {
                 break;
         }
         inet_ntop (res->ai_family, ptr, addrstr, 100);
-        printf ("INFO: IPv%d address: %s (%s)\n", res->ai_family == PF_INET6 ? 6 : 4,
-                addrstr, res->ai_canonname);
-        if(res->ai_next == nullptr){
+        printf ("INFO: Resolved domain: %s IPv%d address: %s (%s)\n",
+                domain.c_str(), res->ai_family == PF_INET6 ? 6 : 4, addrstr, res->ai_canonname);
+        if(res->ai_next == nullptr) {
             return res;
         }
         res = res->ai_next;
@@ -70,38 +70,15 @@ addrinfo * lookupHost (const string &host) {
 
 /**
  *
- * @param ipAddr
+ * @param domain
  * @return {@code Address}
  */
-Address Address::createAddressFromIPAddr(string ipAddr) {
-    Address address = Address();
-    addrinfo * host = lookupHost(ipAddr);
-    if (errno) {
-        perror("ERROR: resolving IP address");
-        exit(errno);
-    }
-    address.ipAddr = host->ai_addr;
-    address.symbolicName = host->ai_canonname;
-    return address;
+Address::Address(string domain) {
+    addrinfo * host = lookupHost(domain);
+    Address::ipAddr = host->ai_addr;
+    Address::symbolicName = host->ai_canonname;
 }
 
-/**
- *
- * @param symbolicName
- * @return {@code Address}
- */
-Address Address::createAddressFromSybolicName(string symbolicName) {
-    Address address = Address();
-    addrinfo * host = lookupHost(symbolicName);
-    if (errno) {
-        perror("ERROR: resolving domain name");
-        exit(errno);
-    }
-    // TODO: not getting here
-    address.ipAddr = host->ai_addr;
-    address.symbolicName = host->ai_canonname;
-    return address;
-}
 
 /**
  *
