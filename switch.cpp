@@ -48,8 +48,8 @@ using namespace std;
  * @param IPRangeStr {@code std::string}
  */
 Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
-        string &trafficFile, uint IPLow, uint IPHigh, Port port): Gate(port),
-        leftSwitchID(leftSwitchID), rightSwitchID(rightSwitchID), IPLow(IPLow), IPHigh(IPHigh) {
+        string &trafficFile, uint IPLow, uint IPHigh, Address address, Port port): Gate(port),
+        leftSwitchID(leftSwitchID), rightSwitchID(rightSwitchID), IPLow(IPLow), IPHigh(IPHigh), address(address) {
 
     // create and add the Switch's initial FLowEntry rule
     FlowEntry init_rule = {
@@ -100,9 +100,9 @@ Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
  * @param IPLow {@code uint}
  * @param IPHigh {@code uint}
  */
-Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID, uint IPLow, uint IPHigh, Port port) :
+Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID, uint IPLow, uint IPHigh, Address address, Port port) :
         leftSwitchID(leftSwitchID), rightSwitchID(rightSwitchID),
-        IPLow(IPLow), IPHigh(IPHigh), Gate(port) {
+        IPLow(IPLow), IPHigh(IPHigh), address(address), Gate(port) {
     gateID = switchID.getSwitchIDNum();
 }
 
@@ -384,11 +384,12 @@ int Switch::getFlowEntryIndex(uint srcIP, uint dstIP) {
 void Switch::sendOPENPacket(Connection connection) {
     Message openMessage;
     openMessage.emplace_back(make_tuple("switchID", to_string(getGateID())));
-    openMessage.emplace_back(make_tuple("leftSwitchID", to_string(leftSwitchID.getSwitchIDNum())));
-    openMessage.emplace_back(make_tuple("rightSwitchID", to_string(rightSwitchID.getSwitchIDNum())));
-    openMessage.emplace_back(make_tuple("IPLow", to_string(IPLow)));
-    openMessage.emplace_back(make_tuple("IPHigh", to_string(IPHigh)));
-    openMessage.emplace_back(make_tuple("Port", to_string(port.getPortNum())));
+    openMessage.emplace_back(make_tuple("leftSwitchID", to_string(getLeftSwitchID().getSwitchIDNum())));
+    openMessage.emplace_back(make_tuple("rightSwitchID", to_string(getRightSwitchID().getSwitchIDNum())));
+    openMessage.emplace_back(make_tuple("IPLow", to_string(getIPHigh())));
+    openMessage.emplace_back(make_tuple("IPHigh", to_string(getIPLow())));
+    openMessage.emplace_back(make_tuple("Address", getServerAddr().getSymbolicName()));
+    openMessage.emplace_back(make_tuple("Port", to_string(getPort().getPortNum())));
     Packet openPacket = Packet(OPEN, openMessage);
     printf("INFO: sending OPEN packet: connection: %s packet: %s\n",
            connection.getSendFIFOName().c_str(), openPacket.toString().c_str());
@@ -577,10 +578,10 @@ int Switch::resolvePacket(uint srcIP, uint dstIP) {
  * Can be either a symbolic name (e.g. util.cs.ualberta.ca, or localhost)
  * or in dotted-decimal format (e.g. 1237.0.0.1).
  *
- * @return {@code std::string}
+ * @return {@code Address}
  */
-string Switch::getServerAddr() {
-    return serverAddr;
+Address Switch::getServerAddr() {
+    return address;
 }
 
 /**

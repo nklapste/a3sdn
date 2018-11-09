@@ -17,6 +17,7 @@
 #include "gate.h"
 #include "port.h"
 #include "switchid.h"
+#include "address.h"
 
 using namespace std;
 
@@ -31,11 +32,11 @@ using namespace std;
 
 class Switch : public Gate {
 public:
-    Switch(SwitchID switchID,  SwitchID leftSwitchID, SwitchID rightSwitchID, string &trafficFile, uint IPLow, uint IPHigh, Port port);
+    Switch(SwitchID switchID,  SwitchID leftSwitchID, SwitchID rightSwitchID, string &trafficFile, uint IPLow, uint IPHigh, Address address, Port port);
 
-    Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID, uint IPLow, uint IPHigh, Port port);
+    Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID, uint IPLow, uint IPHigh, Address address, Port port);
 
-    string getServerAddr();
+    Address getServerAddr();
 
     uint getIPLow() const;
 
@@ -58,8 +59,8 @@ private:
      */
     SwitchID rightSwitchID;
 
+    Address address;
     string trafficFile;
-    string serverAddr;
 
     uint IPHigh;
     uint IPLow;

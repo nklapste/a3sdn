@@ -379,18 +379,19 @@ void Controller::sendADDPacket(Connection connection, FlowEntry flowEntry) {
  */
 void Controller::respondOPENPacket(Connection connection, Message message) {
     rOpenCount++;
-    uint switchID     = static_cast<uint>(stoi(get<1>(message[0])));
+    uint switchID      = static_cast<uint>(stoi(get<1>(message[0])));
     uint leftSwitchID  = static_cast<uint>(stoi(get<1>(message[1])));
     uint rightSwitchID = static_cast<uint>(stoi(get<1>(message[2])));
-    uint switchIPLow  = static_cast<uint>(stoi(get<1>(message[3])));
-    uint switchIPHigh = static_cast<uint>(stoi(get<1>(message[4])));
-    Port port    = Port(static_cast<uint>(stoi(get<1>(message[5]))));
-    printf("DEBUG: parsed OPEN packet: switchID: %u leftSwitchID: %u rightSwitchID: %u switchIPLow: %u switchIPHigh: %u\n",
-           switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh);
+    uint switchIPLow   = static_cast<uint>(stoi(get<1>(message[3])));
+    uint switchIPHigh  = static_cast<uint>(stoi(get<1>(message[4])));
+    Address address    =                Address(get<1>(message[5]));
+    Port port     = Port(static_cast<uint>(stoi(get<1>(message[6]))));
+    printf("DEBUG: parsed OPEN packet: switchID: %u leftSwitchID: %u rightSwitchID: %u switchIPLow: %u switchIPHigh: %u address: %s port: %u\n",
+           switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh, address.getSymbolicName().c_str(), port.getPortNum());
 
     // create the new switch from the parsed OPEN packet
     Switch newSwitch = Switch(SwitchID(switchID), SwitchID(leftSwitchID), SwitchID(rightSwitchID),
-            switchIPLow, switchIPHigh, port);
+            switchIPLow, switchIPHigh, address, port);
 
     // check if we are creating or updating a switch
     auto it = find_if(switches.begin(), switches.end(), [&newSwitch](Switch &sw) {

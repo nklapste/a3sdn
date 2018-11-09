@@ -30,10 +30,10 @@ int main(int argc, char **argv) {
     Address("127.0.0.1");
     Address("localhost");
 
-    if (argc < 3 || argc > 6) {
+    if (argc < 4 || argc > 8) {
         printf("ERROR: invalid argument format:\n"
                "\tPlease follow controller mode: 'a3sdn cont nSwitch portNumber'\n"
-               "\tOr follow switch mode:         'a3sdn swi trafficFile [null|swj] [null|swk] IPLow-IPhigh portNumber'\n");
+               "\tOr follow switch mode:         'a3sdn swi trafficFile [null|swj] [null|swk] IPLow-IPhigh serverAddress portNumber'\n");
         exit(EINVAL);
     }
 
@@ -52,9 +52,9 @@ int main(int argc, char **argv) {
         controller.start();
     } else {
         // parse switch mode arguments
-        if (argc != 7) {
+        if (argc != 8) {
             printf("ERROR: invalid arguments for switch mode:\n"
-                   "\tFor switch mode: 'a3sdn swi trafficFile [null|swj] [null|swk] IPLow-IPHigh portNumber'\n");
+                   "\tFor switch mode: 'a3sdn swi trafficFile [null|swj] [null|swk] IPLow-IPHigh serverAddress portNumber'\n");
             exit(EINVAL);
         }
         SwitchID switchId = SwitchID(argv[1]);
@@ -65,8 +65,9 @@ int main(int argc, char **argv) {
         uint IPLow = get<0>(ipRange);
         uint IPHigh = get<1>(ipRange);
 
-        Port port = Port(static_cast<uint>(stoi(argv[6])));
-        Switch aSwitch = Switch(switchId, leftSwitchId, rightSwitchId, trafficFile, IPLow, IPHigh, port);
+        Address address = Address(argv[6]);
+        Port port = Port(static_cast<uint>(stoi(argv[7])));
+        Switch aSwitch = Switch(switchId, leftSwitchId, rightSwitchId, trafficFile, IPLow, IPHigh, address, port);
         aSwitch.start();
     }
     return 0;
