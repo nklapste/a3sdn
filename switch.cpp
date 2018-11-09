@@ -48,8 +48,11 @@ using namespace std;
  * @param IPRangeStr {@code std::string}
  */
 Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
-        string &trafficFile, uint IPLow, uint IPHigh, Address address, Port port): Gate(port),
-        leftSwitchID(leftSwitchID), rightSwitchID(rightSwitchID), IPLow(IPLow), IPHigh(IPHigh), address(address) {
+               string &trafficFile, uint IPLow, uint IPHigh, Address address, Port port) : Gate(port),
+                                                                                           leftSwitchID(leftSwitchID),
+                                                                                           rightSwitchID(rightSwitchID),
+                                                                                           IPLow(IPLow), IPHigh(IPHigh),
+                                                                                           address(address) {
 
     // create and add the Switch's initial FLowEntry rule
     FlowEntry init_rule = {
@@ -88,7 +91,8 @@ Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
         connections.emplace_back(Connection());
     }
     printf("INFO: created switch: sw%u trafficFile: %s swj: %u swk: %u IPLow: %u IPHigh: %u portNumber: %u\n",
-           switchID.getSwitchIDNum(), trafficFile.c_str(), leftSwitchID.getSwitchIDNum(), rightSwitchID.getSwitchIDNum(), IPLow, IPHigh, port.getPortNum());
+           switchID.getSwitchIDNum(), trafficFile.c_str(), leftSwitchID.getSwitchIDNum(),
+           rightSwitchID.getSwitchIDNum(), IPLow, IPHigh, port.getPortNum());
 }
 
 /**
@@ -100,7 +104,8 @@ Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
  * @param IPLow {@code uint}
  * @param IPHigh {@code uint}
  */
-Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID, uint IPLow, uint IPHigh, Address address, Port port) :
+Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID, uint IPLow, uint IPHigh,
+               Address address, Port port) :
         leftSwitchID(leftSwitchID), rightSwitchID(rightSwitchID),
         IPLow(IPLow), IPHigh(IPHigh), address(address), Gate(port) {
     gateID = switchID.getSwitchIDNum();
@@ -309,7 +314,7 @@ void Switch::start() {
 string &Switch::switchParseTrafficFileLine(string &line) {
     int trafficFileLineType = getTrafficFileLineType(line);
 
-    if (trafficFileLineType == INVALID_LINE){
+    if (trafficFileLineType == INVALID_LINE) {
         return line;
     } else if (trafficFileLineType == DELAY_LINE) {
         trafficFileDelayItem delayItem = parseTrafficDelayItem(line);
@@ -457,16 +462,14 @@ void Switch::respondACKPacket() {
  */
 void Switch::respondADDPacket(Message message) {
     rAddCount++;
-    uint srcIP_lo   = static_cast<uint>(stoi(get<1>(message[0])));
-    uint srcIP_hi   = static_cast<uint>(stoi(get<1>(message[1])));
-    uint dstIP_lo   = static_cast<uint>(stoi(get<1>(message[2])));
-    uint dstIP_hi   = static_cast<uint>(stoi(get<1>(message[3])));
+    uint srcIP_lo = static_cast<uint>(stoi(get<1>(message[0])));
+    uint srcIP_hi = static_cast<uint>(stoi(get<1>(message[1])));
+    uint dstIP_lo = static_cast<uint>(stoi(get<1>(message[2])));
+    uint dstIP_hi = static_cast<uint>(stoi(get<1>(message[3])));
     uint actionType = static_cast<uint>(stoi(get<1>(message[4])));
-    uint actionVal  = static_cast<uint>(stoi(get<1>(message[5])));
-    uint pri        = static_cast<uint>(stoi(get<1>(message[6])));
-    uint pktCount   = static_cast<uint>(stoi(get<1>(message[7])));
-
-
+    uint actionVal = static_cast<uint>(stoi(get<1>(message[5])));
+    uint pri = static_cast<uint>(stoi(get<1>(message[6])));
+    uint pktCount = static_cast<uint>(stoi(get<1>(message[7])));
 
     printf("INFO: parsed ADD packet:\n"
            "\tAdding new flowTable rule:\n"
@@ -521,8 +524,8 @@ void Switch::resolveUnsolvedPackets() {
 void Switch::respondRELAYPacket(Message message) {
     rRelayCount++;
     uint rSwitchID = static_cast<uint>(stoi(get<1>(message[0])));
-    uint srcIP     = static_cast<uint>(stoi(get<1>(message[1])));
-    uint dstIP     = static_cast<uint>(stoi(get<1>(message[2])));
+    uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
+    uint dstIP = static_cast<uint>(stoi(get<1>(message[2])));
 
     printf("INFO: parsed RELAY packet:\n"
            "\tswitchID: %u srcIP: %u dstIP: %u",

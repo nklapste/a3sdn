@@ -23,26 +23,25 @@
  * @param domain
  * @return {@code int}
  */
-addrinfo * lookupHost (const string &domain) {
+addrinfo *lookupHost(const string &domain) {
     struct addrinfo hints{}, *res;
     int errcode;
     char addrstr[100];
     void *ptr = nullptr;
     string canonname = domain;
-    memset (&hints, 0, sizeof (hints));
+    memset(&hints, 0, sizeof(hints));
     hints.ai_family = PF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags |= AI_CANONNAME;
 
-    errcode = getaddrinfo (domain.c_str(), nullptr, &hints, &res);
+    errcode = getaddrinfo(domain.c_str(), nullptr, &hints, &res);
     if (errcode != 0) {
         perror("ERROR: resolving domain");
         exit(errcode);
     }
 
-    printf ("DEBUG: Resolving hostname: %s\n", domain.c_str());
-    while (res)
-    {
+    printf("DEBUG: Resolving hostname: %s\n", domain.c_str());
+    while (res) {
         inet_ntop(res->ai_family, res->ai_addr->sa_data, addrstr, 100);
 
         switch (res->ai_family) {
@@ -56,7 +55,7 @@ addrinfo * lookupHost (const string &domain) {
                 printf("ERROR: unknown ai_family: %d\n", res->ai_family);
                 exit(EINVAL);
         }
-        inet_ntop (res->ai_family, ptr, addrstr, 100);
+        inet_ntop(res->ai_family, ptr, addrstr, 100);
         // for some reason if they give us an ipv6 the next ipv4
         // will have no canonname even though it should be the same
         if (res->ai_canonname == nullptr) {
@@ -67,9 +66,9 @@ addrinfo * lookupHost (const string &domain) {
             // update cannon name with the cannon name found by getaddrinfo
             canonname = res->ai_canonname;
         }
-        printf ("INFO: Resolved domain: %s IPv%d address: %s canonname: (%s)\n",
-                domain.c_str(), res->ai_family == PF_INET6 ? 6 : 4, addrstr, res->ai_canonname);
-        if(res->ai_next == nullptr) {
+        printf("INFO: Resolved domain: %s IPv%d address: %s canonname: (%s)\n",
+               domain.c_str(), res->ai_family == PF_INET6 ? 6 : 4, addrstr, res->ai_canonname);
+        if (res->ai_next == nullptr) {
             return res;
         }
         res = res->ai_next;
@@ -85,7 +84,7 @@ addrinfo * lookupHost (const string &domain) {
  * @return {@code Address}
  */
 Address::Address(string domain) {
-    addrinfo * host = lookupHost(domain);
+    addrinfo *host = lookupHost(domain);
     Address::ipAddr = host->ai_addr;
     Address::symbolicName = host->ai_canonname;
 }

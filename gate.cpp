@@ -37,5 +37,5 @@ Port Gate::getPort() const {
     return port;
 }
 
-Gate::Gate(Port port): port(port){
+Gate::Gate(Port port) : port(port) {
 }

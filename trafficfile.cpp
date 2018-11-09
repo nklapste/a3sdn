@@ -14,7 +14,7 @@
  * @param line {@code std::string}
  * @return {@code int} integer representing the type of the traffic file line.
  */
-int getTrafficFileLineType(string &line){
+int getTrafficFileLineType(string &line) {
     if (line.length() < 1) {
         printf("WARNING: ignoring invalid line: %s\n", line.c_str());
         return INVALID_LINE;
@@ -30,7 +30,7 @@ int getTrafficFileLineType(string &line){
         printf("WARNING: ignoring invalid line: %s\n", line.c_str());
         return INVALID_LINE;
     }
-    if(trafficFileItems.at(1) == DELAY_FLAG){ // check if delay line
+    if (trafficFileItems.at(1) == DELAY_FLAG) { // check if delay line
         printf("DEBUG: detected DELAY line: %s\n", line.c_str());
         return DELAY_LINE;
     } else {

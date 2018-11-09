@@ -14,7 +14,8 @@
 IPRange parseIPRange(const string &IPRangeString) {
     string delimiter = "-";
     uint IPLow = static_cast<uint>(stoi(IPRangeString.substr(0, IPRangeString.find(delimiter))));
-    uint IPHigh = static_cast<uint>(stoi(IPRangeString.substr(IPRangeString.find(delimiter) + 1, IPRangeString.size() - 1)));
+    uint IPHigh = static_cast<uint>(stoi(
+            IPRangeString.substr(IPRangeString.find(delimiter) + 1, IPRangeString.size() - 1)));
     if (IPHigh > MAX_IP) {
         printf("ERROR: invalid IPHigh: %u MAX_IP: %u", IPHigh, MAX_IP);
         exit(EINVAL);

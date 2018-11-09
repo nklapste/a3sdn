@@ -38,22 +38,22 @@ uint SwitchID::parseSwitchID(const string &switchIDString) {
  * @return {@code uint}
  */
 uint SwitchID::validateSwitchIDNum(uint switchIDNum) {
-    if (switchIDNum < MIN_SWITCHES){
-            printf("ERROR: switchID is to low: %u\n"
-                   "\tMIN_SWITCHES=%u\n", switchIDNum, MIN_SWITCHES);
-            exit(EINVAL);
-        }else if (switchIDNum>MAX_SWITCHES){
-            printf("ERROR: switchID is to high: %u\n"
-                   "\tMAX_SWITCHES=%u\n", switchIDNum, MAX_SWITCHES);
-            exit(EINVAL);
-        } else {
-            return switchIDNum;
-        }
+    if (switchIDNum < MIN_SWITCHES) {
+        printf("ERROR: switchID is to low: %u\n"
+               "\tMIN_SWITCHES=%u\n", switchIDNum, MIN_SWITCHES);
+        exit(EINVAL);
+    } else if (switchIDNum > MAX_SWITCHES) {
+        printf("ERROR: switchID is to high: %u\n"
+               "\tMAX_SWITCHES=%u\n", switchIDNum, MAX_SWITCHES);
+        exit(EINVAL);
+    } else {
+        return switchIDNum;
+    }
 }
 
 SwitchID::SwitchID(uint switchIDNum) {
     SwitchID::switchIDNum = validateSwitchIDNum(switchIDNum);
-    SwitchID::switchIDString = "sw"+to_string(SwitchID::switchIDNum);
+    SwitchID::switchIDString = "sw" + to_string(SwitchID::switchIDNum);
 }
 
 SwitchID::SwitchID(string switchIDString) {
@@ -62,7 +62,7 @@ SwitchID::SwitchID(string switchIDString) {
     } else {
         SwitchID::switchIDNum = parseSwitchID(switchIDString);
     }
-    SwitchID::switchIDString = "sw"+to_string(SwitchID::switchIDNum );
+    SwitchID::switchIDString = "sw" + to_string(SwitchID::switchIDNum);
 }
 
 string SwitchID::getSwitchIDString() {

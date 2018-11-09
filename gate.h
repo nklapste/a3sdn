@@ -19,6 +19,7 @@ public:
     uint getGateID() const;
 
     explicit Gate(Port port);
+
     Port getPort() const;
 
     bool operator==(const Gate &g) {
