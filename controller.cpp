@@ -77,7 +77,8 @@ void Controller::start() {
     // setup file descriptions or stdin and all connection FIFOs
     pfds[PDFS_STDIN].fd = STDIN_FILENO;
     for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
-        pfds[i].fd = connections[i - 1].openReceiveFIFO();
+        // TODO: replace with TCP socket connections
+        //        pfds[i].fd = connections[i - 1].openReceiveFIFO();
     }
 
     sigset_t sigset;
@@ -90,6 +91,8 @@ void Controller::start() {
         perror("ERROR: setting signal mask");
         exit(errno);
     }
+
+    // TODO: init TCP socket connection
 
     /* This is the main loop */
     pfds[PDFS_SIGNAL].fd = signalfd(-1, &sigset, 0);;
