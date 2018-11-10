@@ -599,7 +599,7 @@ int Switch::resolvePacket(uint srcIP, uint dstIP) {
  * Getter for the {@code Switch}'s {@code serverAddr} the IP address of the server's host.
  *
  * Can be either a symbolic name (e.g. util.cs.ualberta.ca, or localhost)
- * or in dotted-decimal format (e.g. 1237.0.0.1).
+ * or in dotted-decimal format (e.g. 127.0.0.1).
  *
  * @return {@code Address}
  */
