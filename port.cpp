@@ -10,28 +10,28 @@
 /**
  * Create a {@code Port} instance. Which represents a simple port number.
  *
- * @param portNum {@code uint} A valid port number (i.e. 0-65535)
+ * @param portNum {@code u_int16_t} A valid port number (i.e. 0-65535)
  */
-Port::Port(uint portNum) {
+Port::Port(u_int16_t portNum) {
     Port::portNum = validatePortNum(portNum);
 }
 
 /**
  * Getter to {@code Port}s number.
  *
- * @return {@code uint}
+ * @return {@code u_int16_t}
  */
-uint Port::getPortNum() {
+u_int16_t Port::getPortNum() {
     return portNum;
 }
 
 /**
- * Validate that a given {@code uint} is a valid port number.
+ * Validate that a given {@code u_int16_t} is a valid port number.
  *
- * @param portNum {@code uint}
- * @return {@code uint}
+ * @param portNum {@code u_int16_t}
+ * @return {@code u_int16_t}
  */
-uint Port::validatePortNum(uint portNum) {
+u_int16_t Port::validatePortNum(u_int16_t portNum) {
     if (portNum > 65535) {
         errno = EINVAL;
         perror("ERROR: port number too large");

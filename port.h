@@ -10,14 +10,14 @@
 
 class Port {
 public:
-    explicit Port(uint portNum);
+    explicit Port(u_int16_t portNum);
 
-    uint getPortNum();
+    u_int16_t getPortNum();
 
-    static uint validatePortNum(uint portNum);
+    static u_int16_t validatePortNum(u_int16_t portNum);
 
 private:
-    uint portNum;
+    u_int16_t portNum;
 };
 
 
