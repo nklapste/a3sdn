@@ -20,6 +20,12 @@
 /* FIFO stuff */
 #include <poll.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <stdlib.h>
+#include <netinet/in.h>
+#include <string.h>
 
 #include "controller.h"
 #include "switch.h"
@@ -164,7 +170,8 @@ void Switch::start() {
 
     // setup file descriptions or stdin and all connection FIFOs
     pfds[PDFS_STDIN].fd = STDIN_FILENO;
-    pfds[PDFS_CONTROLLER].fd = connections[0].openReceiveFIFO();
+    // TODO: replace with TCP socket connection
+//    pfds[PDFS_CONTROLLER].fd = connections[0].openReceiveFIFO();
     if (!leftSwitchID.isNullSwitchID()) {
         pfds[PDFS_LEFT_SWITCH].fd = connections[1].openReceiveFIFO();
     }
@@ -191,23 +198,43 @@ void Switch::start() {
     // When a switch starts, it sends an OPEN packet to the controller.
     // The carried message contains the switch number, the numbers of its neighbouring switches (if any),
     // and the range of IP addresses served by the switch.
+    // TODO: send via TCP socket
     sendOPENPacket(connections[0]);
     // TODO: wait for ack?
 
-//    // init client tcp connection
-//    // TODO: more research needed
-    errno = 0;
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    errno = 0;
-    if (errno) {
-        perror("ERROR: creating TCP socket");
+    // init client tcp connection
+    // TODO: more research needed
+    struct sockaddr_in serv_addr;
+    int sock = 0;
+
+    // Creating socket file descriptor
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+        perror("ERROR: socket file descriptor creation failed");
+        exit(EXIT_FAILURE);
     }
-    pfds[PDFS_SOCKET].fd = connect(sockfd, address.getIPAddr(), sizeof(address.getIPAddr()));
-    if (errno) {
-        perror("ERROR: creating client TCP socket connection");
+    memset(&serv_addr, '0', sizeof(serv_addr));
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(getPort().getPortNum());
+
+    // Convert IPv4 and IPv6 addresses from text to binary form
+    if(inet_pton(AF_INET, address.getIPAddr().c_str(), &serv_addr.sin_addr) <= 0) {
+        errno = EINVAL;
+        perror("ERROR: invalid address");
+        exit(errno);
     }
 
+    printf("INFO: connecting to: %s\n", getServerAddr().getIPAddr().c_str());
+    pfds[PDFS_SOCKET].fd = connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+    if (pfds[PDFS_SOCKET].fd < 0) {
+        errno = ENOTCONN;
+        perror("ERROR: connection failed");
+        exit(errno);
+    }
+
+    // send(sock , hello , strlen(hello) , 0 );
     // enter the switch loop
+
     for (;;) {
         /*
          * 1.  Read and process a single line from the traffic line (if the EOF has not been reached yet). The

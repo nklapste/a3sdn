@@ -8,8 +8,11 @@
 #include <netdb.h>
 #include <cstring>
 #include <arpa/inet.h>
+#include <tuple>
 
 #include "address.h"
+
+typedef tuple<string, string> HostInfo;
 
 /**
  * Attempt to resolve a IP address, hostname, or Fully Qualified Domain Name (FQDN)
@@ -21,9 +24,9 @@
  * https://gist.github.com/jirihnidek/bf7a2363e480491da72301b228b35d5d
  *
  * @param domain
- * @return {@code int}
+ * @return {@code HostInfo} return the ip address and common-name/domain/ip of a the inputted domain.
  */
-addrinfo *lookupHost(const string &domain) {
+HostInfo lookupHost(const string &domain) {
     struct addrinfo hints{}, *res;
     int errcode;
     char addrstr[100];
@@ -69,11 +72,11 @@ addrinfo *lookupHost(const string &domain) {
         printf("INFO: Resolved domain: %s IPv%d address: %s canonname: (%s)\n",
                domain.c_str(), res->ai_family == PF_INET6 ? 6 : 4, addrstr, res->ai_canonname);
         if (res->ai_next == nullptr) {
-            return res;
+            return make_tuple(addrstr, canonname);
         }
         res = res->ai_next;
     }
-    return res;
+    return make_tuple(addrstr, canonname);
 }
 
 /**
@@ -81,12 +84,11 @@ addrinfo *lookupHost(const string &domain) {
  * or Fully Qualified Domain Name (FQDN).
  *
  * @param domain {@code std::string}
- * @return {@code Address}
  */
 Address::Address(string domain) {
-    addrinfo *host = lookupHost(domain);
-    Address::ipAddr = host->ai_addr;
-    Address::symbolicName = host->ai_canonname;
+    HostInfo hostInfo = lookupHost(domain);
+    Address::ipAddr = get<0>(hostInfo);
+    Address::symbolicName = get<1>(hostInfo);
 }
 
 /**
@@ -101,8 +103,8 @@ string Address::getSymbolicName() {
 /**
  * Getter for the {@code struct sockaddr} of a given {@code Address}.
  *
- * @return {@code struct sockaddr *}
+ * @return {@code std::string}
  */
-struct sockaddr *Address::getIPAddr() {
+string Address::getIPAddr() {
     return ipAddr;
 }

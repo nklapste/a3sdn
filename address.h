@@ -18,10 +18,10 @@ public:
 
     string getSymbolicName();
 
-    struct sockaddr *getIPAddr();
+    string getIPAddr();
 
 private:
-    struct sockaddr *ipAddr;
+    string ipAddr;
     string symbolicName;
 };
 
