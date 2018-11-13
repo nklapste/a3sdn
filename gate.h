@@ -12,12 +12,15 @@
 #include <sys/param.h>
 #include <vector>
 #include "connection.h"
+#include "port.h"
 
 class Gate {
 public:
     uint getGateID() const;
 
-    uint getPortNum() const;
+    explicit Gate(Port port);
+
+    Port getPort() const;
 
     bool operator==(const Gate &g) {
         return getGateID() == g.getGateID();
@@ -34,8 +37,9 @@ public:
     virtual void start() {};
 
 private:
-    uint portNum;
 protected:
+    Port port;
+
     vector<Connection> connections;
 
     /**
@@ -46,6 +50,7 @@ protected:
     uint rAckCount = 0;
     uint rRelayCount = 0;
     uint rQueryCount = 0;
+    uint admitCount = 0;
 
     /**`
      * Counts of {@code Packets} transmitted.
@@ -57,6 +62,8 @@ protected:
     uint tQueryCount = 0;
 
     virtual void list() {}
+
+    void listPacketStats();
 
     uint gateID;
 };

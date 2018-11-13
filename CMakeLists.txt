@@ -2,4 +2,4 @@ cmake_minimum_required(VERSION 3.9)
 project(a3sdn)
 
 set(CMAKE_CXX_STANDARD 17)
-add_executable(a3sdn a3sdn.cpp controller.cpp controller.h switch.cpp switch.h connection.cpp connection.h packet.cpp packet.h gate.cpp gate.h trafficfile.cpp trafficfile.h)
+add_executable(a3sdn a3sdn.cpp controller.cpp controller.h switch.cpp switch.h connection.cpp connection.h packet.cpp packet.h gate.cpp gate.h flow.h flow.cpp trafficfile.cpp trafficfile.h address.cpp address.h port.cpp port.h switchid.cpp switchid.h iprange.cpp iprange.h)

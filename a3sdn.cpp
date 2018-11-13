@@ -12,20 +12,10 @@
 
 #include "controller.h"
 #include "switch.h"
+#include "address.h"
+#include "iprange.h"
 
 using namespace std;
-
-/**
- * Parse the command line arguements from main().
- *
- * @param argc
- * @param argv
- * @return
- */
-void parseArgs(int argc, char **argv){
-
-}
-
 
 /**
  * Main entry point for a2sdn.
@@ -35,36 +25,43 @@ void parseArgs(int argc, char **argv){
  * @return {@code int}
  */
 int main(int argc, char **argv) {
-    if (argc < 3 || argc > 6) {
+    if (argc < 4 || argc > 8) {
         printf("ERROR: invalid argument format:\n"
-               "\tPlease follow controller mode: 'a2sdn cont nSwitch'\n"
-               "\tOr follow switch mode:         'a2sdn swi trafficFile [null|swj] [null|swk] IPLow-IPhigh'\n");
+               "\tPlease follow controller mode: 'a3sdn cont nSwitch portNumber'\n"
+               "\tOr follow switch mode:         'a3sdn swi trafficFile [null|swj] [null|swk] IPLow-IPhigh serverAddress portNumber'\n");
         exit(EINVAL);
     }
-    string mode = argv[1];
 
+    string mode = argv[1];
     if (mode == CONTROLLER_MODE) {
         // parse controller mode arguments
-        if (argc != 3) {
+        if (argc != 4) {
             printf("ERROR: invalid arguments for controller mode:\n"
-                   "\tFor controller mode: 'a2sdn cont nSwitch'\n");
+                   "\tFor controller mode: 'a3sdn cont nSwitch portNumber'\n");
             exit(EINVAL);
         }
-        Controller controller = Controller((uint) stoi(argv[2]));
+        Port port = Port(static_cast<u_int16_t>(stoi(argv[3])));
+        uint nSwitch = static_cast<uint>(stoi(argv[2]));
+        Controller controller = Controller(nSwitch, port);
         controller.start();
     } else {
         // parse switch mode arguments
-        if (argc != 6) {
+        if (argc != 8) {
             printf("ERROR: invalid arguments for switch mode:\n"
-                   "\tFor switch mode: 'a2sdn swi trafficFile [null|swj] [null|swk] IPLow-IPHigh'\n");
+                   "\tFor switch mode: 'a3sdn swi trafficFile [null|swj] [null|swk] IPLow-IPHigh serverAddress portNumber'\n");
             exit(EINVAL);
         }
-        string switchId = argv[1];
+        SwitchID switchId = SwitchID(argv[1]);
         string trafficFile = argv[2];
-        string leftSwitchId = argv[3];
-        string rightSwitchId = argv[4];
-        string IPRangeStr = argv[5];
-        Switch aSwitch = Switch(switchId, leftSwitchId, rightSwitchId, trafficFile, IPRangeStr);
+        SwitchID leftSwitchId = SwitchID(argv[3]);
+        SwitchID rightSwitchId = SwitchID(argv[4]);
+        IPRange ipRange = parseIPRange(argv[5]);
+        uint IPLow = get<0>(ipRange);
+        uint IPHigh = get<1>(ipRange);
+
+        Address address = Address(argv[6]);
+        Port port = Port(static_cast<u_int16_t>(stoi(argv[7])));
+        Switch aSwitch = Switch(switchId, leftSwitchId, rightSwitchId, trafficFile, IPLow, IPHigh, address, port);
         aSwitch.start();
     }
     return 0;

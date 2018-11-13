@@ -19,6 +19,13 @@
 
 /* FIFO stuff */
 #include <poll.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <stdlib.h>
+#include <netinet/in.h>
+#include <string.h>
 
 #include "controller.h"
 #include "switch.h"
@@ -29,12 +36,14 @@
 
 #define BUFFER_SIZE 1024
 
-#define PDFS_SIZE 5
+#define PDFS_SIZE 6
+//#define PDFS_SIZE 5
 #define PDFS_STDIN 0
 #define PDFS_CONTROLLER 1
 #define PDFS_LEFT_SWITCH 2
 #define PDFS_RIGHT_SWITCH 3
 #define PDFS_SIGNAL 4
+#define PDFS_SOCKET 5
 
 using namespace std;
 
@@ -47,10 +56,12 @@ using namespace std;
  * @param trafficFile {@code std::string}
  * @param IPRangeStr {@code std::string}
  */
-Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, string &trafficFile, string &IPRangeStr) {
-    IPRange ipRange = parseIPRange(IPRangeStr);
-    IPLow = get<0>(ipRange);
-    IPHigh = get<1>(ipRange);
+Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
+               string &trafficFile, uint IPLow, uint IPHigh, Address address, Port port) : Gate(port),
+                                                                                           leftSwitchID(leftSwitchID),
+                                                                                           rightSwitchID(rightSwitchID),
+                                                                                           IPLow(IPLow), IPHigh(IPHigh),
+                                                                                           address(address) {
 
     // create and add the Switch's initial FLowEntry rule
     FlowEntry init_rule = {
@@ -58,7 +69,7 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
             .srcIPHigh   = MAX_IP,
             .dstIPLow   = IPLow,
             .dstIPHigh   = IPHigh,
-            .actionType = DELIVER,
+            .actionType = FORWARD,
             .actionVal  = PORT_3,
             .pri        = MIN_PRI,
             .pktCount   = 0
@@ -69,33 +80,29 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
     Switch::trafficFile = trafficFile;
 
     // create Connection to controller
-    gateID = parseSwitchID(switchID);
-    connections.emplace_back(Connection(getGateID(), CONTROLLER_ID));
+    // TODO: needs to be changed to TCP sockets
+    gateID = switchID.getSwitchIDNum();
+    connections.emplace_back(Connection());
 
 
     // create Connection to the left switch
     // can potentially be a nullptr
-    if (leftSwitchID != NULL_SWITCH_FLAG) {
-        Switch::leftSwitchID = parseSwitchID(leftSwitchID);
-        connections.emplace_back(Connection(getGateID(), static_cast<uint>(Switch::leftSwitchID)));
-
+    if (!leftSwitchID.isNullSwitchID()) {
+        connections.emplace_back(Connection(getGateID(), Switch::leftSwitchID.getSwitchIDNum()));
     } else {
-        Switch::leftSwitchID = NULL_SWITCH_ID;
         connections.emplace_back(Connection());
-
     }
 
     // create Connection to the right switch
     // can potentially be a nullptr
-    if (rightSwitchID != NULL_SWITCH_FLAG) {
-        Switch::rightSwitchID = parseSwitchID(rightSwitchID);
-        connections.emplace_back(Connection(getGateID(), static_cast<uint>(Switch::rightSwitchID)));
+    if (!rightSwitchID.isNullSwitchID()) {
+        connections.emplace_back(Connection(getGateID(), Switch::rightSwitchID.getSwitchIDNum()));
     } else {
-        Switch::rightSwitchID = NULL_SWITCH_ID;
         connections.emplace_back(Connection());
     }
-    printf("INFO: created switch: %s trafficFile: %s swj: %s swk: %s IPLow: %u IPHigh: %u\n",
-           switchID.c_str(), trafficFile.c_str(), leftSwitchID.c_str(), rightSwitchID.c_str(), IPLow, IPHigh);
+    printf("INFO: created switch: sw%u trafficFile: %s swj: %u swk: %u IPLow: %u IPHigh: %u portNumber: %u\n",
+           switchID.getSwitchIDNum(), trafficFile.c_str(), leftSwitchID.getSwitchIDNum(),
+           rightSwitchID.getSwitchIDNum(), IPLow, IPHigh, port.getPortNum());
 }
 
 /**
@@ -107,10 +114,11 @@ Switch::Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, st
  * @param IPLow {@code uint}
  * @param IPHigh {@code uint}
  */
-Switch::Switch(uint switchID, int leftSwitchID, int rightSwitchID, uint IPLow, uint IPHigh) :
+Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID, uint IPLow, uint IPHigh,
+               Address address, Port port) :
         leftSwitchID(leftSwitchID), rightSwitchID(rightSwitchID),
-        IPLow(IPLow), IPHigh(IPHigh) {
-    gateID = switchID;
+        IPLow(IPLow), IPHigh(IPHigh), address(address), Gate(port) {
+    gateID = switchID.getSwitchIDNum();
 }
 
 /**
@@ -136,9 +144,9 @@ uint Switch::getIPHigh() const {
  *
  * Note: if the switch does not have a left neighboring switch {@code -1} will be returned.
  *
- * @return {@code int}
+ * @return {@code SwitchID}
  */
-int Switch::getLeftSwitchID() const {
+SwitchID Switch::getLeftSwitchID() const {
     return leftSwitchID;
 }
 
@@ -147,9 +155,9 @@ int Switch::getLeftSwitchID() const {
  *
  * Note: if the switch does not have a right neighboring switch {@code -1} will be returned.
  *
- * @return {@code int}
+ * @return {@code SwitchID}
  */
-int Switch::getRightSwitchID() const {
+SwitchID Switch::getRightSwitchID() const {
     return rightSwitchID;
 }
 
@@ -162,11 +170,12 @@ void Switch::start() {
 
     // setup file descriptions or stdin and all connection FIFOs
     pfds[PDFS_STDIN].fd = STDIN_FILENO;
-    pfds[PDFS_CONTROLLER].fd = connections[0].openReceiveFIFO();
-    if (leftSwitchID >= 1) {
+    // TODO: replace with TCP socket connection
+//    pfds[PDFS_CONTROLLER].fd = connections[0].openReceiveFIFO();
+    if (!leftSwitchID.isNullSwitchID()) {
         pfds[PDFS_LEFT_SWITCH].fd = connections[1].openReceiveFIFO();
     }
-    if (rightSwitchID >= 1) {
+    if (!rightSwitchID.isNullSwitchID()) {
         pfds[PDFS_RIGHT_SWITCH].fd = connections[2].openReceiveFIFO();
     }
 
@@ -189,10 +198,43 @@ void Switch::start() {
     // When a switch starts, it sends an OPEN packet to the controller.
     // The carried message contains the switch number, the numbers of its neighbouring switches (if any),
     // and the range of IP addresses served by the switch.
+    // TODO: send via TCP socket
     sendOPENPacket(connections[0]);
     // TODO: wait for ack?
 
+    // init client tcp connection
+    // TODO: more research needed
+    struct sockaddr_in serv_addr;
+    int sock = 0;
+
+    // Creating socket file descriptor
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+        perror("ERROR: socket file descriptor creation failed");
+        exit(EXIT_FAILURE);
+    }
+    memset(&serv_addr, '0', sizeof(serv_addr));
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(getPort().getPortNum());
+
+    // Convert IPv4 and IPv6 addresses from text to binary form
+    if(inet_pton(AF_INET, address.getIPAddr().c_str(), &serv_addr.sin_addr) <= 0) {
+        errno = EINVAL;
+        perror("ERROR: invalid address");
+        exit(errno);
+    }
+
+    printf("INFO: connecting to: %s\n", getServerAddr().getIPAddr().c_str());
+    pfds[PDFS_SOCKET].fd = connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+    if (pfds[PDFS_SOCKET].fd < 0) {
+        errno = ENOTCONN;
+        perror("ERROR: connection failed");
+        exit(errno);
+    }
+
+    // send(sock , hello , strlen(hello) , 0 );
     // enter the switch loop
+
     for (;;) {
         /*
          * 1.  Read and process a single line from the traffic line (if the EOF has not been reached yet). The
@@ -221,6 +263,7 @@ void Switch::start() {
         for (auto &pfd : pfds) {
             pfd.events = POLLIN;
         }
+        errno = 0;
         int ret = poll(pfds, PDFS_SIZE, 1);
         if (errno || ret < 0) {
             perror("ERROR: poll failure");
@@ -252,10 +295,10 @@ void Switch::start() {
          */
 
         for (std::vector<Connection>::size_type i = 1; i < 4; i++) {
-            if (i == 2 && leftSwitchID < MIN_SWITCHES) {
+            if (i == 2 && leftSwitchID.getSwitchIDNum() < MIN_SWITCHES) {
                 continue;
             }
-            if (i == 3 && rightSwitchID < MIN_SWITCHES) {
+            if (i == 3 && rightSwitchID.getSwitchIDNum() < MIN_SWITCHES) {
                 continue;
             }
             if (pfds[i].revents & POLLIN) {
@@ -266,6 +309,8 @@ void Switch::start() {
                     printf("WARNING: receiveFIFO closed\n");
                 }
                 string cmd = string(buf);
+                printf("DEBUG: obtained raw: %s\n", cmd.c_str());
+                // TODO: ignore invalid packets
                 Packet packet = Packet(cmd);
                 printf("DEBUG: Parsed packet: %s\n", packet.toString().c_str());
                 if (packet.getType() == ACK) {
@@ -308,66 +353,6 @@ void Switch::start() {
 }
 
 /**
- * Parse the {@code IPRange} argument. Which follows the format IPLow-IPHigh.
- *
- * @param IPRangeString {@code std::string}
- * @return {@code IPRange} a tuple of (IPLow, IPHigh)
- */
-IPRange Switch::parseIPRange(const string &IPRangeString) {
-    string delimiter = "-";
-    uint IPLow = static_cast<uint>(stoi(IPRangeString.substr(0, IPRangeString.find(delimiter))));
-    uint IPHigh = static_cast<uint>(stoi(
-            IPRangeString.substr(IPRangeString.find(delimiter) + 1, IPRangeString.size() - 1)));
-    if (IPHigh > MAX_IP) {
-        printf("ERROR: invalid IPHigh: %u MAX_IP: %u", IPHigh, MAX_IP);
-        exit(EINVAL);
-    }
-    if (IPLow < MIN_IP) {
-        printf("ERROR: invalid IPLow: %u MIN_IP: %u", IPLow, MIN_IP);
-        exit(EINVAL);
-    }
-    if (IPLow > IPHigh) {
-        printf("ERROR: invalid IP range: IPLow: %u greater than IPHigh: %u", IPLow, IPHigh);
-        exit(EINVAL);
-    }
-    return make_tuple(IPLow, IPHigh);
-}
-
-/**
- * Parse the switch id. Should match the format {@code 'swi'} where {@code 'i'} is a numeric character.
- *
- * @param switchID {@code std::string}
- * @return {@code uint}
- */
-uint Switch::parseSwitchID(const string &switchID) {
-    regex rgx("(sw)([1-9]+[0-9]*)");
-    match_results<string::const_iterator> matches;
-
-    std::regex_match(switchID, matches, rgx);
-    for (std::size_t index = 1; index < matches.size(); ++index) {
-    }
-
-    if (std::regex_search(switchID, matches, rgx)) {
-        uint switchID_ = static_cast<uint>(std::stoi(matches[2], nullptr, 10));
-        if (switchID_<MIN_SWITCHES){
-            printf("ERROR: switchID is to low: %u\n"
-                   "\tMIN_SWITCHES=%u\n", switchID_, MIN_SWITCHES);
-            exit(EINVAL);
-        }else if (switchID_>MAX_SWITCHES){
-            printf("ERROR: switchID is to high: %u\n"
-                   "\tMAX_SWITCHES=%u\n", switchID_, MAX_SWITCHES);
-            exit(EINVAL);
-        } else {
-            return switchID_;
-        }
-    } else {
-        printf("ERROR: invalid switchID argument: %s\n", switchID.c_str());
-        exit(EINVAL);
-    }
-}
-
-
-/**
  * Parse a line within the Switche's TrafficFile.
  *
  * @param line {@code std::string}
@@ -376,7 +361,7 @@ uint Switch::parseSwitchID(const string &switchID) {
 string &Switch::switchParseTrafficFileLine(string &line) {
     int trafficFileLineType = getTrafficFileLineType(line);
 
-    if (trafficFileLineType == INVALID_LINE){
+    if (trafficFileLineType == INVALID_LINE) {
         return line;
     } else if (trafficFileLineType == DELAY_LINE) {
         trafficFileDelayItem delayItem = parseTrafficDelayItem(line);
@@ -402,29 +387,9 @@ string &Switch::switchParseTrafficFileLine(string &line) {
  * packet type, the program writes an aggregate count of handled packets of this type
  */
 void Switch::list() {
-    uint counter = 0;
-    printf("sw%u FlowTable:\n", getGateID());
-    for (auto const &flowEntry: flowTable) {
-        string actionName;
-        if (flowEntry.actionType == DELIVER) {
-            actionName = "DELIVER";
-        } else if (flowEntry.actionType == FORWARD) {
-            actionName = "FORWARD";
-        } else if (flowEntry.actionType == DROP) {
-            actionName = "DROP";
-        }
-        printf("[%u] (srcIP= %u-%u dstIP %u-%u action=%s:%u pri= %u pktCount= %u)\n",
-               counter,
-               flowEntry.srcIPLow, flowEntry.srcIPHigh, flowEntry.dstIPLow, flowEntry.dstIPHigh,
-               actionName.c_str(), flowEntry.actionVal, flowEntry.pri, flowEntry.pktCount);
-        counter++;
-    }
+    listSwitchStats();
 
-    printf("Packet Stats:\n");
-    printf("\tReceived:    OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYIN: %u, ADMIT:%u\n",
-           rOpenCount, rAckCount, rQueryCount, rAddCount, rRelayCount, admitCount);
-    printf("\tTransmitted: OPEN:%u, ACK:%u, QUERY:%u, ADDRULE:%u, RELAYOUT:%u\n",
-           tOpenCount, tAckCount, tQueryCount, tAddCount, tRelayCount);
+    listPacketStats();
 }
 
 /**
@@ -471,10 +436,12 @@ int Switch::getFlowEntryIndex(uint srcIP, uint dstIP) {
 void Switch::sendOPENPacket(Connection connection) {
     Message openMessage;
     openMessage.emplace_back(make_tuple("switchID", to_string(getGateID())));
-    openMessage.emplace_back(make_tuple("leftSwitchID", to_string(leftSwitchID)));
-    openMessage.emplace_back(make_tuple("rightSwitchID", to_string(rightSwitchID)));
-    openMessage.emplace_back(make_tuple("IPLow", to_string(IPLow)));
-    openMessage.emplace_back(make_tuple("IPHigh", to_string(IPHigh)));
+    openMessage.emplace_back(make_tuple("leftSwitchID", to_string(getLeftSwitchID().getSwitchIDNum())));
+    openMessage.emplace_back(make_tuple("rightSwitchID", to_string(getRightSwitchID().getSwitchIDNum())));
+    openMessage.emplace_back(make_tuple("IPLow", to_string(getIPHigh())));
+    openMessage.emplace_back(make_tuple("IPHigh", to_string(getIPLow())));
+    openMessage.emplace_back(make_tuple("Address", getServerAddr().getSymbolicName()));
+    openMessage.emplace_back(make_tuple("Port", to_string(getPort().getPortNum())));
     Packet openPacket = Packet(OPEN, openMessage);
     printf("INFO: sending OPEN packet: connection: %s packet: %s\n",
            connection.getSendFIFOName().c_str(), openPacket.toString().c_str());
@@ -542,19 +509,19 @@ void Switch::respondACKPacket() {
  */
 void Switch::respondADDPacket(Message message) {
     rAddCount++;
-    uint srcIP_lo   = static_cast<uint>(stoi(get<1>(message[0])));
-    uint srcIP_hi   = static_cast<uint>(stoi(get<1>(message[1])));
-    uint dstIP_lo   = static_cast<uint>(stoi(get<1>(message[2])));
-    uint dstIP_hi   = static_cast<uint>(stoi(get<1>(message[3])));
+    uint srcIP_lo = static_cast<uint>(stoi(get<1>(message[0])));
+    uint srcIP_hi = static_cast<uint>(stoi(get<1>(message[1])));
+    uint dstIP_lo = static_cast<uint>(stoi(get<1>(message[2])));
+    uint dstIP_hi = static_cast<uint>(stoi(get<1>(message[3])));
     uint actionType = static_cast<uint>(stoi(get<1>(message[4])));
-    uint actionVal  = static_cast<uint>(stoi(get<1>(message[5])));
-    uint pri        = static_cast<uint>(stoi(get<1>(message[6])));
-    uint pktCount   = static_cast<uint>(stoi(get<1>(message[7])));
+    uint actionVal = static_cast<uint>(stoi(get<1>(message[5])));
+    uint pri = static_cast<uint>(stoi(get<1>(message[6])));
+    uint pktCount = static_cast<uint>(stoi(get<1>(message[7])));
 
     printf("INFO: parsed ADD packet:\n"
            "\tAdding new flowTable rule:\n"
-           "\t\tsrcIP_lo: %u srcIPHigh: %u dstIPLow: %u dstIPHigh: %u actionType: %u actionVal: %u pri: %u pktCount: %u\n",
-           srcIP_lo, srcIP_hi, dstIP_lo, dstIP_hi, actionType, actionVal, pri, pktCount);
+           "\t\tsrcIP_lo: %u srcIPHigh: %u dstIPLow: %u dstIPHigh: %u actionType: %s actionVal: %u pri: %u pktCount: %u\n",
+           srcIP_lo, srcIP_hi, dstIP_lo, dstIP_hi, toActionName(actionType).c_str(), actionVal, pri, pktCount);
 
     FlowEntry newRule = {
             .srcIPLow   = srcIP_lo,
@@ -604,8 +571,8 @@ void Switch::resolveUnsolvedPackets() {
 void Switch::respondRELAYPacket(Message message) {
     rRelayCount++;
     uint rSwitchID = static_cast<uint>(stoi(get<1>(message[0])));
-    uint srcIP     = static_cast<uint>(stoi(get<1>(message[1])));
-    uint dstIP     = static_cast<uint>(stoi(get<1>(message[2])));
+    uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
+    uint dstIP = static_cast<uint>(stoi(get<1>(message[2])));
 
     printf("INFO: parsed RELAY packet:\n"
            "\tswitchID: %u srcIP: %u dstIP: %u",
@@ -659,10 +626,34 @@ int Switch::resolvePacket(uint srcIP, uint dstIP) {
  * Getter for the {@code Switch}'s {@code serverAddr} the IP address of the server's host.
  *
  * Can be either a symbolic name (e.g. util.cs.ualberta.ca, or localhost)
- * or in dotted-decimal format (e.g. 1237.0.0.1).
+ * or in dotted-decimal format (e.g. 127.0.0.1).
  *
- * @return {@code std::string}
+ * @return {@code Address}
  */
-string Switch::getServerAddr() {
-    return serverAddr;
+Address Switch::getServerAddr() {
+    return address;
+}
+
+/**
+ * Print {@code Switch} specific statistics.
+ */
+void Switch::listSwitchStats() {
+    uint counter = 0;
+    printf("sw%u FlowTable:\n", getGateID());
+    for (auto const &flowEntry: flowTable) {
+        printf("[%u] (srcIP= %u-%u dstIP %u-%u action=%s:%u pri= %u pktCount= %u)\n",
+               counter,
+               flowEntry.srcIPLow, flowEntry.srcIPHigh, flowEntry.dstIPLow, flowEntry.dstIPHigh,
+               toActionName(flowEntry.actionType).c_str(), flowEntry.actionVal, flowEntry.pri, flowEntry.pktCount);
+        counter++;
+    }
+}
+
+/**
+ * Handle starting a delay period after obtaining a {@code trafficFileDelayItem}.
+ *
+ * @param interval {@code uint}
+ */
+void Switch::handleDelay(uint interval) {
+    printf("INFO: entering a delay persiod for %ums", interval);
 }

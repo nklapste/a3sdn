@@ -17,6 +17,7 @@
 #include "packet.h"
 #include "switch.h"
 #include "gate.h"
+#include "port.h"
 
 #define MIN_SWITCHES 1
 #define MAX_SWITCHES 7
@@ -28,7 +29,7 @@ using namespace std;
 
 class Controller : public Gate {
 public:
-    explicit Controller(uint nSwitches);
+    explicit Controller(uint nSwitches, Port port);
 
     void start() override;
 
@@ -47,6 +48,8 @@ private:
     void respondQUERYPacket(Connection connection, Message message);
 
     void list() override;
+
+    void listControllerStats();
 };
 
 #endif //A2SDN_CONTROLLER_H

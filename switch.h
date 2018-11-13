@@ -15,9 +15,9 @@
 #include "packet.h"
 #include "flow.h"
 #include "gate.h"
-
-#define NULL_SWITCH_FLAG "null"
-#define NULL_SWITCH_ID -1
+#include "port.h"
+#include "switchid.h"
+#include "address.h"
 
 using namespace std;
 
@@ -30,51 +30,45 @@ using namespace std;
 #define PORT_2 2 // right switch port/connection index
 #define PORT_3 3 // self switch port
 
-typedef tuple<uint, uint> IPRange;
-
 class Switch : public Gate {
 public:
-    Switch(string &switchID, string &leftSwitchID, string &rightSwitchID, string &trafficFile, string &IPRangeStr);
+    Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID, string &trafficFile, uint IPLow,
+           uint IPHigh, Address address, Port port);
 
-    Switch(uint switchID, int leftSwitchID, int rightSwitchID, uint IPLow, uint IPHigh);
+    Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID, uint IPLow, uint IPHigh, Address address,
+           Port port);
 
-    string getServerAddr();
+    Address getServerAddr();
 
     uint getIPLow() const;
 
     uint getIPHigh() const;
 
-    int getLeftSwitchID() const;
+    SwitchID getLeftSwitchID() const;
 
-    int getRightSwitchID() const;
+    SwitchID getRightSwitchID() const;
 
     void start() override;
-
-    static uint parseSwitchID(const string &switchID);
 
 private:
     /**
      * ID of the "left" switch to connect to. (Port 1)
      */
-    int leftSwitchID;
+    SwitchID leftSwitchID;
 
     /**
      * ID of the "right" switch to connect to. (Port 2)
      */
-    int rightSwitchID;
+    SwitchID rightSwitchID;
 
+    Address address;
     string trafficFile;
-    string serverAddr;
 
     uint IPHigh;
     uint IPLow;
     FlowTable flowTable;
     vector<Connection> connections;
     vector<Packet> unsolvedPackets;
-
-    uint admitCount = 0; /* special for Switch indicates number of DELIVERed packets */
-
-    IPRange parseIPRange(const string &IPRange);
 
     string &switchParseTrafficFileLine(string &line);
 
@@ -97,6 +91,10 @@ private:
     int resolvePacket(uint srcIP, uint dstIP);
 
     void list() override;
+
+    void listSwitchStats();
+
+    void handleDelay(uint interval);
 };
 
 #endif //A2SDN_SWITCH_H
