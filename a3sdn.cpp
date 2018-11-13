@@ -40,7 +40,6 @@ int main(int argc, char **argv) {
                    "\tFor controller mode: 'a3sdn cont nSwitch portNumber'\n");
             exit(EINVAL);
         }
-        // TODO: port
         Port port = Port(static_cast<u_int16_t>(stoi(argv[3])));
         uint nSwitch = static_cast<uint>(stoi(argv[2]));
         Controller controller = Controller(nSwitch, port);
