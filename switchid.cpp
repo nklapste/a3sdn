@@ -1,6 +1,9 @@
-//
-// Created by nklap on 2018-11-09.
-//
+/**
+ * switchid.cpp
+ *
+ * @author Nathan Klapstein (nklapste)
+ * @version 0.0.0
+ */
 
 #include <regex>
 #include "switchid.h"
@@ -51,11 +54,21 @@ uint SwitchID::validateSwitchIDNum(uint switchIDNum) {
     }
 }
 
+/**
+ * Constructor for a {@code SwitchID} from a {@code uint}.
+ *
+ * @param switchIDNum {@code uint}
+ */
 SwitchID::SwitchID(uint switchIDNum) {
     SwitchID::switchIDNum = validateSwitchIDNum(switchIDNum);
     SwitchID::switchIDString = "sw" + to_string(SwitchID::switchIDNum);
 }
 
+/**
+ * Constructor for a {@code SwitchID} from a {@code std::string}.
+ *
+ * @param switchIDString {@code std::string}
+ */
 SwitchID::SwitchID(string switchIDString) {
     if (switchIDString == NULL_SWITCH_ID_FLAG) {
         SwitchID::switchIDNum = NULL_SWITCH_ID_NUM;
@@ -65,14 +78,32 @@ SwitchID::SwitchID(string switchIDString) {
     SwitchID::switchIDString = "sw" + to_string(SwitchID::switchIDNum);
 }
 
+/**
+ * Getter for a {@code SwitchID}'s full string representation.
+ *
+ * i.e. "sw<switchIDNum>"
+ * e.g. "sw1"
+ *
+ * @return {@code std::string}
+ */
 string SwitchID::getSwitchIDString() {
     return switchIDString;
 }
 
+/**
+ * Getter for a {@code SwitchID}'s numerical ID representation.
+ *
+ * @return {@code uint}
+ */
 uint SwitchID::getSwitchIDNum() {
     return switchIDNum;
 }
 
+/**
+ * Check if a {@code SwitchID} is noting a null switch.
+ *
+ * @return {@code bool}
+ */
 bool SwitchID::isNullSwitchID() {
     return switchIDNum == NULL_SWITCH_ID_NUM;
 }
