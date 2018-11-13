@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
             exit(EINVAL);
         }
         // TODO: port
-        Port port = Port(static_cast<uint>(stoi(argv[3])));
+        Port port = Port(static_cast<u_int16_t>(stoi(argv[3])));
         uint nSwitch = static_cast<uint>(stoi(argv[2]));
         Controller controller = Controller(nSwitch, port);
         controller.start();
@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
         uint IPHigh = get<1>(ipRange);
 
         Address address = Address(argv[6]);
-        Port port = Port(static_cast<uint>(stoi(argv[7])));
+        Port port = Port(static_cast<u_int16_t>(stoi(argv[7])));
         Switch aSwitch = Switch(switchId, leftSwitchId, rightSwitchId, trafficFile, IPLow, IPHigh, address, port);
         aSwitch.start();
     }
