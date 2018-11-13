@@ -25,11 +25,6 @@ using namespace std;
  * @return {@code int}
  */
 int main(int argc, char **argv) {
-
-    // TODO: testing
-    Address("127.0.0.1");
-    Address("localhost");
-
     if (argc < 4 || argc > 8) {
         printf("ERROR: invalid argument format:\n"
                "\tPlease follow controller mode: 'a3sdn cont nSwitch portNumber'\n"
