@@ -190,11 +190,42 @@ void Switch::start() {
         perror("ERROR: setting signal mask");
         exit(errno);
     }
-    /* This is the main loop */
     pfds[PDFS_SIGNAL].fd = signalfd(-1, &sigset, 0);;
 
     string line;
     ifstream trafficFileStream(trafficFile);
+
+//    // init client tcp connection
+//    // TODO: more research needed
+//    struct sockaddr_in serv_addr;
+//    int sock = 0;
+//
+//    // Creating socket file descriptor
+//    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+//        perror("ERROR: socket file descriptor creation failed");
+//        exit(EXIT_FAILURE);
+//    }
+//    memset(&serv_addr, '0', sizeof(serv_addr));
+//
+//    serv_addr.sin_family = AF_INET;
+//    serv_addr.sin_port = htons(getPort().getPortNum());
+//
+//    // Convert IPv4 and IPv6 addresses from text to binary form
+//    if(inet_pton(AF_INET, address.getIPAddr().c_str(), &serv_addr.sin_addr) <= 0) {
+//        errno = EINVAL;
+//        perror("ERROR: invalid address");
+//        exit(errno);
+//    }
+//
+//    printf("INFO: connecting to: %s\n", getServerAddr().getIPAddr().c_str());
+//    pfds[PDFS_SOCKET].fd = connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+//    if (pfds[PDFS_SOCKET].fd < 0) {
+//        errno = ENOTCONN;
+//        perror("ERROR: connection failed");
+//        exit(errno);
+//    }
+
+    // send(sock , hello , strlen(hello) , 0 );
 
     // When a switch starts, it sends an OPEN packet to the controller.
     // The carried message contains the switch number, the numbers of its neighbouring switches (if any),
@@ -203,39 +234,7 @@ void Switch::start() {
     sendOPENPacket(connections[0]);
     // TODO: wait for ack?
 
-    // init client tcp connection
-    // TODO: more research needed
-    struct sockaddr_in serv_addr;
-    int sock = 0;
-
-    // Creating socket file descriptor
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
-        perror("ERROR: socket file descriptor creation failed");
-        exit(EXIT_FAILURE);
-    }
-    memset(&serv_addr, '0', sizeof(serv_addr));
-
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(getPort().getPortNum());
-
-    // Convert IPv4 and IPv6 addresses from text to binary form
-    if(inet_pton(AF_INET, address.getIPAddr().c_str(), &serv_addr.sin_addr) <= 0) {
-        errno = EINVAL;
-        perror("ERROR: invalid address");
-        exit(errno);
-    }
-
-    printf("INFO: connecting to: %s\n", getServerAddr().getIPAddr().c_str());
-    pfds[PDFS_SOCKET].fd = connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-    if (pfds[PDFS_SOCKET].fd < 0) {
-        errno = ENOTCONN;
-        perror("ERROR: connection failed");
-        exit(errno);
-    }
-
-    // send(sock , hello , strlen(hello) , 0 );
-    // enter the switch loop
-
+    /* This is the main loop */
     for (;;) {
         /*
          * 1.  Read and process a single line from the traffic line (if the EOF has not been reached yet). The
@@ -664,7 +663,7 @@ void Switch::listSwitchStats() {
  * @return {@code bool}
  */
 bool Switch::delayPassed() {
-    return clock() >= endTime;
+    return (1000*clock()/(CLOCKS_PER_SEC)) >= endTime;
 }
 
 /**
@@ -676,10 +675,11 @@ bool Switch::delayPassed() {
  */
 void Switch::setDelay(clock_t interval) {
     if (!delayPassed()){
+
         endTime = interval + endTime;
-        printf("DEBUG: adding delay interval onto existing delay: endTime: %li\n", endTime);
     } else {
-        endTime = interval + clock();
-        printf("DEBUG: starting new delay interval: endTime: %li\n", endTime);
+
+        endTime = interval + (1000*clock()/(CLOCKS_PER_SEC));
     }
+    printf("DEBUG: setting delay interval: currentTime: %lims endTime: %lims\n", (1000*clock()/(CLOCKS_PER_SEC)), endTime);
 }
