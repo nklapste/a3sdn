@@ -245,12 +245,14 @@ void Switch::start() {
          *     Note: After reading all lines in the traffic file, the program continues to monitor and process
          *     keyboard commands, and the incoming packets from neighbouring devices.
          */
-        if (trafficFileStream.is_open()) {
-            if (getline(trafficFileStream, line)) {
-                switchParseTrafficFileLine(line);
-            } else {
-                trafficFileStream.close();
-                printf("DEBUG: finished reading traffic file\n");
+        if (delayPassed()){  // ensure that we are not experiencing a delay
+            if (trafficFileStream.is_open()) {
+                if (getline(trafficFileStream, line)) {
+                    switchParseTrafficFileLine(line);
+                } else {
+                    trafficFileStream.close();
+                    printf("DEBUG: finished reading traffic file\n");
+                }
             }
         }
 
@@ -366,6 +368,12 @@ string &Switch::switchParseTrafficFileLine(string &line) {
         return line;
     } else if (trafficFileLineType == DELAY_LINE) {
         trafficFileDelayItem delayItem = parseTrafficDelayItem(line);
+        uint tfSwitchID = get<0>(delayItem);
+        if (tfSwitchID != getGateID()) {
+            printf("DEBUG: ignoring line specifying another switch\n");
+        } else {
+            setDelay(get<2>(delayItem));
+        }
         // TODO: act on delay item
     } else if (trafficFileLineType == ROUTE_LINE) {
         trafficFileRouteItem routeItem = parseTrafficRouteItem(line);
@@ -669,7 +677,9 @@ bool Switch::delayPassed() {
 void Switch::setDelay(clock_t interval) {
     if (!delayPassed()){
         endTime = interval + endTime;
+        printf("DEBUG: adding delay interval onto existing delay: endTime: %li\n", endTime);
     } else {
         endTime = interval + clock();
+        printf("DEBUG: starting new delay interval: endTime: %li\n", endTime);
     }
 }
