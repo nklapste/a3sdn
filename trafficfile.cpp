@@ -68,8 +68,8 @@ trafficFileDelayItem parseTrafficDelayItem(string &line) {
     vector<string> trafficFileItems((istream_iterator<string>(iss)), istream_iterator<string>());
     uint switchID = SwitchID::parseSwitchID(trafficFileItems.at(0));
     string flag = trafficFileItems.at(1);
-    uint interval = static_cast<uint>(stoi(trafficFileItems.at(2)));
-    printf("DEBUG: parsed trafficFileDelayItem: switchID: %u %s interval: %ums\n",
+    clock_t interval = static_cast<clock_t>(stoi(trafficFileItems.at(2)));
+    printf("DEBUG: parsed trafficFileDelayItem: switchID: %u %s interval: %lims\n",
            switchID, flag.c_str(), interval);
     return make_tuple(switchID, flag, interval);
 }

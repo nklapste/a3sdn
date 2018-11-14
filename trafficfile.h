@@ -20,7 +20,7 @@ using namespace std;
  * Traffic file line type formatted as "swi delay interval"
  * where interval is an integer in milliseconds.
  */
-typedef tuple<uint, string, uint> trafficFileDelayItem;
+typedef tuple<uint, string, clock_t> trafficFileDelayItem;
 
 /**
  * Traffic file line type formatted as "swi srcIP dstIP"
