@@ -8,6 +8,7 @@
 #ifndef A2SDN_SWITCH_H
 #define A2SDN_SWITCH_H
 
+#include <ctime>
 #include <string>
 #include <vector>
 
@@ -49,7 +50,6 @@ public:
     SwitchID getRightSwitchID() const;
 
     void start() override;
-
 private:
     /**
      * ID of the "left" switch to connect to. (Port 1)
@@ -94,7 +94,12 @@ private:
 
     void listSwitchStats();
 
-    void handleDelay(uint interval);
+    /* functionality for handling trafficFile delays */
+    clock_t endTime = 0;
+
+    void setDelay(clock_t interval);
+
+    bool delayPassed();
 };
 
 #endif //A2SDN_SWITCH_H

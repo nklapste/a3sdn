@@ -5,6 +5,7 @@
  * @version 0.0.0
  */
 
+#include <ctime>
 #include <assert.h>
 #include <cstdio>
 #include <cstdlib>
@@ -650,10 +651,25 @@ void Switch::listSwitchStats() {
 }
 
 /**
- * Handle starting a delay period after obtaining a {@code trafficFileDelayItem}.
+ * Check if the current clock time is greater than or equal to the current delay's {@code endTime}.
  *
- * @param interval {@code uint}
+ * @return {@code bool}
  */
-void Switch::handleDelay(uint interval) {
-    printf("INFO: entering a delay persiod for %ums", interval);
+bool Switch::delayPassed() {
+    return clock() >= endTime;
+}
+
+/**
+ * Set the current delay's {@code endTime}. If a delay is already inplace and is still active
+ * (i.e delayPassed returns {@code false}) add onto the delay's {@code endtime}.
+ *  Otherwise set the delay's {@code endTime} to the given interval plus the current clock time.
+ *
+ * @param interval {@code clock_t}
+ */
+void Switch::setDelay(clock_t interval) {
+    if (!delayPassed()){
+        endTime = interval + endTime;
+    } else {
+        endTime = interval + clock();
+    }
 }
