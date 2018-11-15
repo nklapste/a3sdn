@@ -364,6 +364,7 @@ void Switch::start() {
             if (!r) {
                 printf("WARNING: TCP client socket closed\n");
             }
+
             printf("Here is the message: %s\n", buf);
             string cmd = string(buf);
             printf("DEBUG: obtained raw: %s\n", cmd.c_str());
