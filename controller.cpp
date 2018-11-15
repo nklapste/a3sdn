@@ -102,20 +102,20 @@ void Controller::start() {
 
     // TODO: init TCP socket connection
     // init TCP socket file descriptor
-    int server_fd, newsockfd;
+    int newsockfd;
 
     struct sockaddr_in address;
     int opt = 1;
     int addrlen = sizeof(address);
 
     // Creating socket file descriptor
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+    if ((pfds[PDFS_SOCKET].fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
         perror("ERROR: creating socket failed");
         exit(EXIT_FAILURE);
     }
 
     // Forcefully attaching socket to the port 8080
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
+    if (setsockopt(pfds[PDFS_SOCKET].fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
                    &opt, sizeof(opt))) {
         perror("ERROR: attaching socket failed");
         exit(EXIT_FAILURE);
@@ -125,30 +125,19 @@ void Controller::start() {
     address.sin_port = htons(getPort().getPortNum());
 
     // Forcefully attaching socket to the port 8080
-    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address))<0) {
+    if (bind(pfds[PDFS_SOCKET].fd, (struct sockaddr *)&address, sizeof(address))<0) {
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
-    if (listen(server_fd, 3) < 0)
+    if (listen(pfds[PDFS_SOCKET].fd, 3) < 0)
     {
         perror("listen");
         exit(EXIT_FAILURE);
     }
 
-    //    send(new_socket , hello , strlen(hello) , 0 );
-    //    printf("Hello message sent\n");
-
-    pfds[PDFS_SOCKET].fd = server_fd;
-
     // enter the controller loop
     for (;;) {
-        /*
-         * 1. Poll the keyboard for a user command. The user can issue one of the following commands.
-         *       list: The program writes all entries in the flow table, and for each transmitted or received
-         *             packet type, the program writes an aggregate count of handled packets of this
-         *             type.
-         *       exit: The program writes the above information and exits.
-         */
+        // setup for the next round of polling
         for (auto &pfd : pfds) {
             pfd.events = POLLIN;
         }
@@ -157,6 +146,14 @@ void Controller::start() {
             perror("ERROR: poll failure");
             exit(errno);
         }
+
+        /*
+         * 1. Poll the keyboard for a user command. The user can issue one of the following commands.
+         *       list: The program writes all entries in the flow table, and for each transmitted or received
+         *             packet type, the program writes an aggregate count of handled packets of this
+         *             type.
+         *       exit: The program writes the above information and exits.
+         */
         if (pfds[PDFS_STDIN].revents & POLLIN) {
             ssize_t r = read(pfds[PDFS_STDIN].fd, buf, BUFFER_SIZE);
             if (!r) {
@@ -178,6 +175,9 @@ void Controller::start() {
             }
         }
 
+        // clear buffer
+        memset(buf, 0, sizeof buf);
+
         /*
          * In addition, upon receiving signal USER1, the switch displays the information specified by the list command.
          */
@@ -195,12 +195,15 @@ void Controller::start() {
             }
         }
 
+        // clear buffer
+        memset(buf, 0, sizeof buf);
+
         /*
          * Check the socket file descriptor for events
          */
         if (pfds[PDFS_SOCKET].revents & POLLIN) {
             printf("DEBUG: socket file descriptor has POLLIN event\n");
-            if ((newsockfd = accept(server_fd, (struct sockaddr *)&address,(socklen_t*)&addrlen))<0) {
+            if ((newsockfd = accept(pfds[PDFS_SOCKET].fd, (struct sockaddr *)&address,(socklen_t*)&addrlen))<0) {
                 perror("ERROR: calling server accept");
                 exit(EXIT_FAILURE);
             }
@@ -209,7 +212,7 @@ void Controller::start() {
 
             ssize_t r = read(newsockfd, buf, BUFFER_SIZE);
             if (!r) {
-                printf("WARNING: receiveFIFO closed\n");
+                printf("WARNING: TCP socket client connection closed\n");
             }
             string cmd = string(buf);
 
@@ -233,6 +236,7 @@ void Controller::start() {
                 printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
             }
         }
+
         // clear buffer
         memset(buf, 0, sizeof buf);
     }

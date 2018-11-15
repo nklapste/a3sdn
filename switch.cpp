@@ -37,14 +37,12 @@
 
 #define BUFFER_SIZE 1024
 
-#define PDFS_SIZE 6
-//#define PDFS_SIZE 5
+#define PDFS_SIZE 5
 #define PDFS_STDIN 0
-#define PDFS_CONTROLLER 1
-#define PDFS_LEFT_SWITCH 2
-#define PDFS_RIGHT_SWITCH 3
-#define PDFS_SIGNAL 4
-#define PDFS_SOCKET 5
+#define PDFS_LEFT_SWITCH 1
+#define PDFS_RIGHT_SWITCH 2
+#define PDFS_SIGNAL 3
+#define PDFS_SOCKET 4
 
 using namespace std;
 
@@ -83,8 +81,6 @@ Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
     // create Connection to controller
     // TODO: needs to be changed to TCP sockets
     gateID = switchID.getSwitchIDNum();
-    connections.emplace_back(Connection());
-
 
     // create Connection to the left switch
     // can potentially be a nullptr
@@ -172,10 +168,10 @@ void Switch::start() {
     // setup file descriptiors for all interswitch connection FIFOs
     pfds[PDFS_STDIN].fd = STDIN_FILENO;
     if (!leftSwitchID.isNullSwitchID()) {
-        pfds[PDFS_LEFT_SWITCH].fd = connections[1].openReceiveFIFO();
+        pfds[PDFS_LEFT_SWITCH].fd = connections[0].openReceiveFIFO();
     }
     if (!rightSwitchID.isNullSwitchID()) {
-        pfds[PDFS_RIGHT_SWITCH].fd = connections[2].openReceiveFIFO();
+        pfds[PDFS_RIGHT_SWITCH].fd = connections[1].openReceiveFIFO();
     }
 
     // init the signal file descriptor
@@ -195,13 +191,11 @@ void Switch::start() {
     string line;
     ifstream trafficFileStream(trafficFile);
 
-    // init client tcp connection
-    // TODO: more research needed
+    // TODO: init client tcp connection
     struct sockaddr_in serv_addr;
-    int sock = 0;
 
     // Creating socket file descriptor
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+    if ((pfds[PDFS_SOCKET].fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
         perror("ERROR: socket file descriptor creation failed");
         exit(EXIT_FAILURE);
     }
@@ -212,32 +206,32 @@ void Switch::start() {
 
     // Convert IPv4 and IPv6 addresses from text to binary form
     if(inet_pton(AF_INET, address.getIPAddr().c_str(), &serv_addr.sin_addr) <= 0) {
-        errno = EINVAL;
         perror("ERROR: invalid address");
-        exit(errno);
+        exit(EINVAL);
     }
-
     printf("INFO: connecting to: %s\n", getServerAddr().getIPAddr().c_str());
-
-    int connection = connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+    int connection = connect(pfds[PDFS_SOCKET].fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     if (connection < 0) {
-        errno = ENOTCONN;
         perror("ERROR: connection failed");
-        exit(errno);
+        exit(ENOTCONN);
     }
-    pfds[PDFS_SOCKET].fd = sock;
 
     // When a switch starts, it sends an OPEN packet to the controller.
     // The carried message contains the switch number, the numbers of its neighbouring switches (if any),
     // and the range of IP addresses served by the switch.
-    // TODO: send via TCP socket
     sendOPENPacket(pfds[PDFS_SOCKET].fd);
-    // TODO: wait for ack?
-    sendOPENPacket(pfds[PDFS_SOCKET].fd);
-
 
     /* This is the main loop */
     for (;;) {
+        // setup for the next round of polling
+        for (auto &pfd : pfds) {
+            pfd.events = POLLIN;
+        }
+        int ret = poll(pfds, PDFS_SIZE, 1);
+        if (errno || ret < 0) {
+            perror("ERROR: poll failure");
+            exit(errno);
+        }
         /*
          * 1.  Read and process a single line from the traffic line (if the EOF has not been reached yet). The
          *     switch ignores empty lines, comment lines, and lines specifying other handling switches. A
@@ -264,15 +258,6 @@ void Switch::start() {
          *             type.
          *       exit: The program writes the above information and exits.
          */
-        for (auto &pfd : pfds) {
-            pfd.events = POLLIN;
-        }
-        errno = 0;
-        int ret = poll(pfds, PDFS_SIZE, 1);
-        if (errno || ret < 0) {
-            perror("ERROR: poll failure");
-            exit(errno);
-        }
         if (pfds[PDFS_STDIN].revents & POLLIN) {
             ssize_t r = read(pfds[PDFS_STDIN].fd, buf, BUFFER_SIZE);
             if (!r) {
@@ -293,28 +278,28 @@ void Switch::start() {
             }
         }
 
+        // clear buffer
+        memset(buf, 0, sizeof buf);
+
         /*
          * 3. Poll the incoming FIFOs from the controller and the attached switches. The switch handles
          *    each incoming packet, as described in the Packet Types.
          */
 
-        for (std::vector<Connection>::size_type i = 1; i < 4; i++) {
-            if (i == 2 && leftSwitchID.getSwitchIDNum() < MIN_SWITCHES) {
-                continue;
-            }
-            if (i == 3 && rightSwitchID.getSwitchIDNum() < MIN_SWITCHES) {
+        for (std::vector<Connection>::size_type i = 1; i < 3; i++) {
+            if ((i == 1 && leftSwitchID.isNullSwitchID()) ||
+                    (i == 2 && rightSwitchID.isNullSwitchID())) {
                 continue;
             }
             if (pfds[i].revents & POLLIN) {
                 printf("DEBUG: pfds[%lu] has connection POLLIN event: %s\n", i,
-                       connections[i - 1].getReceiveFIFOName().c_str());
+                       connections[i].getReceiveFIFOName().c_str());
                 ssize_t r = read(pfds[i].fd, buf, BUFFER_SIZE);
                 if (!r) {
                     printf("WARNING: receiveFIFO closed\n");
                 }
                 string cmd = string(buf);
                 printf("DEBUG: obtained raw: %s\n", cmd.c_str());
-                // TODO: ignore invalid packets
                 Packet packet = Packet(cmd);
                 printf("DEBUG: Parsed packet: %s\n", packet.toString().c_str());
                 if (packet.getType() == ACK) {
@@ -385,6 +370,7 @@ void Switch::start() {
                 printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
             }
         }
+
         // clear buffer
         memset(buf, 0, sizeof buf);
     }
@@ -714,10 +700,8 @@ bool Switch::delayPassed() {
  */
 void Switch::setDelay(clock_t interval) {
     if (!delayPassed()){
-
         endTime = interval + endTime;
     } else {
-
         endTime = interval + (1000*clock()/(CLOCKS_PER_SEC));
     }
     printf("DEBUG: setting delay interval: currentTime: %lims endTime: %lims\n", (1000*clock()/(CLOCKS_PER_SEC)), endTime);
