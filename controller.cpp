@@ -26,6 +26,7 @@
 #include <sys/socket.h>
 #include <stdlib.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "controller.h"
 
@@ -203,6 +204,8 @@ void Controller::start() {
                 perror("ERROR: calling server accept");
                 exit(EXIT_FAILURE);
             }
+            printf("INFO: new client connection, socket fd:%d , ip:%s , port:%hu\n",
+                    newsockfd, inet_ntoa(address.sin_addr) , ntohs (address.sin_port));
 
             ssize_t r = read(newsockfd, buf, BUFFER_SIZE);
             if (!r) {
