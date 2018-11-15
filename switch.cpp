@@ -364,8 +364,6 @@ void Switch::start() {
             if (!r) {
                 printf("WARNING: TCP client socket closed\n");
             }
-
-            printf("Here is the message: %s\n", buf);
             string cmd = string(buf);
             printf("DEBUG: obtained raw: %s\n", cmd.c_str());
             // TODO: ignore invalid packets
@@ -507,7 +505,7 @@ void Switch::sendOPENPacket(int socketFD) {
  */
 void Switch::sendQUERYPacket(int socketFD, uint srcIP, uint dstIP) {
     Message queryMessage;
-    queryMessage.emplace_back(MessageArg("switchID", to_string(getGateID())));
+    queryMessage.emplace_back(MessageArg("switchID", SwitchID(getGateID()).getSwitchIDString()));
     queryMessage.emplace_back(MessageArg("srcIP", to_string(srcIP)));
     queryMessage.emplace_back(MessageArg("dstIP", to_string(dstIP)));
     Packet queryPacket = Packet(QUERY, queryMessage);
