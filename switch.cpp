@@ -169,10 +169,8 @@ void Switch::start() {
     struct pollfd pfds[PDFS_SIZE];
     char buf[BUFFER_SIZE];
 
-    // setup file descriptions or stdin and all connection FIFOs
+    // setup file descriptiors for all interswitch connection FIFOs
     pfds[PDFS_STDIN].fd = STDIN_FILENO;
-    // TODO: replace with TCP socket connection
-//    pfds[PDFS_CONTROLLER].fd = connections[0].openReceiveFIFO();
     if (!leftSwitchID.isNullSwitchID()) {
         pfds[PDFS_LEFT_SWITCH].fd = connections[1].openReceiveFIFO();
     }
@@ -180,6 +178,7 @@ void Switch::start() {
         pfds[PDFS_RIGHT_SWITCH].fd = connections[2].openReceiveFIFO();
     }
 
+    // init the signal file descriptor
     sigset_t sigset;
     /* Create a sigset of all the signals that we're interested in */
     sigemptyset(&sigset);
@@ -192,46 +191,47 @@ void Switch::start() {
     }
     pfds[PDFS_SIGNAL].fd = signalfd(-1, &sigset, 0);;
 
+    // init the trafficfile
     string line;
     ifstream trafficFileStream(trafficFile);
 
-//    // init client tcp connection
-//    // TODO: more research needed
-//    struct sockaddr_in serv_addr;
-//    int sock = 0;
-//
-//    // Creating socket file descriptor
-//    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
-//        perror("ERROR: socket file descriptor creation failed");
-//        exit(EXIT_FAILURE);
-//    }
-//    memset(&serv_addr, '0', sizeof(serv_addr));
-//
-//    serv_addr.sin_family = AF_INET;
-//    serv_addr.sin_port = htons(getPort().getPortNum());
-//
-//    // Convert IPv4 and IPv6 addresses from text to binary form
-//    if(inet_pton(AF_INET, address.getIPAddr().c_str(), &serv_addr.sin_addr) <= 0) {
-//        errno = EINVAL;
-//        perror("ERROR: invalid address");
-//        exit(errno);
-//    }
-//
-//    printf("INFO: connecting to: %s\n", getServerAddr().getIPAddr().c_str());
-//    pfds[PDFS_SOCKET].fd = connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-//    if (pfds[PDFS_SOCKET].fd < 0) {
-//        errno = ENOTCONN;
-//        perror("ERROR: connection failed");
-//        exit(errno);
-//    }
+    // init client tcp connection
+    // TODO: more research needed
+    struct sockaddr_in serv_addr;
+    int sock = 0;
 
-    // send(sock , hello , strlen(hello) , 0 );
+    // Creating socket file descriptor
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+        perror("ERROR: socket file descriptor creation failed");
+        exit(EXIT_FAILURE);
+    }
+    memset(&serv_addr, '0', sizeof(serv_addr));
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(getPort().getPortNum());
+
+    // Convert IPv4 and IPv6 addresses from text to binary form
+    if(inet_pton(AF_INET, address.getIPAddr().c_str(), &serv_addr.sin_addr) <= 0) {
+        errno = EINVAL;
+        perror("ERROR: invalid address");
+        exit(errno);
+    }
+
+    printf("INFO: connecting to: %s\n", getServerAddr().getIPAddr().c_str());
+
+    int connection = connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+    if (connection < 0) {
+        errno = ENOTCONN;
+        perror("ERROR: connection failed");
+        exit(errno);
+    }
+    pfds[PDFS_SOCKET].fd = sock;
 
     // When a switch starts, it sends an OPEN packet to the controller.
     // The carried message contains the switch number, the numbers of its neighbouring switches (if any),
     // and the range of IP addresses served by the switch.
     // TODO: send via TCP socket
-    sendOPENPacket(connections[0]);
+    sendOPENPacket(pfds[PDFS_SOCKET].fd);
     // TODO: wait for ack?
 
     /* This is the main loop */
@@ -247,7 +247,7 @@ void Switch::start() {
         if (delayPassed()){  // ensure that we are not experiencing a delay
             if (trafficFileStream.is_open()) {
                 if (getline(trafficFileStream, line)) {
-                    switchParseTrafficFileLine(line);
+                    switchParseTrafficFileLine(pfds[PDFS_SOCKET].fd, line);
                 } else {
                     trafficFileStream.close();
                     printf("DEBUG: finished reading traffic file\n");
@@ -320,12 +320,12 @@ void Switch::start() {
                 } else if (packet.getType() == ADD) {
                     respondADDPacket(packet.getMessage());
                 } else if (packet.getType() == RELAY) {
-                    respondRELAYPacket(packet.getMessage());
+                    respondRELAYPacket(pfds[PDFS_SOCKET].fd, packet.getMessage());
                 } else {
                     // Switch has no other special behavior for other packets
                     if (packet.getType() == OPEN) {
                         rOpenCount++;
-                    } else if (packet.getType() == RELAY) {
+                    } else if (packet.getType() == QUERY) {
                         rQueryCount++;
                     }
                     printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
@@ -349,6 +349,41 @@ void Switch::start() {
                 list();
             }
         }
+
+        // clear buffer
+        memset(buf, 0, sizeof buf);
+
+        /*
+         * Check the TCP socket file descriptor
+         */
+        if (pfds[PDFS_SOCKET].revents & POLLIN) {
+            printf("DEBUG: TCP client socket has POLLIN event\n");
+            ssize_t r = read(pfds[PDFS_SOCKET].fd, buf, BUFFER_SIZE);
+            if (!r) {
+                printf("WARNING: TCP client socket closed\n");
+            }
+            printf("Here is the message: %s\n", buf);
+            string cmd = string(buf);
+            printf("DEBUG: obtained raw: %s\n", cmd.c_str());
+            // TODO: ignore invalid packets
+            Packet packet = Packet(cmd);
+
+            if (packet.getType() == ACK) {
+                respondACKPacket();
+            } else if (packet.getType() == ADD) {
+                respondADDPacket(packet.getMessage());
+            } else {
+                // Switch has no other special behavior for other packets
+                if (packet.getType() == OPEN) {
+                    rOpenCount++;
+                } else if (packet.getType() == RELAY) {
+                    rRelayCount++;
+                } else if (packet.getType() == QUERY) {
+                    rQueryCount++;
+                }
+                printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
+            }
+        }
         // clear buffer
         memset(buf, 0, sizeof buf);
     }
@@ -357,10 +392,11 @@ void Switch::start() {
 /**
  * Parse a line within the Switche's TrafficFile.
  *
+ * @param socketFD {@code int}
  * @param line {@code std::string}
  * @return {@code std::string}
  */
-string &Switch::switchParseTrafficFileLine(string &line) {
+string &Switch::switchParseTrafficFileLine(int socketFD, string &line) {
     int trafficFileLineType = getTrafficFileLineType(line);
 
     if (trafficFileLineType == INVALID_LINE) {
@@ -383,7 +419,7 @@ string &Switch::switchParseTrafficFileLine(string &line) {
             uint srcIP = get<1>(routeItem);
             uint dstIP = get<2>(routeItem);
             if (resolvePacket(srcIP, dstIP) <= 0) { // did not find rule
-                sendQUERYPacket(connections[0], srcIP, dstIP);
+                sendQUERYPacket(socketFD, srcIP, dstIP);
             }
         }
     }
@@ -439,9 +475,11 @@ int Switch::getFlowEntryIndex(uint srcIP, uint dstIP) {
 /**
  * Send a OPEN packet describing the Switch through the given connection.
  *
- * @param connection {@code Connection}
+ * Note: this should only be sent to the controller whick communicates through TCP sockets and not FIFOs.
+ *
+ * @param socketFD {@code int}
  */
-void Switch::sendOPENPacket(Connection connection) {
+void Switch::sendOPENPacket(int socketFD) {
     Message openMessage;
     openMessage.emplace_back(make_tuple("switchID", to_string(getGateID())));
     openMessage.emplace_back(make_tuple("leftSwitchID", to_string(getLeftSwitchID().getSwitchIDNum())));
@@ -451,29 +489,28 @@ void Switch::sendOPENPacket(Connection connection) {
     openMessage.emplace_back(make_tuple("Address", getServerAddr().getSymbolicName()));
     openMessage.emplace_back(make_tuple("Port", to_string(getPort().getPortNum())));
     Packet openPacket = Packet(OPEN, openMessage);
-    printf("INFO: sending OPEN packet: connection: %s packet: %s\n",
-           connection.getSendFIFOName().c_str(), openPacket.toString().c_str());
-    write(connection.openSendFIFO(), openPacket.toString().c_str(), strlen(openPacket.toString().c_str()));
+    // TODO: fix log statement
+    printf("INFO: sending OPEN packet: packet: %s\n", openPacket.toString().c_str());
+    send(socketFD, openPacket.toString().c_str(), strlen(openPacket.toString().c_str()), 0);
     tOpenCount++;
 }
 
 /**
  * Send a QUERY packet describing the unknown packet header through the given connection.
  *
- * @param connection {@code Connection}
+ * @param socketFD {@code int}
  * @param srcIP {@code uint}
  * @param dstIP {@code uint}
  */
-void Switch::sendQUERYPacket(Connection connection, uint srcIP, uint dstIP) {
+void Switch::sendQUERYPacket(int socketFD, uint srcIP, uint dstIP) {
     Message queryMessage;
     queryMessage.emplace_back(MessageArg("switchID", to_string(getGateID())));
     queryMessage.emplace_back(MessageArg("srcIP", to_string(srcIP)));
     queryMessage.emplace_back(MessageArg("dstIP", to_string(dstIP)));
     Packet queryPacket = Packet(QUERY, queryMessage);
-    printf("INFO: sending QUERY packet: connection: %s packet: %s\n",
-           connection.getSendFIFOName().c_str(), queryPacket.toString().c_str());
-    write(connection.openSendFIFO(), queryPacket.toString().c_str(),
-          strlen(queryPacket.toString().c_str()));
+    // TODO: update log statement
+    printf("INFO: sending QUERY packet: packet: %s\n", queryPacket.toString().c_str());
+    send(socketFD, queryPacket.toString().c_str(), strlen(queryPacket.toString().c_str()), 0);
     // set packet whether from the traffic file or from a relay into the unsolvedPackets vector
     // to be solved later
     unsolvedPackets.emplace_back(Packet(RELAY, queryMessage));
@@ -574,9 +611,10 @@ void Switch::resolveUnsolvedPackets() {
  * matching rule in the flow table). This information is passed to the neighbour in a
  * RELAY packet.
  *
+ * @param socketFD {@code int}
  * @param message {@code Message}
  */
-void Switch::respondRELAYPacket(Message message) {
+void Switch::respondRELAYPacket(int socketFD, Message message) {
     rRelayCount++;
     uint rSwitchID = static_cast<uint>(stoi(get<1>(message[0])));
     uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
@@ -587,7 +625,7 @@ void Switch::respondRELAYPacket(Message message) {
            rSwitchID, srcIP, dstIP);
 
     if (resolvePacket(srcIP, dstIP) <= 0) { // did not find rule
-        sendQUERYPacket(connections[PORT_0], srcIP, dstIP);
+        sendQUERYPacket(socketFD, srcIP, dstIP);
     }
 }
 

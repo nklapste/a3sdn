@@ -20,6 +20,13 @@
 /*FIFO stuff*/
 #include <poll.h>
 
+/*socket stuff*/
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/socket.h>
+#include <stdlib.h>
+#include <netinet/in.h>
+
 #include "controller.h"
 
 #define LIST_CMD "list"
@@ -27,9 +34,10 @@
 
 #define BUFFER_SIZE 1024
 
-#define PDFS_SIZE connections.size()+3
+#define PDFS_SIZE connections.size()+4
 #define PDFS_STDIN 0
 #define PDFS_SIGNAL connections.size()+2
+#define PDFS_SOCKET connections.size()+3
 
 using namespace std;
 
@@ -74,13 +82,11 @@ void Controller::start() {
     struct pollfd pfds[PDFS_SIZE];
     char buf[BUFFER_SIZE];
 
+    // TODO: is this needed now?
     // setup file descriptions or stdin and all connection FIFOs
     pfds[PDFS_STDIN].fd = STDIN_FILENO;
-    for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
-        // TODO: replace with TCP socket connections
-        //        pfds[i].fd = connections[i - 1].openReceiveFIFO();
-    }
 
+    // init signal file descriptor
     sigset_t sigset;
     /* Create a sigset of all the signals that we're interested in */
     sigemptyset(&sigset);
@@ -91,11 +97,47 @@ void Controller::start() {
         perror("ERROR: setting signal mask");
         exit(errno);
     }
+    pfds[PDFS_SIGNAL].fd = signalfd(-1, &sigset, 0);;
 
     // TODO: init TCP socket connection
+    // init TCP socket file descriptor
+    int server_fd, newsockfd;
 
-    /* This is the main loop */
-    pfds[PDFS_SIGNAL].fd = signalfd(-1, &sigset, 0);;
+    struct sockaddr_in address;
+    int opt = 1;
+    int addrlen = sizeof(address);
+
+    // Creating socket file descriptor
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+        perror("ERROR: creating socket failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Forcefully attaching socket to the port 8080
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
+                   &opt, sizeof(opt))) {
+        perror("ERROR: attaching socket failed");
+        exit(EXIT_FAILURE);
+    }
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(getPort().getPortNum());
+
+    // Forcefully attaching socket to the port 8080
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address))<0) {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
+    if (listen(server_fd, 3) < 0)
+    {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+
+    //    send(new_socket , hello , strlen(hello) , 0 );
+    //    printf("Hello message sent\n");
+
+    pfds[PDFS_SOCKET].fd = server_fd;
 
     // enter the controller loop
     for (;;) {
@@ -136,42 +178,6 @@ void Controller::start() {
         }
 
         /*
-         * 2. Poll the incoming FIFOs from the controller and the attached switches. The switch handles
-         *    each incoming packet, as described in the Packet Types.
-         */
-        for (std::vector<Connection>::size_type i = 1; i != connections.size() + 1; i++) {
-            if (pfds[i].revents & POLLIN) {
-                printf("DEBUG: pfds[%lu] has connection POLLIN event: %s\n", i,
-                       connections[i - 1].getReceiveFIFOName().c_str());
-                ssize_t r = read(pfds[i].fd, buf, BUFFER_SIZE);
-                if (!r) {
-                    printf("WARNING: receiveFIFO closed\n");
-                }
-                string cmd = string(buf);
-
-                // take the message and parse it into a packet
-                Packet packet = Packet(cmd);
-                printf("DEBUG: parsed packet: %s\n", packet.toString().c_str());
-
-                if (packet.getType() == OPEN) {
-                    respondOPENPacket(connections[i - 1], packet.getMessage());
-                } else if (packet.getType() == QUERY) {
-                    respondQUERYPacket(connections[i - 1], packet.getMessage());
-                } else {
-                    // Controller has no other special behavior for other packets
-                    if (packet.getType() == ACK) {
-                        rAckCount++;
-                    } else if (packet.getType() == ADD) {
-                        rAddCount++;
-                    } else if (packet.getType() == RELAY) {
-                        rRelayCount++;
-                    }
-                    printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
-                }
-            }
-        }
-
-        /*
          * In addition, upon receiving signal USER1, the switch displays the information specified by the list command.
          */
         if (pfds[PDFS_SIGNAL].revents & POLLIN) {
@@ -185,6 +191,44 @@ void Controller::start() {
             if (sig == SIGUSR1) {
                 printf("DEBUG: received SIGUSR1 signal\n");
                 list();
+            }
+        }
+
+        /*
+         * Check the socket file descriptor for events
+         */
+        if (pfds[PDFS_SOCKET].revents & POLLIN) {
+            printf("DEBUG: socket file descriptor has POLLIN event\n");
+            if ((newsockfd = accept(server_fd, (struct sockaddr *)&address,(socklen_t*)&addrlen))<0) {
+                perror("ERROR: calling server accept");
+                exit(EXIT_FAILURE);
+            }
+
+            ssize_t r = read(newsockfd, buf, BUFFER_SIZE);
+            if (!r) {
+                printf("WARNING: receiveFIFO closed\n");
+            }
+            printf("Here is the message: %s\n", buf);
+            string cmd = string(buf);
+
+            // take the message and parse it into a packet
+            Packet packet = Packet(cmd);
+            printf("DEBUG: parsed packet: %s\n", packet.toString().c_str());
+
+            if (packet.getType() == OPEN) {
+                respondOPENPacket(newsockfd, packet.getMessage());
+            } else if (packet.getType() == QUERY) {
+                respondQUERYPacket(newsockfd, packet.getMessage());
+            } else {
+                // Controller has no other special behavior for other packets
+                if (packet.getType() == ACK) {
+                    rAckCount++;
+                } else if (packet.getType() == ADD) {
+                    rAddCount++;
+                } else if (packet.getType() == RELAY) {
+                    rRelayCount++;
+                }
+                printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
             }
         }
         // clear buffer
@@ -341,24 +385,24 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
 /**
  * Create and send a ACK packet out to the specified connection.
  *
- * @param connection {@code Connection}
+ * @param socketFD {@code int}
  */
-void Controller::sendACKPacket(Connection connection) {
+void Controller::sendACKPacket(int socketFD) {
     Packet ackPacket = Packet(ACK, Message());
-    printf("INFO: sending ACK packet: connection: %s packet: %s\n",
-           connection.getSendFIFOName().c_str(), ackPacket.toString().c_str());
-    write(connection.openSendFIFO(), ackPacket.toString().c_str(),
-          strlen(ackPacket.toString().c_str()));
+    // TODO: fix log statement
+    printf("INFO: sending ACK packet: packet: %s\n", ackPacket.toString().c_str());
+    send(socketFD, ackPacket.toString().c_str(), strlen(ackPacket.toString().c_str()), 0);
     tAckCount++;
 }
 
 /**
- * Create and send a ADD packet out to the specified connection. Indicating to add the specified FlowEntry.
+ * Create and send a ADD packet out to the specified TCP socket connection.
+ * Indicating to add the specified FlowEntry.
  *
- * @param connection {@code Connection}
+ * @param socketFD {@code int}
  * @param flowEntry {@code FlowEntry}
  */
-void Controller::sendADDPacket(Connection connection, FlowEntry flowEntry) {
+void Controller::sendADDPacket(int socketFD, FlowEntry flowEntry) {
     Message addMessage;
     addMessage.emplace_back(MessageArg("srcIPLow", to_string(flowEntry.srcIPLow)));
     addMessage.emplace_back(MessageArg("srcIPHigh", to_string(flowEntry.srcIPHigh)));
@@ -369,10 +413,9 @@ void Controller::sendADDPacket(Connection connection, FlowEntry flowEntry) {
     addMessage.emplace_back(MessageArg("pri", to_string(flowEntry.pri)));
     addMessage.emplace_back(MessageArg("pktCount", to_string(flowEntry.pktCount)));
     Packet addPacket = Packet(ADD, addMessage);
-    printf("INFO: sending ADD packet: connection: %s packet: %s\n",
-           connection.getSendFIFOName().c_str(), addPacket.toString().c_str());
-    write(connection.openSendFIFO(), addPacket.toString().c_str(),
-          strlen(addPacket.toString().c_str()));
+    // TODO: fix this log statement
+    printf("INFO: sending ADD packet: packet: %s\n", addPacket.toString().c_str());
+    send(socketFD, addPacket.toString().c_str(), strlen(addPacket.toString().c_str()), 0);
     tAddCount++;
 }
 
@@ -382,10 +425,10 @@ void Controller::sendADDPacket(Connection connection, FlowEntry flowEntry) {
  * Upon receiving an OPEN packet, the controller updates its stored information about the switch,
  * and replies with a packet of type ACK.
  *
- * @param connection {@code Connection}
+ * @param socketfd {@code int}
  * @param message {@code Message}
  */
-void Controller::respondOPENPacket(Connection connection, Message message) {
+void Controller::respondOPENPacket(int socketfd, Message message) {
     rOpenCount++;
     uint switchID = static_cast<uint>(stoi(get<1>(message[0])));
     uint leftSwitchID = static_cast<uint>(stoi(get<1>(message[1])));
@@ -393,7 +436,7 @@ void Controller::respondOPENPacket(Connection connection, Message message) {
     uint switchIPLow = static_cast<uint>(stoi(get<1>(message[3])));
     uint switchIPHigh = static_cast<uint>(stoi(get<1>(message[4])));
     Address address = Address(get<1>(message[5]));
-    Port port = Port(static_cast<uint>(stoi(get<1>(message[6]))));
+    Port port = Port(static_cast<u_int16_t>(stoi(get<1>(message[6]))));
     printf("DEBUG: parsed OPEN packet: switchID: %u leftSwitchID: %u rightSwitchID: %u switchIPLow: %u switchIPHigh: %u address: %s port: %u\n",
            switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh, address.getSymbolicName().c_str(),
            port.getPortNum());
@@ -428,16 +471,16 @@ void Controller::respondOPENPacket(Connection connection, Message message) {
     switches.erase(unique(switches.begin(), switches.end()), switches.end());
 
     // send ack back to switch
-    sendACKPacket(std::move(connection));
+    sendACKPacket(socketfd);
 }
 
 /**
  * Respond to a QUERY packet.
  *
- * @param connection {@code Connection}
+ * @param socketFD {@code int}
  * @param message {@code Message}
  */
-void Controller::respondQUERYPacket(Connection connection, Message message) {
+void Controller::respondQUERYPacket(int socketFD, Message message) {
     rQueryCount++;
     uint switchID = static_cast<uint>(stoi(get<1>(message[0])));
     uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
@@ -449,7 +492,7 @@ void Controller::respondQUERYPacket(Connection connection, Message message) {
     FlowEntry flowEntry = makeFlowEntry(switchID, srcIP, dstIP);
 
     // create and send new add packet
-    sendADDPacket(std::move(connection), flowEntry);
+    sendADDPacket(socketFD, flowEntry);
 }
 
 /**

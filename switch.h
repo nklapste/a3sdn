@@ -70,13 +70,13 @@ private:
     vector<Connection> connections;
     vector<Packet> unsolvedPackets;
 
-    string &switchParseTrafficFileLine(string &line);
+    string &switchParseTrafficFileLine(int socketFD, string &line);
 
     int getFlowEntryIndex(uint srcIP, uint dstIP);
 
-    void sendOPENPacket(Connection connection);
+    void sendOPENPacket(int socketFD);
 
-    void sendQUERYPacket(Connection connection, uint srcIP, uint dstIP);
+    void sendQUERYPacket(int socketFD, uint srcIP, uint dstIP);
 
     void sendRELAYPacket(Connection connection, uint srcIP, uint dstIP);
 
@@ -84,7 +84,7 @@ private:
 
     void respondADDPacket(Message message);
 
-    void respondRELAYPacket(Message message);
+    void respondRELAYPacket(int socketFD, Message message);
 
     void resolveUnsolvedPackets();
 

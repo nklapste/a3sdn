@@ -39,13 +39,13 @@ private:
 
     FlowEntry makeFlowEntry(uint switchID, uint srcIP, uint dstIP);
 
-    void sendACKPacket(Connection connection);
+    void sendACKPacket(int socketFD);
 
-    void sendADDPacket(Connection connection, FlowEntry flowEntry);
+    void sendADDPacket(int socketFD, FlowEntry flowEntry);
 
-    void respondOPENPacket(Connection connection, Message message);
+    void respondOPENPacket(int socketFD, Message message);
 
-    void respondQUERYPacket(Connection connection, Message message);
+    void respondQUERYPacket(int socketFD, Message message);
 
     void list() override;
 
