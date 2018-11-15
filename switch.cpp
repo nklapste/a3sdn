@@ -233,6 +233,8 @@ void Switch::start() {
     // TODO: send via TCP socket
     sendOPENPacket(pfds[PDFS_SOCKET].fd);
     // TODO: wait for ack?
+    sendOPENPacket(pfds[PDFS_SOCKET].fd);
+
 
     /* This is the main loop */
     for (;;) {
@@ -403,8 +405,8 @@ string &Switch::switchParseTrafficFileLine(int socketFD, string &line) {
         return line;
     } else if (trafficFileLineType == DELAY_LINE) {
         trafficFileDelayItem delayItem = parseTrafficDelayItem(line);
-        uint tfSwitchID = get<0>(delayItem);
-        if (tfSwitchID != getGateID()) {
+        SwitchID tfSwitchID = get<0>(delayItem);
+        if (tfSwitchID.getSwitchIDNum() != getGateID()) {
             printf("DEBUG: ignoring line specifying another switch\n");
         } else {
             setDelay(get<2>(delayItem));
@@ -412,8 +414,8 @@ string &Switch::switchParseTrafficFileLine(int socketFD, string &line) {
         // TODO: act on delay item
     } else if (trafficFileLineType == ROUTE_LINE) {
         trafficFileRouteItem routeItem = parseTrafficRouteItem(line);
-        uint tfSwitchID = get<0>(routeItem);
-        if (tfSwitchID != getGateID()) {
+        SwitchID tfSwitchID = get<0>(routeItem);
+        if (tfSwitchID.getSwitchIDNum() != getGateID()) {
             printf("DEBUG: ignoring line specifying another switch\n");
         } else {
             uint srcIP = get<1>(routeItem);
@@ -481,9 +483,9 @@ int Switch::getFlowEntryIndex(uint srcIP, uint dstIP) {
  */
 void Switch::sendOPENPacket(int socketFD) {
     Message openMessage;
-    openMessage.emplace_back(make_tuple("switchID", to_string(getGateID())));
-    openMessage.emplace_back(make_tuple("leftSwitchID", to_string(getLeftSwitchID().getSwitchIDNum())));
-    openMessage.emplace_back(make_tuple("rightSwitchID", to_string(getRightSwitchID().getSwitchIDNum())));
+    openMessage.emplace_back(make_tuple("switchID", SwitchID(getGateID()).getSwitchIDString()));
+    openMessage.emplace_back(make_tuple("leftSwitchID", getLeftSwitchID().getSwitchIDString()));
+    openMessage.emplace_back(make_tuple("rightSwitchID", getRightSwitchID().getSwitchIDString()));
     openMessage.emplace_back(make_tuple("IPLow", to_string(getIPHigh())));
     openMessage.emplace_back(make_tuple("IPHigh", to_string(getIPLow())));
     openMessage.emplace_back(make_tuple("Address", getServerAddr().getSymbolicName()));
@@ -526,7 +528,7 @@ void Switch::sendQUERYPacket(int socketFD, uint srcIP, uint dstIP) {
  */
 void Switch::sendRELAYPacket(Connection connection, uint srcIP, uint dstIP) {
     Message relayMessage;
-    relayMessage.emplace_back(make_tuple("switchID", to_string(getGateID())));
+    relayMessage.emplace_back(make_tuple("switchID", SwitchID(getGateID()).getSwitchIDString()));
     relayMessage.emplace_back(make_tuple("srcIP", to_string(srcIP)));
     relayMessage.emplace_back(make_tuple("dstIP", to_string(dstIP)));
     Packet relayPacket = Packet(RELAY, relayMessage);
@@ -616,13 +618,13 @@ void Switch::resolveUnsolvedPackets() {
  */
 void Switch::respondRELAYPacket(int socketFD, Message message) {
     rRelayCount++;
-    uint rSwitchID = static_cast<uint>(stoi(get<1>(message[0])));
+    SwitchID rSwitchID = SwitchID(get<1>(message[0]));
     uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
     uint dstIP = static_cast<uint>(stoi(get<1>(message[2])));
 
     printf("INFO: parsed RELAY packet:\n"
-           "\tswitchID: %u srcIP: %u dstIP: %u",
-           rSwitchID, srcIP, dstIP);
+           "\tswitchID: %s srcIP: %u dstIP: %u",
+           rSwitchID.getSwitchIDString().c_str(), srcIP, dstIP);
 
     if (resolvePacket(srcIP, dstIP) <= 0) { // did not find rule
         sendQUERYPacket(socketFD, srcIP, dstIP);

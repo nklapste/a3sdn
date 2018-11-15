@@ -61,7 +61,11 @@ uint SwitchID::validateSwitchIDNum(uint switchIDNum) {
  */
 SwitchID::SwitchID(uint switchIDNum) {
     SwitchID::switchIDNum = validateSwitchIDNum(switchIDNum);
-    SwitchID::switchIDString = "sw" + to_string(SwitchID::switchIDNum);
+    if (SwitchID::switchIDNum == NULL_SWITCH_ID_NUM){
+        SwitchID::switchIDString = NULL_SWITCH_ID_FLAG;
+    } else {
+        SwitchID::switchIDString = "sw" + to_string(SwitchID::switchIDNum);
+    }
 }
 
 /**
@@ -72,10 +76,11 @@ SwitchID::SwitchID(uint switchIDNum) {
 SwitchID::SwitchID(string switchIDString) {
     if (switchIDString == NULL_SWITCH_ID_FLAG) {
         SwitchID::switchIDNum = NULL_SWITCH_ID_NUM;
+        SwitchID::switchIDString = NULL_SWITCH_ID_FLAG;
     } else {
         SwitchID::switchIDNum = parseSwitchID(switchIDString);
+        SwitchID::switchIDString = "sw" + to_string(SwitchID::switchIDNum);
     }
-    SwitchID::switchIDString = "sw" + to_string(SwitchID::switchIDNum);
 }
 
 /**

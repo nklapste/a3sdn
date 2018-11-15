@@ -208,7 +208,6 @@ void Controller::start() {
             if (!r) {
                 printf("WARNING: receiveFIFO closed\n");
             }
-            printf("Here is the message: %s\n", buf);
             string cmd = string(buf);
 
             // take the message and parse it into a packet
@@ -430,20 +429,20 @@ void Controller::sendADDPacket(int socketFD, FlowEntry flowEntry) {
  */
 void Controller::respondOPENPacket(int socketfd, Message message) {
     rOpenCount++;
-    uint switchID = static_cast<uint>(stoi(get<1>(message[0])));
-    uint leftSwitchID = static_cast<uint>(stoi(get<1>(message[1])));
-    uint rightSwitchID = static_cast<uint>(stoi(get<1>(message[2])));
+    SwitchID switchID = SwitchID(get<1>(message[0]));
+    SwitchID leftSwitchID = SwitchID(get<1>(message[1]));
+    SwitchID rightSwitchID = SwitchID(get<1>(message[2]));
     uint switchIPLow = static_cast<uint>(stoi(get<1>(message[3])));
     uint switchIPHigh = static_cast<uint>(stoi(get<1>(message[4])));
     Address address = Address(get<1>(message[5]));
     Port port = Port(static_cast<u_int16_t>(stoi(get<1>(message[6]))));
-    printf("DEBUG: parsed OPEN packet: switchID: %u leftSwitchID: %u rightSwitchID: %u switchIPLow: %u switchIPHigh: %u address: %s port: %u\n",
-           switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh, address.getSymbolicName().c_str(),
+    printf("DEBUG: parsed OPEN packet: switchID: %s leftSwitchID: %s rightSwitchID: %s switchIPLow: %u switchIPHigh: %u address: %s port: %u\n",
+           switchID.getSwitchIDString().c_str(), leftSwitchID.getSwitchIDString().c_str(), rightSwitchID.getSwitchIDString().c_str(),
+           switchIPLow, switchIPHigh, address.getSymbolicName().c_str(),
            port.getPortNum());
 
     // create the new switch from the parsed OPEN packet
-    Switch newSwitch = Switch(SwitchID(switchID), SwitchID(leftSwitchID), SwitchID(rightSwitchID),
-                              switchIPLow, switchIPHigh, address, port);
+    Switch newSwitch = Switch(switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh, address, port);
 
     // check if we are creating or updating a switch
     auto it = find_if(switches.begin(), switches.end(), [&newSwitch](Switch &sw) {
@@ -482,14 +481,14 @@ void Controller::respondOPENPacket(int socketfd, Message message) {
  */
 void Controller::respondQUERYPacket(int socketFD, Message message) {
     rQueryCount++;
-    uint switchID = static_cast<uint>(stoi(get<1>(message[0])));
+    SwitchID switchID = SwitchID(get<1>(message[0]));
     uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
     uint dstIP = static_cast<uint>(stoi(get<1>(message[2])));
-    printf("DEBUG: parsed QUERY packet: switchID: %u srcIP: %u dstIP: %u\n",
-           switchID, srcIP, dstIP);
+    printf("DEBUG: parsed QUERY packet: switchID: %s srcIP: %u dstIP: %u\n",
+           switchID.getSwitchIDString().c_str(), srcIP, dstIP);
 
     // calculate new flow entry
-    FlowEntry flowEntry = makeFlowEntry(switchID, srcIP, dstIP);
+    FlowEntry flowEntry = makeFlowEntry(switchID.getSwitchIDNum(), srcIP, dstIP);
 
     // create and send new add packet
     sendADDPacket(socketFD, flowEntry);

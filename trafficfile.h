@@ -12,6 +12,7 @@
 #define ROUTE_LINE 2
 
 #include <tuple>
+#include "switchid.h"
 
 using namespace std;
 
@@ -20,12 +21,12 @@ using namespace std;
  * Traffic file line type formatted as "swi delay interval"
  * where interval is an integer in milliseconds.
  */
-typedef tuple<uint, string, clock_t> trafficFileDelayItem;
+typedef tuple<SwitchID, string, clock_t> trafficFileDelayItem;
 
 /**
  * Traffic file line type formatted as "swi srcIP dstIP"
  */
-typedef tuple<uint, uint, uint> trafficFileRouteItem;
+typedef tuple<SwitchID, uint, uint> trafficFileRouteItem;
 
 int getTrafficFileLineType(string &line);
 
