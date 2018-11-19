@@ -40,7 +40,9 @@
 #define PDFS_SIZE 5
 #define PDFS_STDIN 0
 #define PDFS_LEFT_SWITCH 1
+#define CONNECTION_LEFT_SWITCH 0
 #define PDFS_RIGHT_SWITCH 2
+#define CONNECTION_RIGHT_SWITCH 1
 #define PDFS_SIGNAL 3
 #define PDFS_SOCKET 4
 
@@ -167,10 +169,10 @@ void Switch::start() {
     // setup file descriptiors for all interswitch connection FIFOs
     pfds[PDFS_STDIN].fd = STDIN_FILENO;
     if (!leftSwitchID.isNullSwitchID()) {
-        pfds[PDFS_LEFT_SWITCH].fd = connections[0].openReceiveFIFO();
+        pfds[PDFS_LEFT_SWITCH].fd = connections[CONNECTION_LEFT_SWITCH].openReceiveFIFO();
     }
     if (!rightSwitchID.isNullSwitchID()) {
-        pfds[PDFS_RIGHT_SWITCH].fd = connections[1].openReceiveFIFO();
+        pfds[PDFS_RIGHT_SWITCH].fd = connections[CONNECTION_RIGHT_SWITCH].openReceiveFIFO();
     }
 
     // init the signal file descriptor
@@ -248,15 +250,11 @@ void Switch::start() {
         /*
          * Check Switch<->Switch connections
          */
-        for (std::vector<Connection>::size_type i = 1; i < 3; i++) {
-            // don't check connection on null switches
-            if ((i == 1 && leftSwitchID.isNullSwitchID()) ||
-                (i == 2 && rightSwitchID.isNullSwitchID())) {
-                continue;
-            }
-            if (pfds[i].revents & POLLIN) {
-                check_connection(pfds[i].fd, pfds[PDFS_SOCKET].fd, connections[i - 1]);
-            }
+        if (!leftSwitchID.isNullSwitchID()) {  // don't check connection on null switches
+            check_connection(pfds[PDFS_LEFT_SWITCH].fd, pfds[PDFS_SOCKET].fd, connections[CONNECTION_LEFT_SWITCH]);
+        }
+        if (!rightSwitchID.isNullSwitchID()) {  // don't check connection on null switches
+            check_connection(pfds[PDFS_RIGHT_SWITCH].fd, pfds[PDFS_SOCKET].fd, connections[CONNECTION_RIGHT_SWITCH]);
         }
 
         /*
