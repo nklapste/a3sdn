@@ -73,7 +73,7 @@ void Gate::check_stdin(int stdinFD) {
         printf("INFO: exit command received: terminating\n");
         exit(0);
     } else {
-        printf("ERROR: invalid Controller command: %s\n"
+        printf("ERROR: invalid Gate (Controller/Switch) command: %s\n"
                "\tPlease use either 'list' or 'exit'\n", cmd.c_str());
     }
 }
