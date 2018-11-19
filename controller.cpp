@@ -170,7 +170,7 @@ void Controller::start() {
  */
 void Controller::check_sock(int socketFD) {
     printf("DEBUG: socket file descriptor has POLLIN event\n");
-    char buf[BUFFER_SIZE];
+    char buf[BUFFER_SIZE] = "\0";
 
     int newsockfd;
     struct sockaddr_in address;

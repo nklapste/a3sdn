@@ -298,7 +298,7 @@ void Switch::check_trafficFile(int socketFD, ifstream &trafficFileStream) {
  *    each incoming packet, as described in the Packet Types.
  */
 void Switch::check_connection(int connectionFD, int socketFD, Connection connection) {
-    char buf[BUFFER_SIZE];
+    char buf[BUFFER_SIZE] = "\0";
 
     printf("DEBUG: connection POLLIN event: %s\n", connection.getReceiveFIFOName().c_str());
     ssize_t r = read(connectionFD, buf, BUFFER_SIZE);
@@ -658,7 +658,7 @@ void Switch::setDelay(clock_t interval) {
 }
 
 void Switch::check_sock(int socketFD) {
-    char buf[BUFFER_SIZE];
+    char buf[BUFFER_SIZE] = "\0";
 
     printf("DEBUG: TCP client socket has POLLIN event\n");
     ssize_t r = read(socketFD, buf, BUFFER_SIZE);

@@ -57,7 +57,7 @@ Gate::Gate(Port port) : port(port) {
  *       exit: The program writes the above information and exits.
  */
 void Gate::check_stdin(int stdinFD) {
-    char buf[BUFFER_SIZE];
+    char buf[BUFFER_SIZE] = "\0";
     ssize_t r = read(stdinFD, buf, BUFFER_SIZE);
     if (!r) {
         printf("WARNING: stdin closed\n");
