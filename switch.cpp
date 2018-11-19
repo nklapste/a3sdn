@@ -255,7 +255,7 @@ void Switch::start() {
                 continue;
             }
             if (pfds[i].revents & POLLIN) {
-                check_connection(pfds[i].fd, pfds[PDFS_SOCKET].fd, connections[i]);
+                check_connection(pfds[i].fd, pfds[PDFS_SOCKET].fd, connections[i - 1]);
             }
         }
 
