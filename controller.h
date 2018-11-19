@@ -11,6 +11,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <poll.h>
 
 #include "connection.h"
 #include "flow.h"
@@ -50,6 +51,8 @@ private:
     void list() override;
 
     void listControllerStats();
+
+    void check_sock(int socketFD) override;
 };
 
 #endif //A2SDN_CONTROLLER_H

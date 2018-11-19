@@ -292,31 +292,7 @@ void Switch::start() {
                 continue;
             }
             if (pfds[i].revents & POLLIN) {
-                printf("DEBUG: pfds[%lu] has connection POLLIN event: %s\n", i,
-                       connections[i].getReceiveFIFOName().c_str());
-                ssize_t r = read(pfds[i].fd, buf, BUFFER_SIZE);
-                if (!r) {
-                    printf("WARNING: receiveFIFO closed\n");
-                }
-                string cmd = string(buf);
-                printf("DEBUG: obtained raw: %s\n", cmd.c_str());
-                Packet packet = Packet(cmd);
-                printf("DEBUG: Parsed packet: %s\n", packet.toString().c_str());
-                if (packet.getType() == ACK) {
-                    respondACKPacket();
-                } else if (packet.getType() == ADD) {
-                    respondADDPacket(packet.getMessage());
-                } else if (packet.getType() == RELAY) {
-                    respondRELAYPacket(pfds[PDFS_SOCKET].fd, packet.getMessage());
-                } else {
-                    // Switch has no other special behavior for other packets
-                    if (packet.getType() == OPEN) {
-                        rOpenCount++;
-                    } else if (packet.getType() == QUERY) {
-                        rQueryCount++;
-                    }
-                    printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
-                }
+                check_connection(pfds[i].fd, pfds[PDFS_SOCKET].fd, connections[i]);
             }
         }
 
@@ -324,17 +300,7 @@ void Switch::start() {
          * In addition, upon receiving signal USER1, the switch displays the information specified by the list command.
          */
         if (pfds[PDFS_SIGNAL].revents & POLLIN) {
-            struct signalfd_siginfo info{};
-            /* We have a valid signal, read the info from the fd */
-            ssize_t r = read(pfds[PDFS_SIGNAL].fd, &info, sizeof(info));
-            if (!r) {
-                printf("WARNING: signal reading error\n");
-            }
-            unsigned sig = info.ssi_signo;
-            if (sig == SIGUSR1) {
-                printf("DEBUG: received SIGUSR1\n");
-                list();
-            }
+            check_signal(pfds[PDFS_SIGNAL].fd);
         }
 
         // clear buffer
@@ -344,36 +310,41 @@ void Switch::start() {
          * Check the TCP socket file descriptor
          */
         if (pfds[PDFS_SOCKET].revents & POLLIN) {
-            printf("DEBUG: TCP client socket has POLLIN event\n");
-            ssize_t r = read(pfds[PDFS_SOCKET].fd, buf, BUFFER_SIZE);
-            if (!r) {
-                printf("WARNING: TCP client socket closed\n");
-            }
-            string cmd = string(buf);
-            printf("DEBUG: obtained raw: %s\n", cmd.c_str());
-            // TODO: ignore invalid packets
-            Packet packet = Packet(cmd);
-
-            if (packet.getType() == ACK) {
-                respondACKPacket();
-            } else if (packet.getType() == ADD) {
-                respondADDPacket(packet.getMessage());
-            } else {
-                // Switch has no other special behavior for other packets
-                if (packet.getType() == OPEN) {
-                    rOpenCount++;
-                } else if (packet.getType() == RELAY) {
-                    rRelayCount++;
-                } else if (packet.getType() == QUERY) {
-                    rQueryCount++;
-                }
-                printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
-            }
+            check_sock(pfds[PDFS_SOCKET].fd);
         }
 
         // clear buffer
         memset(buf, 0, sizeof buf);
     }
+}
+
+void Switch::check_connection(int connectionFD, int socketFD, Connection connection) {
+    char buf[BUFFER_SIZE];
+
+    printf("DEBUG: connection POLLIN event: %s\n",connection.getReceiveFIFOName().c_str());
+    ssize_t r = read(connectionFD, buf, BUFFER_SIZE);
+    if (!r) {
+                    printf("WARNING: receiveFIFO closed\n");
+                }
+    string cmd = string(buf);
+    printf("DEBUG: obtained raw: %s\n", cmd.c_str());
+    Packet packet = Packet(cmd);
+    printf("DEBUG: Parsed packet: %s\n", packet.toString().c_str());
+    if (packet.getType() == ACK) {
+                    respondACKPacket();
+                } else if (packet.getType() == ADD) {
+                    respondADDPacket(packet.getMessage());
+                } else if (packet.getType() == RELAY) {
+                    respondRELAYPacket(socketFD, packet.getMessage());
+                } else {
+                    // Switch has no other special behavior for other packets
+                    if (packet.getType() == OPEN) {
+                        rOpenCount++;
+                    } else if (packet.getType() == QUERY) {
+                        rQueryCount++;
+                    }
+                    printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
+                }
 }
 
 /**
@@ -705,4 +676,34 @@ void Switch::setDelay(clock_t interval) {
         endTime = interval + (1000*clock()/(CLOCKS_PER_SEC));
     }
     printf("DEBUG: setting delay interval: currentTime: %lims endTime: %lims\n", (1000*clock()/(CLOCKS_PER_SEC)), endTime);
+}
+
+void Switch::check_sock(int socketFD) {
+    char buf[BUFFER_SIZE];
+
+    printf("DEBUG: TCP client socket has POLLIN event\n");
+    ssize_t r = read(socketFD, buf, BUFFER_SIZE);
+    if (!r) {
+        printf("WARNING: TCP client socket closed\n");
+    }
+    string cmd = string(buf);
+    printf("DEBUG: obtained raw: %s\n", cmd.c_str());
+    // TODO: ignore invalid packets
+    Packet packet = Packet(cmd);
+
+    if (packet.getType() == ACK) {
+        respondACKPacket();
+    } else if (packet.getType() == ADD) {
+        respondADDPacket(packet.getMessage());
+    } else {
+        // Switch has no other special behavior for other packets
+        if (packet.getType() == OPEN) {
+            rOpenCount++;
+        } else if (packet.getType() == RELAY) {
+            rRelayCount++;
+        } else if (packet.getType() == QUERY) {
+            rQueryCount++;
+        }
+        printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
+    }
 }

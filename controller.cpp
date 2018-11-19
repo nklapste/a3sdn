@@ -155,24 +155,7 @@ void Controller::start() {
          *       exit: The program writes the above information and exits.
          */
         if (pfds[PDFS_STDIN].revents & POLLIN) {
-            ssize_t r = read(pfds[PDFS_STDIN].fd, buf, BUFFER_SIZE);
-            if (!r) {
-                printf("WARNING: stdin closed\n");
-            }
-            string cmd = string(buf);
-            // trim off all whitespace
-            while (!cmd.empty() && !std::isalpha(cmd.back())) cmd.pop_back();
-
-            if (cmd == LIST_CMD) {
-                list();
-            } else if (cmd == EXIT_CMD) {
-                list();
-                printf("INFO: exit command received: terminating\n");
-                exit(0);
-            } else {
-                printf("ERROR: invalid Controller command: %s\n"
-                       "\tPlease use either 'list' or 'exit'\n", cmd.c_str());
-            }
+            check_stdin(pfds[PDFS_STDIN].fd);
         }
 
         // clear buffer
@@ -182,17 +165,7 @@ void Controller::start() {
          * In addition, upon receiving signal USER1, the switch displays the information specified by the list command.
          */
         if (pfds[PDFS_SIGNAL].revents & POLLIN) {
-            struct signalfd_siginfo info{};
-            /* We have a valid signal, read the info from the fd */
-            ssize_t r = read(pfds[PDFS_SIGNAL].fd, &info, sizeof(info));
-            if (!r) {
-                printf("WARNING: signal reading error\n");
-            }
-            unsigned sig = info.ssi_signo;
-            if (sig == SIGUSR1) {
-                printf("DEBUG: received SIGUSR1 signal\n");
-                list();
-            }
+            check_signal(pfds[PDFS_SIGNAL].fd);
         }
 
         // clear buffer
@@ -202,45 +175,61 @@ void Controller::start() {
          * Check the socket file descriptor for events
          */
         if (pfds[PDFS_SOCKET].revents & POLLIN) {
-            printf("DEBUG: socket file descriptor has POLLIN event\n");
-            if ((newsockfd = accept(pfds[PDFS_SOCKET].fd, (struct sockaddr *)&address,(socklen_t*)&addrlen))<0) {
-                perror("ERROR: calling server accept");
-                exit(EXIT_FAILURE);
-            }
-            printf("INFO: new client connection, socket fd:%d , ip:%s , port:%hu\n",
-                    newsockfd, inet_ntoa(address.sin_addr) , ntohs (address.sin_port));
-
-            ssize_t r = read(newsockfd, buf, BUFFER_SIZE);
-            if (!r) {
-                printf("WARNING: TCP socket client connection closed\n");
-            }
-            string cmd = string(buf);
-
-            // take the message and parse it into a packet
-            Packet packet = Packet(cmd);
-            printf("DEBUG: parsed packet: %s\n", packet.toString().c_str());
-
-            if (packet.getType() == OPEN) {
-                respondOPENPacket(newsockfd, packet.getMessage());
-            } else if (packet.getType() == QUERY) {
-                respondQUERYPacket(newsockfd, packet.getMessage());
-            } else {
-                // Controller has no other special behavior for other packets
-                if (packet.getType() == ACK) {
-                    rAckCount++;
-                } else if (packet.getType() == ADD) {
-                    rAddCount++;
-                } else if (packet.getType() == RELAY) {
-                    rRelayCount++;
-                }
-                printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
-            }
+            check_sock(pfds[PDFS_SOCKET].fd);
         }
 
         // clear buffer
         memset(buf, 0, sizeof buf);
     }
 }
+
+
+/**
+ * Check the socket file descriptor for events
+ */
+void Controller::check_sock(int socketFD) {
+    printf("DEBUG: socket file descriptor has POLLIN event\n");
+
+    char buf[BUFFER_SIZE];
+    int newsockfd;
+
+    struct sockaddr_in address;
+    int addrlen = sizeof(address);
+
+    if ((newsockfd = accept(socketFD, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
+        perror("ERROR: calling server accept");
+        exit(EXIT_FAILURE);
+    }
+    printf("INFO: new client connection, socket fd:%d , ip:%s , port:%hu\n",
+                    newsockfd, inet_ntoa(address.sin_addr) , ntohs (address.sin_port));
+
+    ssize_t r = read(newsockfd, buf, BUFFER_SIZE);
+    if (!r) {
+        printf("WARNING: TCP socket client connection closed\n");
+    }
+    string cmd = string(buf);
+
+    // take the message and parse it into a packet
+    Packet packet = Packet(cmd);
+    printf("DEBUG: parsed packet: %s\n", packet.toString().c_str());
+
+    if (packet.getType() == OPEN) {
+        respondOPENPacket(newsockfd, packet.getMessage());
+    } else if (packet.getType() == QUERY) {
+        respondQUERYPacket(newsockfd, packet.getMessage());
+    } else {
+        // Controller has no other special behavior for other packets
+        if (packet.getType() == ACK) {
+            rAckCount++;
+        } else if (packet.getType() == ADD) {
+            rAddCount++;
+        } else if (packet.getType() == RELAY) {
+            rRelayCount++;
+        }
+        printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
+    }
+}
+
 
 /**
  * Calculate a new flow entry rule.
@@ -512,3 +501,100 @@ void Controller::listControllerStats() {
                sw.getIPLow(), sw.getIPHigh());
     }
 }
+
+
+//#include <stdio.h>
+//#include <stdlib.h>
+//
+//#include <netdb.h>
+//#include <netinet/in.h>
+//
+//#include <string.h>
+//
+//void doprocessing (int sock);
+//
+//int main( int argc, char *argv[] ) {
+//    int sockfd, newsockfd, portno, clilen;
+//    char buffer[256];
+//    struct sockaddr_in serv_addr, cli_addr;
+//    int n, pid;
+//
+//    /* First call to socket() function */
+//    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+//
+//    if (sockfd < 0) {
+//        perror("ERROR opening socket");
+//        exit(1);
+//    }
+//
+//    /* Initialize socket structure */
+//    bzero((char *) &serv_addr, sizeof(serv_addr));
+//    portno = 5001;
+//
+//    serv_addr.sin_family = AF_INET;
+//    serv_addr.sin_addr.s_addr = INADDR_ANY;
+//    serv_addr.sin_port = htons(portno);
+//
+//    /* Now bind the host address using bind() call.*/
+//    if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
+//        perror("ERROR on binding");
+//        exit(1);
+//    }
+//
+//    /*
+//     * Now start listening for the clients, here
+//     * process will go in sleep mode and will wait
+//     * for the incoming connection
+//     */
+//
+//    listen(sockfd,5);
+//    clilen = sizeof(cli_addr);
+//
+//    while (true) {
+//        newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+//
+//        if (newsockfd < 0) {
+//            perror("ERROR on accept");
+//            exit(1);
+//        }
+//
+//        /* Create child process */
+//        pid = fork();
+//
+//        if (pid < 0) {
+//            perror("ERROR on fork");
+//            exit(1);
+//        }
+//
+//        if (pid == 0) {
+//            /* This is the client process */
+//            close(sockfd);
+//            doprocessing(newsockfd);
+//            exit(0);
+//        }
+//        else {
+//            close(newsockfd);
+//        }
+//
+//    } /* end of while */
+//}
+//
+//void doprocessing (int sock) {
+//    int n;
+//    char buffer[256];
+//    bzero(buffer,256);
+//    n = read(sock,buffer,255);
+//
+//    if (n < 0) {
+//        perror("ERROR reading from socket");
+//        exit(1);
+//    }
+//
+//    printf("Here is the message: %s\n",buffer);
+//    n = write(sock,"I got your message",18);
+//
+//    if (n < 0) {
+//        perror("ERROR writing to socket");
+//        exit(1);
+//    }
+//}

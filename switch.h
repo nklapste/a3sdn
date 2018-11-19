@@ -100,6 +100,10 @@ private:
     void setDelay(clock_t interval);
 
     bool delayPassed();
+
+    void check_sock(int socketFD) override;
+
+    void check_connection(int connectionFD, int socketFD, Connection connection);
 };
 
 #endif //A2SDN_SWITCH_H

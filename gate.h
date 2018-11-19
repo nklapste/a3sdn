@@ -11,6 +11,8 @@
 
 #include <sys/param.h>
 #include <vector>
+#include <poll.h>
+
 #include "connection.h"
 #include "port.h"
 
@@ -66,6 +68,13 @@ protected:
     void listPacketStats();
 
     uint gateID;
+
+
+    void check_signal(int signalFD);
+
+    void check_stdin(int stdinFD);
+
+    virtual void check_sock(int socketFD) = 0;
 };
 
 
