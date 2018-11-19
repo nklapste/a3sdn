@@ -79,7 +79,8 @@ void Gate::check_stdin(int stdinFD) {
 }
 
 /**
- * In addition, upon receiving signal USER1, the switch displays the information specified by the list command.
+ * In addition, upon receiving signal USER1, the Gate (Controller/Switch) displays the information
+ * specified by the list command.
  */
 void Gate::check_signal(int signalFD) {
     struct signalfd_siginfo info{};

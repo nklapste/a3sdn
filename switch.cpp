@@ -230,6 +230,7 @@ void Switch::start() {
             perror("ERROR: poll failure");
             exit(errno);
         }
+
         /*
          * Check the trafficFile
          */
@@ -369,7 +370,6 @@ string &Switch::switchParseTrafficFileLine(int socketFD, string &line) {
  */
 void Switch::list() {
     listSwitchStats();
-
     listPacketStats();
 }
 
