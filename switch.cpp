@@ -57,6 +57,7 @@ using namespace std;
  */
 Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
                string &trafficFile, uint IPLow, uint IPHigh, Address address, Port port) : Gate(port),
+                                                                                           switchID(switchID),
                                                                                            leftSwitchID(leftSwitchID),
                                                                                            rightSwitchID(rightSwitchID),
                                                                                            IPLow(IPLow), IPHigh(IPHigh),
@@ -81,11 +82,10 @@ Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
     // create Connection to controller
     // TODO: needs to be changed to TCP sockets
     gateID = switchID.getSwitchIDNum();
-
     // create Connection to the left switch
     // can potentially be a nullptr
     if (!leftSwitchID.isNullSwitchID()) {
-        connections.emplace_back(Connection(getGateID(), Switch::leftSwitchID.getSwitchIDNum()));
+        connections.emplace_back(Connection(getSwitchID().getSwitchIDNum(), Switch::leftSwitchID.getSwitchIDNum()));
     } else {
         connections.emplace_back(Connection());
     }
@@ -93,7 +93,7 @@ Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
     // create Connection to the right switch
     // can potentially be a nullptr
     if (!rightSwitchID.isNullSwitchID()) {
-        connections.emplace_back(Connection(getGateID(), Switch::rightSwitchID.getSwitchIDNum()));
+        connections.emplace_back(Connection(getSwitchID().getSwitchIDNum(), Switch::rightSwitchID.getSwitchIDNum()));
     } else {
         connections.emplace_back(Connection());
     }
@@ -113,7 +113,7 @@ Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
  */
 Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID, uint IPLow, uint IPHigh,
                Address address, Port port) :
-        leftSwitchID(leftSwitchID), rightSwitchID(rightSwitchID),
+        switchID(switchID), leftSwitchID(leftSwitchID), rightSwitchID(rightSwitchID),
         IPLow(IPLow), IPHigh(IPHigh), address(address), Gate(port) {
     gateID = switchID.getSwitchIDNum();
 }
@@ -342,7 +342,7 @@ string &Switch::switchParseTrafficFileLine(int socketFD, string &line) {
     } else if (trafficFileLineType == DELAY_LINE) {
         trafficFileDelayItem delayItem = parseTrafficDelayItem(line);
         SwitchID tfSwitchID = get<0>(delayItem);
-        if (tfSwitchID.getSwitchIDNum() != getGateID()) {
+        if (tfSwitchID.getSwitchIDNum() != getSwitchID().getSwitchIDNum()) {
             printf("DEBUG: ignoring line specifying another switch\n");
         } else {
             setDelay(get<2>(delayItem));
@@ -351,7 +351,7 @@ string &Switch::switchParseTrafficFileLine(int socketFD, string &line) {
     } else if (trafficFileLineType == ROUTE_LINE) {
         trafficFileRouteItem routeItem = parseTrafficRouteItem(line);
         SwitchID tfSwitchID = get<0>(routeItem);
-        if (tfSwitchID.getSwitchIDNum() != getGateID()) {
+        if (tfSwitchID.getSwitchIDNum() != getSwitchID().getSwitchIDNum()) {
             printf("DEBUG: ignoring line specifying another switch\n");
         } else {
             uint srcIP = get<1>(routeItem);
@@ -418,7 +418,7 @@ int Switch::getFlowEntryIndex(uint srcIP, uint dstIP) {
  */
 void Switch::sendOPENPacket(int socketFD) {
     Message openMessage;
-    openMessage.emplace_back(make_tuple("switchID", SwitchID(getGateID()).getSwitchIDString()));
+    openMessage.emplace_back(make_tuple("switchID", getSwitchID().getSwitchIDString()));
     openMessage.emplace_back(make_tuple("leftSwitchID", getLeftSwitchID().getSwitchIDString()));
     openMessage.emplace_back(make_tuple("rightSwitchID", getRightSwitchID().getSwitchIDString()));
     openMessage.emplace_back(make_tuple("IPLow", to_string(getIPHigh())));
@@ -441,7 +441,7 @@ void Switch::sendOPENPacket(int socketFD) {
  */
 void Switch::sendQUERYPacket(int socketFD, uint srcIP, uint dstIP) {
     Message queryMessage;
-    queryMessage.emplace_back(MessageArg("switchID", SwitchID(getGateID()).getSwitchIDString()));
+    queryMessage.emplace_back(MessageArg("switchID", getSwitchID().getSwitchIDString()));
     queryMessage.emplace_back(MessageArg("srcIP", to_string(srcIP)));
     queryMessage.emplace_back(MessageArg("dstIP", to_string(dstIP)));
     Packet queryPacket = Packet(QUERY, queryMessage);
@@ -463,7 +463,7 @@ void Switch::sendQUERYPacket(int socketFD, uint srcIP, uint dstIP) {
  */
 void Switch::sendRELAYPacket(Connection connection, uint srcIP, uint dstIP) {
     Message relayMessage;
-    relayMessage.emplace_back(make_tuple("switchID", SwitchID(getGateID()).getSwitchIDString()));
+    relayMessage.emplace_back(make_tuple("switchID", getSwitchID().getSwitchIDString()));
     relayMessage.emplace_back(make_tuple("srcIP", to_string(srcIP)));
     relayMessage.emplace_back(make_tuple("dstIP", to_string(dstIP)));
     Packet relayPacket = Packet(RELAY, relayMessage);
@@ -622,7 +622,7 @@ Address Switch::getServerAddr() {
  */
 void Switch::listSwitchStats() {
     uint counter = 0;
-    printf("sw%u FlowTable:\n", getGateID());
+    printf("%s FlowTable:\n", getSwitchID().getSwitchIDString().c_str());
     for (auto const &flowEntry: flowTable) {
         printf("[%u] (srcIP= %u-%u dstIP %u-%u action=%s:%u pri= %u pktCount= %u)\n",
                counter,
@@ -686,4 +686,13 @@ void Switch::check_sock(int socketFD) {
         }
         printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
     }
+}
+
+/**
+ * Getter for the {@code Switch}'s {@code SwitchID}.
+ *
+ * @return {@code SwitchID}
+ */
+SwitchID Switch::getSwitchID() const {
+    return switchID;
 }

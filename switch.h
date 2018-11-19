@@ -45,6 +45,8 @@ public:
 
     uint getIPHigh() const;
 
+    SwitchID getSwitchID() const;
+
     SwitchID getLeftSwitchID() const;
 
     SwitchID getRightSwitchID() const;
@@ -61,6 +63,11 @@ private:
      * ID of the "right" switch to connect to. (Port 2)
      */
     SwitchID rightSwitchID;
+
+    /**
+     * ID of this switch.
+     */
+    SwitchID switchID;
 
     Address address;
     string trafficFile;
