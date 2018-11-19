@@ -61,7 +61,7 @@ uint SwitchID::validateSwitchIDNum(uint switchIDNum) {
  */
 SwitchID::SwitchID(uint switchIDNum) {
     SwitchID::switchIDNum = validateSwitchIDNum(switchIDNum);
-    if (SwitchID::switchIDNum == NULL_SWITCH_ID_NUM){
+    if (SwitchID::switchIDNum == NULL_SWITCH_ID_NUM) {
         SwitchID::switchIDString = NULL_SWITCH_ID_FLAG;
     } else {
         SwitchID::switchIDString = "sw" + to_string(SwitchID::switchIDNum);

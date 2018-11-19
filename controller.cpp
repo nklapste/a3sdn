@@ -120,7 +120,7 @@ void Controller::start() {
     address.sin_port = htons(getPort().getPortNum());
 
     // Forcefully attaching socket to the port 8080
-    if (bind(pfds[PDFS_SOCKET].fd, (struct sockaddr *)&address, sizeof(address))<0) {
+    if (bind(pfds[PDFS_SOCKET].fd, (struct sockaddr *) &address, sizeof(address)) < 0) {
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
@@ -176,12 +176,12 @@ void Controller::check_sock(int socketFD) {
     struct sockaddr_in address;
     int addrlen = sizeof(address);
 
-    if ((newsockfd = accept(socketFD, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
+    if ((newsockfd = accept(socketFD, (struct sockaddr *) &address, (socklen_t *) &addrlen)) < 0) {
         perror("ERROR: calling server accept");
         exit(EXIT_FAILURE);
     }
     printf("INFO: new client connection, socket fd:%d , ip:%s , port:%hu\n",
-                    newsockfd, inet_ntoa(address.sin_addr) , ntohs (address.sin_port));
+           newsockfd, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
 
     ssize_t r = read(newsockfd, buf, BUFFER_SIZE);
     if (!r) {
@@ -413,7 +413,8 @@ void Controller::respondOPENPacket(int socketfd, Message message) {
     Address address = Address(get<1>(message[5]));
     Port port = Port(static_cast<u_int16_t>(stoi(get<1>(message[6]))));
     printf("DEBUG: parsed OPEN packet: switchID: %s leftSwitchID: %s rightSwitchID: %s switchIPLow: %u switchIPHigh: %u address: %s port: %u\n",
-           switchID.getSwitchIDString().c_str(), leftSwitchID.getSwitchIDString().c_str(), rightSwitchID.getSwitchIDString().c_str(),
+           switchID.getSwitchIDString().c_str(), leftSwitchID.getSwitchIDString().c_str(),
+           rightSwitchID.getSwitchIDString().c_str(),
            switchIPLow, switchIPHigh, address.getSymbolicName().c_str(),
            port.getPortNum());
 

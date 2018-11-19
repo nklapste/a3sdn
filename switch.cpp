@@ -203,12 +203,12 @@ void Switch::start() {
     serv_addr.sin_port = htons(getPort().getPortNum());
 
     // Convert IPv4 and IPv6 addresses from text to binary form
-    if(inet_pton(AF_INET, address.getIPAddr().c_str(), &serv_addr.sin_addr) <= 0) {
+    if (inet_pton(AF_INET, address.getIPAddr().c_str(), &serv_addr.sin_addr) <= 0) {
         perror("ERROR: invalid address");
         exit(EINVAL);
     }
     printf("INFO: connecting to: %s\n", getServerAddr().getIPAddr().c_str());
-    int connection = connect(pfds[PDFS_SOCKET].fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+    int connection = connect(pfds[PDFS_SOCKET].fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
     if (connection < 0) {
         perror("ERROR: connection failed");
         exit(ENOTCONN);
@@ -234,7 +234,7 @@ void Switch::start() {
         /*
          * Check the trafficFile
          */
-        if (delayPassed()){  // ensure that we are not experiencing a delay
+        if (delayPassed()) {  // ensure that we are not experiencing a delay
             check_trafficFile(pfds[PDFS_SOCKET].fd, trafficFileStream);
         }
 
@@ -250,7 +250,7 @@ void Switch::start() {
          */
         for (std::vector<Connection>::size_type i = 1; i < 3; i++) {
             if ((i == 1 && leftSwitchID.isNullSwitchID()) ||
-                    (i == 2 && rightSwitchID.isNullSwitchID())) {
+                (i == 2 && rightSwitchID.isNullSwitchID())) {
                 continue;
             }
             if (pfds[i].revents & POLLIN) {
@@ -301,7 +301,7 @@ void Switch::check_trafficFile(int socketFD, ifstream &trafficFileStream) {
 void Switch::check_connection(int connectionFD, int socketFD, Connection connection) {
     char buf[BUFFER_SIZE];
 
-    printf("DEBUG: connection POLLIN event: %s\n",connection.getReceiveFIFOName().c_str());
+    printf("DEBUG: connection POLLIN event: %s\n", connection.getReceiveFIFOName().c_str());
     ssize_t r = read(connectionFD, buf, BUFFER_SIZE);
     if (!r) {
         printf("WARNING: receiveFIFO closed\n");
@@ -638,7 +638,7 @@ void Switch::listSwitchStats() {
  * @return {@code bool}
  */
 bool Switch::delayPassed() {
-    return (1000*clock()/(CLOCKS_PER_SEC)) >= endTime;
+    return (1000 * clock() / (CLOCKS_PER_SEC)) >= endTime;
 }
 
 /**
@@ -649,12 +649,13 @@ bool Switch::delayPassed() {
  * @param interval {@code clock_t}
  */
 void Switch::setDelay(clock_t interval) {
-    if (!delayPassed()){
+    if (!delayPassed()) {
         endTime = interval + endTime;
     } else {
-        endTime = interval + (1000*clock()/(CLOCKS_PER_SEC));
+        endTime = interval + (1000 * clock() / (CLOCKS_PER_SEC));
     }
-    printf("DEBUG: setting delay interval: currentTime: %lims endTime: %lims\n", (1000*clock()/(CLOCKS_PER_SEC)), endTime);
+    printf("DEBUG: setting delay interval: currentTime: %lims endTime: %lims\n", (1000 * clock() / (CLOCKS_PER_SEC)),
+           endTime);
 }
 
 void Switch::check_sock(int socketFD) {

@@ -50,6 +50,7 @@ public:
     SwitchID getRightSwitchID() const;
 
     void start() override;
+
 private:
     /**
      * ID of the "left" switch to connect to. (Port 1)
