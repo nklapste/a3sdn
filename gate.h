@@ -69,6 +69,8 @@ protected:
 
     uint gateID;
 
+    int getSignalFD();
+
     void check_signal(int signalFD);
 
     void check_stdin(int stdinFD);

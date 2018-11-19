@@ -86,18 +86,7 @@ void Controller::start() {
     // setup file descriptions or stdin and all connection FIFOs
     pfds[PDFS_STDIN].fd = STDIN_FILENO;
 
-    // init signal file descriptor
-    sigset_t sigset;
-    /* Create a sigset of all the signals that we're interested in */
-    sigemptyset(&sigset);
-    sigaddset(&sigset, SIGUSR1);
-    /* We must block the signals in order for signalfd to receive them */
-    sigprocmask(SIG_BLOCK, &sigset, nullptr);
-    if (errno) {
-        perror("ERROR: setting signal mask");
-        exit(errno);
-    }
-    pfds[PDFS_SIGNAL].fd = signalfd(-1, &sigset, 0);;
+    pfds[PDFS_SIGNAL].fd = getSignalFD();
 
     // TODO: init TCP socket connection
     // init TCP socket file descriptor

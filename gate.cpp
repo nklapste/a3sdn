@@ -95,3 +95,23 @@ void Gate::check_signal(int signalFD) {
         list();
     }
 }
+
+/**
+ * Init a signal file descriptor looking for the SIGUSR1 signal.
+ *
+ * @return {@code int}
+ */
+int Gate::getSignalFD() {
+    // init signal file descriptor
+    sigset_t sigset;
+    /* Create a sigset of all the signals that we're interested in */
+    sigemptyset(&sigset);
+    sigaddset(&sigset, SIGUSR1);
+    /* We must block the signals in order for signalfd to receive them */
+    sigprocmask(SIG_BLOCK, &sigset, nullptr);
+    if (errno) {
+        perror("ERROR: setting signal mask");
+        exit(errno);
+    }
+    return signalfd(-1, &sigset, 0);
+}
