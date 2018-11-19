@@ -180,7 +180,7 @@ void Controller::check_sock(int socketFD) {
         perror("ERROR: calling server accept");
         exit(EXIT_FAILURE);
     }
-    printf("INFO: new client connection, socket fd:%d , ip:%s , port:%hu\n",
+    printf("INFO: new client connection: socket fd:%d ip:%s port:%hu\n",
            newsockfd, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
 
     ssize_t r = read(newsockfd, buf, BUFFER_SIZE);
