@@ -104,6 +104,8 @@ private:
     void check_sock(int socketFD) override;
 
     void check_connection(int connectionFD, int socketFD, Connection connection);
+
+    void check_trafficFile(int socketFD, ifstream &trafficFileStream);
 };
 
 #endif //A2SDN_SWITCH_H

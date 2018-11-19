@@ -187,7 +187,6 @@ void Switch::start() {
     pfds[PDFS_SIGNAL].fd = signalfd(-1, &sigset, 0);;
 
     // init the trafficfile
-    string line;
     ifstream trafficFileStream(trafficFile);
 
     // TODO: init client tcp connection
@@ -232,22 +231,10 @@ void Switch::start() {
             exit(errno);
         }
         /*
-         * 1.  Read and process a single line from the traffic line (if the EOF has not been reached yet). The
-         *     switch ignores empty lines, comment lines, and lines specifying other handling switches. A
-         *     packet header is considered admitted if the line specifies the current switch
-         *
-         *     Note: After reading all lines in the traffic file, the program continues to monitor and process
-         *     keyboard commands, and the incoming packets from neighbouring devices.
+         * Check the trafficFile
          */
         if (delayPassed()){  // ensure that we are not experiencing a delay
-            if (trafficFileStream.is_open()) {
-                if (getline(trafficFileStream, line)) {
-                    switchParseTrafficFileLine(pfds[PDFS_SOCKET].fd, line);
-                } else {
-                    trafficFileStream.close();
-                    printf("DEBUG: finished reading traffic file\n");
-                }
-            }
+            check_trafficFile(pfds[PDFS_SOCKET].fd, trafficFileStream);
         }
 
         /*
@@ -282,6 +269,26 @@ void Switch::start() {
          */
         if (pfds[PDFS_SOCKET].revents & POLLIN) {
             check_sock(pfds[PDFS_SOCKET].fd);
+        }
+    }
+}
+
+/**
+ * 1.  Read and process a single line from the traffic line (if the EOF has not been reached yet).
+ *     The switch ignores empty lines, comment lines, and lines specifying other handling switches.
+ *     A packet header is considered admitted if the line specifies the current switch
+ *
+ * Note: After reading all lines in the traffic file, the program continues to monitor and process
+ *       keyboard commands, and the incoming packets from neighbouring devices.
+ */
+void Switch::check_trafficFile(int socketFD, ifstream &trafficFileStream) {
+    string line;
+    if (trafficFileStream.is_open()) {
+        if (getline(trafficFileStream, line)) {
+            switchParseTrafficFileLine(socketFD, line);
+        } else {
+            trafficFileStream.close();
+            printf("DEBUG: finished reading traffic file\n");
         }
     }
 }
