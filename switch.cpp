@@ -163,7 +163,6 @@ SwitchID Switch::getRightSwitchID() const {
  */
 void Switch::start() {
     struct pollfd pfds[PDFS_SIZE];
-    char buf[BUFFER_SIZE];
 
     // setup file descriptiors for all interswitch connection FIFOs
     pfds[PDFS_STDIN].fd = STDIN_FILENO;
@@ -252,40 +251,15 @@ void Switch::start() {
         }
 
         /*
-         * 2. Poll the keyboard for a user command. The user can issue one of the following commands.
-         *       list: The program writes all entries in the flow table, and for each transmitted or received
-         *             packet type, the program writes an aggregate count of handled packets of this
-         *             type.
-         *       exit: The program writes the above information and exits.
+         * Check stdin
          */
         if (pfds[PDFS_STDIN].revents & POLLIN) {
-            ssize_t r = read(pfds[PDFS_STDIN].fd, buf, BUFFER_SIZE);
-            if (!r) {
-                printf("WARNING: stdin closed\n");
-            }
-            string cmd = string(buf);
-            // trim off all whitespace
-            while (!cmd.empty() && !std::isalpha(cmd.back())) cmd.pop_back();
-            if (cmd == LIST_CMD) {
-                list();
-            } else if (cmd == EXIT_CMD) {
-                list();
-                printf("INFO: exit command received: terminating\n");
-                exit(0);
-            } else {
-                printf("ERROR: invalid Controller command: %s\n"
-                       "\tPlease use either 'list' or 'exit'\n", cmd.c_str());
-            }
+            check_stdin(pfds[PDFS_STDIN].fd);
         }
 
-        // clear buffer
-        memset(buf, 0, sizeof buf);
-
         /*
-         * 3. Poll the incoming FIFOs from the controller and the attached switches. The switch handles
-         *    each incoming packet, as described in the Packet Types.
+         * Check Switch<->Switch connections
          */
-
         for (std::vector<Connection>::size_type i = 1; i < 3; i++) {
             if ((i == 1 && leftSwitchID.isNullSwitchID()) ||
                     (i == 2 && rightSwitchID.isNullSwitchID())) {
@@ -297,14 +271,11 @@ void Switch::start() {
         }
 
         /*
-         * In addition, upon receiving signal USER1, the switch displays the information specified by the list command.
+         * Check signal
          */
         if (pfds[PDFS_SIGNAL].revents & POLLIN) {
             check_signal(pfds[PDFS_SIGNAL].fd);
         }
-
-        // clear buffer
-        memset(buf, 0, sizeof buf);
 
         /*
          * Check the TCP socket file descriptor
@@ -312,39 +283,40 @@ void Switch::start() {
         if (pfds[PDFS_SOCKET].revents & POLLIN) {
             check_sock(pfds[PDFS_SOCKET].fd);
         }
-
-        // clear buffer
-        memset(buf, 0, sizeof buf);
     }
 }
 
+/**
+ * 3. Poll the incoming FIFOs from the controller and the attached switches. The switch handles
+ *    each incoming packet, as described in the Packet Types.
+ */
 void Switch::check_connection(int connectionFD, int socketFD, Connection connection) {
     char buf[BUFFER_SIZE];
 
     printf("DEBUG: connection POLLIN event: %s\n",connection.getReceiveFIFOName().c_str());
     ssize_t r = read(connectionFD, buf, BUFFER_SIZE);
     if (!r) {
-                    printf("WARNING: receiveFIFO closed\n");
-                }
+        printf("WARNING: receiveFIFO closed\n");
+    }
     string cmd = string(buf);
     printf("DEBUG: obtained raw: %s\n", cmd.c_str());
     Packet packet = Packet(cmd);
     printf("DEBUG: Parsed packet: %s\n", packet.toString().c_str());
     if (packet.getType() == ACK) {
-                    respondACKPacket();
-                } else if (packet.getType() == ADD) {
-                    respondADDPacket(packet.getMessage());
-                } else if (packet.getType() == RELAY) {
-                    respondRELAYPacket(socketFD, packet.getMessage());
-                } else {
-                    // Switch has no other special behavior for other packets
-                    if (packet.getType() == OPEN) {
-                        rOpenCount++;
-                    } else if (packet.getType() == QUERY) {
-                        rQueryCount++;
-                    }
-                    printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
-                }
+        respondACKPacket();
+    } else if (packet.getType() == ADD) {
+        respondADDPacket(packet.getMessage());
+    } else if (packet.getType() == RELAY) {
+        respondRELAYPacket(socketFD, packet.getMessage());
+    } else {
+        // Switch has no other special behavior for other packets
+        if (packet.getType() == OPEN) {
+            rOpenCount++;
+        } else if (packet.getType() == QUERY) {
+            rQueryCount++;
+        }
+        printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
+    }
 }
 
 /**
