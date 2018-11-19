@@ -627,8 +627,9 @@ void Switch::listSwitchStats() {
  * @return {@code bool}
  */
 bool Switch::delayPassed() {
-//    printf("DEBUG: time:%li endtime:%li\n",(10000 * clock() / (CLOCKS_PER_SEC)), endTime);
-    return (10000 * clock() / (CLOCKS_PER_SEC)) >= endTime;
+    clock_t curTime = 10000 * clock() / (CLOCKS_PER_SEC);
+//    printf("DEBUG: curTime:%li endtime:%li\n", curTime, endTime);
+    return curTime >= endTime;
 }
 
 /**
