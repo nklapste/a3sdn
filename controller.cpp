@@ -81,7 +81,6 @@ void Controller::list() {
  */
 void Controller::start() {
     struct pollfd pfds[PDFS_SIZE];
-    char buf[BUFFER_SIZE];
 
     // TODO: is this needed now?
     // setup file descriptions or stdin and all connection FIFOs
@@ -148,28 +147,18 @@ void Controller::start() {
         }
 
         /*
-         * 1. Poll the keyboard for a user command. The user can issue one of the following commands.
-         *       list: The program writes all entries in the flow table, and for each transmitted or received
-         *             packet type, the program writes an aggregate count of handled packets of this
-         *             type.
-         *       exit: The program writes the above information and exits.
+         * Check stdin
          */
         if (pfds[PDFS_STDIN].revents & POLLIN) {
             check_stdin(pfds[PDFS_STDIN].fd);
         }
 
-        // clear buffer
-        memset(buf, 0, sizeof buf);
-
         /*
-         * In addition, upon receiving signal USER1, the switch displays the information specified by the list command.
+         * Check signals
          */
         if (pfds[PDFS_SIGNAL].revents & POLLIN) {
             check_signal(pfds[PDFS_SIGNAL].fd);
         }
-
-        // clear buffer
-        memset(buf, 0, sizeof buf);
 
         /*
          * Check the socket file descriptor for events
@@ -177,9 +166,6 @@ void Controller::start() {
         if (pfds[PDFS_SOCKET].revents & POLLIN) {
             check_sock(pfds[PDFS_SOCKET].fd);
         }
-
-        // clear buffer
-        memset(buf, 0, sizeof buf);
     }
 }
 
@@ -189,10 +175,9 @@ void Controller::start() {
  */
 void Controller::check_sock(int socketFD) {
     printf("DEBUG: socket file descriptor has POLLIN event\n");
-
     char buf[BUFFER_SIZE];
-    int newsockfd;
 
+    int newsockfd;
     struct sockaddr_in address;
     int addrlen = sizeof(address);
 
