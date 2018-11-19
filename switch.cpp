@@ -627,7 +627,8 @@ void Switch::listSwitchStats() {
  * @return {@code bool}
  */
 bool Switch::delayPassed() {
-    return (1000 * clock() / (CLOCKS_PER_SEC)) >= endTime;
+//    printf("DEBUG: time:%li endtime:%li\n",(10000 * clock() / (CLOCKS_PER_SEC)), endTime);
+    return (10000 * clock() / (CLOCKS_PER_SEC)) >= endTime;
 }
 
 /**
@@ -641,9 +642,9 @@ void Switch::setDelay(clock_t interval) {
     if (!delayPassed()) {
         endTime = interval + endTime;
     } else {
-        endTime = interval + (1000 * clock() / (CLOCKS_PER_SEC));
+        endTime = interval + (10000 * clock() / (CLOCKS_PER_SEC));
     }
-    printf("DEBUG: setting delay interval: currentTime: %lims endTime: %lims\n", (1000 * clock() / (CLOCKS_PER_SEC)),
+    printf("DEBUG: setting delay interval: currentTime: %lims endTime: %lims\n", (10000 * clock() / (CLOCKS_PER_SEC)),
            endTime);
 }
 
