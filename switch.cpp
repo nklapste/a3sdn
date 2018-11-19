@@ -249,6 +249,7 @@ void Switch::start() {
          * Check Switch<->Switch connections
          */
         for (std::vector<Connection>::size_type i = 1; i < 3; i++) {
+            // don't check connection on null switches
             if ((i == 1 && leftSwitchID.isNullSwitchID()) ||
                 (i == 2 && rightSwitchID.isNullSwitchID())) {
                 continue;
