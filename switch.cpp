@@ -315,11 +315,11 @@ void Switch::check_trafficFile(int socketFD, ifstream &trafficFileStream) {
 void Switch::check_connection(int connectionFD, int socketFD, Connection connection) {
     char buf[BUFFER_SIZE] = "\0";
 
-    printf("DEBUG: connection POLLIN event: %s\n", connection.getReceiveFIFOName().c_str());
     ssize_t r = read(connectionFD, buf, BUFFER_SIZE);
     if (!r) {
-        printf("WARNING: receiveFIFO closed\n");
+//        printf("WARNING: receiveFIFO closed\n");
     } else {
+        printf("DEBUG: valid switch connection POLLIN event: %s\n", connection.getReceiveFIFOName().c_str());
         string cmd = string(buf);
         printf("DEBUG: obtained raw: %s\n", cmd.c_str());
         Packet packet = Packet(cmd);
