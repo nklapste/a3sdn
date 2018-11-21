@@ -120,10 +120,17 @@ int Gate::getSignalFD() {
     return signalfd(-1, &sigset, 0);
 }
 
+/**
+ * Get a null terminated {@code '\0'} message from a socket.
+ *
+ * TODO: simplify
+ *
+ * @param socketFD {@code int} a file descriptor to a socket to read from.
+ * @param tmpbuf {@code char *} temporary buffer to read from
+ * @return {@code std::string} the read message
+ */
 string Gate::get_message(int socketFD, char *tmpbuf) {
-    // TODO: check if socket closed
-
-    int num = recv(socketFD, tmpbuf, BUFFER_SIZE, 0);
+    ssize_t num = recv(socketFD, tmpbuf, BUFFER_SIZE, 0);
     if (errno != 0 && errno != EAGAIN) {
         perror("ERROR: mes");
     } else {
