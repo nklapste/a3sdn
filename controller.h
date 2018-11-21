@@ -39,7 +39,7 @@ private:
     vector<Switch> switches;
     vector<tuple<int, char *>> clientSocketConnections;
 
-    FlowEntry makeFlowEntry(uint switchID, uint srcIP, uint dstIP);
+    FlowEntry makeFlowEntry(SwitchID switchID, uint srcIP, uint dstIP);
 
     void sendACKPacket(int socketFD);
 

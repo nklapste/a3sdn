@@ -233,12 +233,13 @@ void Controller::check_sock(int socketFD, char *tmpbuf) {
  * @param dstIP {@code uint}
  * @return {@code FlowEntry}
  */
-FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
-    printf("DEBUG: making FlowEntry for: switchID: %u srcIP: %u dstIP: %u\n",
-           switchID, srcIP, dstIP);
-    auto it = find_if(switches.begin(), switches.end(), [&switchID](Switch &sw) { return sw.getGateID() == switchID; });
+FlowEntry Controller::makeFlowEntry(SwitchID switchID, uint srcIP, uint dstIP) {
+    printf("DEBUG: making FlowEntry for: switchID: %s srcIP: %u dstIP: %u\n",
+           switchID.getSwitchIDString().c_str(), srcIP, dstIP);
+    auto it = find_if(switches.begin(), switches.end(),
+                      [&switchID](Switch &sw) { return sw.getGateID() == switchID.getSwitchIDNum(); });
     if (it != switches.end()) {
-        printf("DEBUG: found matching switch: %u\n", switchID);
+        printf("DEBUG: found matching switch: %s\n", switchID.getSwitchIDString().c_str());
 
         // found element. it is an iterator to the first matching element.
         auto index = std::distance(switches.begin(), it);
@@ -494,7 +495,7 @@ void Controller::respondQUERYPacket(int socketFD, Message message) {
            switchID.getSwitchIDString().c_str(), srcIP, dstIP);
 
     // calculate new flow entry
-    FlowEntry flowEntry = makeFlowEntry(switchID.getSwitchIDNum(), srcIP, dstIP);
+    FlowEntry flowEntry = makeFlowEntry(switchID, srcIP, dstIP);
 
     // create and send new add packet
     sendADDPacket(socketFD, flowEntry);
