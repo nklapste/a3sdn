@@ -116,8 +116,6 @@ void Controller::start() {
     }
 
     //TODO: dev
-    char buf[BUFFER_SIZE];
-    int numbytes = 0;
     int newsockfd;
     int addrlen = sizeof(address);
 
