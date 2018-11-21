@@ -151,29 +151,43 @@ void Controller::start() {
          * This is how we add new TCP socket client connections.
          */
         if (pfds[PDFS_SOCKET].revents & POLLIN) {
-            if ((newsockfd = accept(pfds[PDFS_SOCKET].fd, (struct sockaddr *) &address, (socklen_t *) &addrlen)) < 0) {
-                perror("ERROR: calling server accept");
-                exit(EXIT_FAILURE);
-            }
-            printf("INFO: new client connection: socket fd:%d ip:%s port:%hu\n",
-                   newsockfd, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+            if (clientSocketConnections.size() + 1 > nSwitches) {
+                printf("WARNING: skipping adding TCP client socket connection that would exceed nSwitches");
+            } else {
+                if ((newsockfd = accept(pfds[PDFS_SOCKET].fd, (struct sockaddr *) &address, (socklen_t *) &addrlen)) <
+                    0) {
+                    perror("ERROR: calling server accept");
+                    exit(EXIT_FAILURE);
+                }
+                printf("INFO: new client connection: socket fd:%d ip:%s port:%hu\n",
+                       newsockfd, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
 
-            if(fcntl(newsockfd, F_SETFL, fcntl(newsockfd, F_GETFL) | O_NONBLOCK) < 0) {
-                // handle error
-                perror("ERROR: setting to non block socket\n");
+                if (fcntl(newsockfd, F_SETFL, fcntl(newsockfd, F_GETFL) | O_NONBLOCK) < 0) {
+                    // handle error
+                    perror("ERROR: setting to non block socket\n");
+                }
+                clientSocketConnections.emplace_back(
+                        make_tuple(newsockfd, (char *) malloc(BUFFER_SIZE * sizeof(char))));
             }
-            clientSocketConnections.emplace_back(make_tuple(newsockfd, (char *) malloc(BUFFER_SIZE * sizeof(char))));
         }
+        int i = 0;
         for (tuple<int, char *> &tup : clientSocketConnections) {
             // TODO: sometime query packet is missed
             if (recv(get<0>(tup), get<1>(tup), sizeof(get<1>(tup)), MSG_PEEK | MSG_DONTWAIT) == 0) {
-                close(pfds[PDFS_SOCKET].fd);
+                //Somebody disconnected , get his details and print
+                getpeername(get<0>(tup), (struct sockaddr *) &address, (socklen_t *) &addrlen);
+                printf("INFO: switch disconnected , ip %s , port %d \n",
+                       inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+                close(get<0>(tup));
+                clientSocketConnections.erase(clientSocketConnections.begin() + i);
+                free(get<1>(tup));
             } else {
                 check_sock(
                         get<0>(tup),
                         get<1>(tup)
                 );
             }
+            i++;
         }
     }
 }

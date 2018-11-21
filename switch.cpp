@@ -275,9 +275,13 @@ void Switch::start() {
          */
         if (recv(pfds[PDFS_SOCKET].fd, buf, sizeof(buf), MSG_PEEK | MSG_DONTWAIT) == 0) {
             // if recv returns zero, that means the connection has been closed:
-            // kill the child process
+            // kill the switch
+            int addrlen = sizeof(serv_addr);
+            getpeername(pfds[PDFS_SOCKET].fd, (struct sockaddr *) &serv_addr, (socklen_t *) &addrlen);
+            printf("ERROR: shutting down switch: controller disconnected: ip %s , port %d \n",
+                   inet_ntoa(serv_addr.sin_addr), ntohs(serv_addr.sin_port));
             close(pfds[PDFS_SOCKET].fd);
-            // do something else, e.g. go on vacation
+            exit(1);
         } else {
             check_sock(pfds[PDFS_SOCKET].fd, buf);
         }
