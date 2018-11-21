@@ -433,36 +433,44 @@ void Controller::respondOPENPacket(int socketfd, Message message) {
            switchIPLow, switchIPHigh, address.getSymbolicName().c_str(),
            port.getPortNum());
 
-    // create the new switch from the parsed OPEN packet
-    Switch newSwitch = Switch(switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh, address, port);
-
-    // check if we are creating or updating a switch
-    auto it = find_if(switches.begin(), switches.end(), [&newSwitch](Switch &sw) {
-        return sw.getGateID() ==
-               newSwitch.getGateID();
-    });
-    if (it != switches.end()) {
-        printf("DEBUG: updating existing switch: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
-               newSwitch.getGateID(), newSwitch.getRightSwitchID().getSwitchIDNum(),
-               newSwitch.getLeftSwitchID().getSwitchIDNum(), newSwitch.getIPLow(),
-               newSwitch.getIPHigh());
-        auto index = std::distance(switches.begin(), it);
-        switches[index] = newSwitch;
+    // make sure that the switch is within the controllers specified number of switches
+    if (switchID.getSwitchIDNum()>nSwitches ||
+        leftSwitchID.getSwitchIDNum()>nSwitches ||
+        rightSwitchID.getSwitchIDNum()>nSwitches){
+        printf("ERROR: switch contains switchid outside of the controllers max number of switches: %u not adding switch: %s\n",
+               nSwitches, switchID.getSwitchIDString().c_str());
     } else {
-        printf("DEBUG: adding new switch: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
-               newSwitch.getGateID(), newSwitch.getRightSwitchID().getSwitchIDNum(),
-               newSwitch.getLeftSwitchID().getSwitchIDNum(), newSwitch.getIPLow(),
-               newSwitch.getIPHigh());
-        // add the switch to the controllers list of known switches
-        switches.emplace_back(newSwitch);
+        // create the new switch from the parsed OPEN packet
+        Switch newSwitch = Switch(switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh, address, port);
+
+        // check if we are creating or updating a switch
+        auto it = find_if(switches.begin(), switches.end(), [&newSwitch](Switch &sw) {
+            return sw.getGateID() ==
+                   newSwitch.getGateID();
+        });
+        if (it != switches.end()) {
+            printf("DEBUG: updating existing switch: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
+                   newSwitch.getGateID(), newSwitch.getRightSwitchID().getSwitchIDNum(),
+                   newSwitch.getLeftSwitchID().getSwitchIDNum(), newSwitch.getIPLow(),
+                   newSwitch.getIPHigh());
+            auto index = std::distance(switches.begin(), it);
+            switches[index] = newSwitch;
+        } else {
+            printf("DEBUG: adding new switch: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
+                   newSwitch.getGateID(), newSwitch.getRightSwitchID().getSwitchIDNum(),
+                   newSwitch.getLeftSwitchID().getSwitchIDNum(), newSwitch.getIPLow(),
+                   newSwitch.getIPHigh());
+            // add the switch to the controllers list of known switches
+            switches.emplace_back(newSwitch);
+        }
+
+        // sort and dedupe the list of switches
+        sort(switches.begin(), switches.end());
+        switches.erase(unique(switches.begin(), switches.end()), switches.end());
+
+        // send ack back to switch
+        sendACKPacket(socketfd);
     }
-
-    // sort and dedupe the list of switches
-    sort(switches.begin(), switches.end());
-    switches.erase(unique(switches.begin(), switches.end()), switches.end());
-
-    // send ack back to switch
-    sendACKPacket(socketfd);
 }
 
 /**
