@@ -8,6 +8,7 @@
 #ifndef A2SDN_SWITCH_H
 #define A2SDN_SWITCH_H
 
+#include <chrono>
 #include <ctime>
 #include <string>
 #include <vector>
@@ -21,7 +22,7 @@
 #include "address.h"
 
 using namespace std;
-
+using namespace chrono;
 
 /**
  * Definitions of the various ports used by the switches.
@@ -103,9 +104,11 @@ private:
     void listSwitchStats();
 
     /* functionality for handling trafficFile delays */
-    clock_t endTime = 0;
+    milliseconds endTime = duration_cast<milliseconds>(
+            system_clock::now().time_since_epoch()
+    );
 
-    void setDelay(clock_t interval);
+    void setDelay(milliseconds interval);
 
     bool delayPassed();
 

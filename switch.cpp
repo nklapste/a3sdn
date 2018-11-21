@@ -5,6 +5,8 @@
  * @version 0.0.0
  */
 
+
+#include <chrono>
 #include <ctime>
 #include <assert.h>
 #include <cstdio>
@@ -49,6 +51,8 @@
 #define PDFS_SOCKET 4
 
 using namespace std;
+using namespace chrono;
+
 
 /**
  * Initialize a switch.
@@ -638,7 +642,10 @@ void Switch::listSwitchStats() {
  * @return {@code bool}
  */
 bool Switch::delayPassed() {
-    clock_t curTime = 10000 * clock() / (CLOCKS_PER_SEC);
+    milliseconds ms = duration_cast<milliseconds>(
+            system_clock::now().time_since_epoch()
+    );
+    milliseconds curTime = ms;
 //    printf("DEBUG: curTime:%li endtime:%li\n", curTime, endTime);
     return curTime >= endTime;
 }
@@ -650,14 +657,16 @@ bool Switch::delayPassed() {
  *
  * @param interval {@code clock_t}
  */
-void Switch::setDelay(clock_t interval) {
+void Switch::setDelay(milliseconds interval) {
+    milliseconds ms = duration_cast<milliseconds>(
+            system_clock::now().time_since_epoch()
+    );
     if (!delayPassed()) {
         endTime = interval + endTime;
     } else {
-        endTime = interval + (10000 * clock() / (CLOCKS_PER_SEC));
+        endTime = interval + ms;
     }
-    printf("DEBUG: setting delay interval: currentTime: %lims endTime: %lims\n", (10000 * clock() / (CLOCKS_PER_SEC)),
-           endTime);
+    printf("DEBUG: setting delay interval: currentTime: %lims endTime: %lims\n", ms, endTime);
 }
 
 void Switch::check_sock(int socketFD, char* tmpbuf, int& numbytes) {

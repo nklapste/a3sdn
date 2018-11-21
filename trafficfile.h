@@ -13,15 +13,16 @@
 
 #include <tuple>
 #include "switchid.h"
+#include <chrono>
 
 using namespace std;
-
+using namespace chrono;
 
 /**
  * Traffic file line type formatted as "swi delay interval"
  * where interval is an integer in milliseconds.
  */
-typedef tuple<SwitchID, string, clock_t> trafficFileDelayItem;
+typedef tuple<SwitchID, string, milliseconds> trafficFileDelayItem;
 
 /**
  * Traffic file line type formatted as "swi srcIP dstIP"

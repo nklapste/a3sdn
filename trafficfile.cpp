@@ -67,7 +67,7 @@ trafficFileDelayItem parseTrafficDelayItem(string &line) {
     vector<string> trafficFileItems((istream_iterator<string>(iss)), istream_iterator<string>());
     SwitchID switchID = SwitchID(trafficFileItems.at(0));
     string flag = trafficFileItems.at(1);
-    clock_t interval = static_cast<clock_t>(stoi(trafficFileItems.at(2)));
+    milliseconds interval = static_cast<milliseconds>(stoi(trafficFileItems.at(2)));
     printf("DEBUG: parsed trafficFileDelayItem: switchID: %s %s interval: %lims\n",
            switchID.getSwitchIDString().c_str(), flag.c_str(), interval);
     return make_tuple(switchID, flag, interval);
