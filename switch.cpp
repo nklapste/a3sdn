@@ -304,25 +304,26 @@ void Switch::check_connection(int connectionFD, int socketFD, Connection connect
     ssize_t r = read(connectionFD, buf, BUFFER_SIZE);
     if (!r) {
         printf("WARNING: receiveFIFO closed\n");
-    }
-    string cmd = string(buf);
-    printf("DEBUG: obtained raw: %s\n", cmd.c_str());
-    Packet packet = Packet(cmd);
-    printf("DEBUG: Parsed packet: %s\n", packet.toString().c_str());
-    if (packet.getType() == ACK) {
-        respondACKPacket();
-    } else if (packet.getType() == ADD) {
-        respondADDPacket(packet.getMessage());
-    } else if (packet.getType() == RELAY) {
-        respondRELAYPacket(socketFD, packet.getMessage());
     } else {
-        // Switch has no other special behavior for other packets
-        if (packet.getType() == OPEN) {
-            rOpenCount++;
-        } else if (packet.getType() == QUERY) {
-            rQueryCount++;
+        string cmd = string(buf);
+        printf("DEBUG: obtained raw: %s\n", cmd.c_str());
+        Packet packet = Packet(cmd);
+        printf("DEBUG: Parsed packet: %s\n", packet.toString().c_str());
+        if (packet.getType() == ACK) {
+            respondACKPacket();
+        } else if (packet.getType() == ADD) {
+            respondADDPacket(packet.getMessage());
+        } else if (packet.getType() == RELAY) {
+            respondRELAYPacket(socketFD, packet.getMessage());
+        } else {
+            // Switch has no other special behavior for other packets
+            if (packet.getType() == OPEN) {
+                rOpenCount++;
+            } else if (packet.getType() == QUERY) {
+                rQueryCount++;
+            }
+            printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
         }
-        printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
     }
 }
 
