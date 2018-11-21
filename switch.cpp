@@ -427,7 +427,7 @@ int Switch::getFlowEntryIndex(uint srcIP, uint dstIP) {
 /**
  * Send a OPEN packet describing the Switch through the given connection.
  *
- * Note: this should only be sent to the controller whick communicates through TCP sockets and not FIFOs.
+ * Note: this should only be sent to the controller which communicates through TCP sockets and not FIFOs.
  *
  * @param socketFD {@code int}
  */
