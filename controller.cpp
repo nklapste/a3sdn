@@ -166,10 +166,14 @@ void Controller::start() {
         }
         for (tuple<int, char *> &tup : clientSocketConnections) {
             // TODO: sometime query packet is missed
-            check_sock(
-                    get<0>(tup),
-                    get<1>(tup)
-            );
+            if (recv(get<0>(tup), get<1>(tup), sizeof(get<1>(tup)), MSG_PEEK | MSG_DONTWAIT) == 0) {
+                close(pfds[PDFS_SOCKET].fd);
+            } else {
+                check_sock(
+                        get<0>(tup),
+                        get<1>(tup)
+                );
+            }
         }
     }
 }

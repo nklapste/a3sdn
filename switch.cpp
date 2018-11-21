@@ -273,7 +273,14 @@ void Switch::start() {
         /*
          * Check the TCP socket file descriptor
          */
-        check_sock(pfds[PDFS_SOCKET].fd, buf);
+        if (recv(pfds[PDFS_SOCKET].fd, buf, sizeof(buf), MSG_PEEK | MSG_DONTWAIT) == 0) {
+            // if recv returns zero, that means the connection has been closed:
+            // kill the child process
+            close(pfds[PDFS_SOCKET].fd);
+            // do something else, e.g. go on vacation
+        } else {
+            check_sock(pfds[PDFS_SOCKET].fd, buf);
+        }
     }
 }
 
