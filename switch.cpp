@@ -656,11 +656,9 @@ void Switch::listSwitchStats() {
  * @return {@code bool}
  */
 bool Switch::delayPassed() {
-    milliseconds ms = duration_cast<milliseconds>(
+    milliseconds curTime = duration_cast<milliseconds>(
             system_clock::now().time_since_epoch()
     );
-    milliseconds curTime = ms;
-//    printf("DEBUG: curTime:%li endtime:%li\n", curTime, endTime);
     return curTime >= endTime;
 }
 
@@ -672,21 +670,26 @@ bool Switch::delayPassed() {
  * @param interval {@code clock_t}
  */
 void Switch::setDelay(milliseconds interval) {
-    milliseconds ms = duration_cast<milliseconds>(
+    milliseconds currentTime = duration_cast<milliseconds>(
             system_clock::now().time_since_epoch()
     );
     if (!delayPassed()) {
         endTime = interval + endTime;
     } else {
-        endTime = interval + ms;
+        endTime = interval + currentTime;
     }
-    printf("DEBUG: setting delay interval: currentTime: %lims endTime: %lims\n", ms, endTime);
+    printf("DEBUG: setting delay interval: currentTime: %lims endTime: %lims\n", currentTime, endTime);
 }
 
+/**
+ * Check the TCP socket connection to the controller.
+ *
+ * @param socketFD {@code int} file descriptor to the client TCP socket connected to the server controller.
+ * @param tmpbuf  {@code char *} temporary buffer to store obtained messages.
+ */
 void Switch::check_sock(int socketFD, char *tmpbuf) {
     string msg = get_message(socketFD, tmpbuf);
 
-    // TODO: ignore invalid packets
     Packet packet = Packet(msg);
     if (errno == EINVAL) {
         errno = 0;
