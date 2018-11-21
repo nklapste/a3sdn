@@ -299,7 +299,7 @@ void Switch::check_trafficFile(int socketFD, ifstream &trafficFileStream) {
     string line;
     if (trafficFileStream.is_open()) {
         if (getline(trafficFileStream, line)) {
-            switchParseTrafficFileLine(socketFD, line);
+            parseTrafficFileLine(socketFD, line);
         } else {
             trafficFileStream.close();
             printf("DEBUG: finished reading traffic file\n");
@@ -315,28 +315,64 @@ void Switch::check_connection(int connectionFD, int socketFD, Connection connect
     char buf[BUFFER_SIZE] = "\0";
 
     ssize_t r = read(connectionFD, buf, BUFFER_SIZE);
+
     if (!r) {
 //        printf("WARNING: receiveFIFO closed\n");
     } else {
-        printf("DEBUG: valid switch connection POLLIN event: %s\n", connection.getReceiveFIFOName().c_str());
         string cmd = string(buf);
-        printf("DEBUG: obtained raw: %s\n", cmd.c_str());
-        Packet packet = Packet(cmd);
-        printf("DEBUG: Parsed packet: %s\n", packet.toString().c_str());
+        if (cmd.find_first_not_of(' ') != std::string::npos) {
+            // There's a non-space.
+            printf("DEBUG: valid switch connection POLLIN event: %s\n", connection.getReceiveFIFOName().c_str());
+            printf("DEBUG: obtained raw: %s\n", cmd.c_str());
+            Packet packet = Packet(cmd);
+            printf("DEBUG: Parsed packet: %s\n", packet.toString().c_str());
+            if (packet.getType() == ACK) {
+                respondACKPacket();
+            } else if (packet.getType() == ADD) {
+                respondADDPacket(packet.getMessage());
+            } else if (packet.getType() == RELAY) {
+                respondRELAYPacket(socketFD, packet.getMessage());
+            } else {
+                // Switch has no other special behavior for other packets
+                if (packet.getType() == OPEN) {
+                    rOpenCount++;
+                } else if (packet.getType() == QUERY) {
+                    rQueryCount++;
+                }
+                printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
+            }
+        }
+    }
+}
+
+
+/**
+ * Check the TCP socket connection to the controller.
+ *
+ * @param socketFD {@code int} file descriptor to the client TCP socket connected to the server controller.
+ * @param tmpbuf  {@code char *} temporary buffer to store obtained messages.
+ */
+void Switch::check_sock(int socketFD, char *tmpbuf) {
+    string msg = get_message(socketFD, tmpbuf);
+
+    Packet packet = Packet(msg);
+    if (errno == EINVAL) {
+        errno = 0;
+    } else {
         if (packet.getType() == ACK) {
             respondACKPacket();
         } else if (packet.getType() == ADD) {
             respondADDPacket(packet.getMessage());
-        } else if (packet.getType() == RELAY) {
-            respondRELAYPacket(socketFD, packet.getMessage());
         } else {
             // Switch has no other special behavior for other packets
             if (packet.getType() == OPEN) {
                 rOpenCount++;
+            } else if (packet.getType() == RELAY) {
+                rRelayCount++;
             } else if (packet.getType() == QUERY) {
                 rQueryCount++;
             }
-            printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
+            printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), msg.c_str());
         }
     }
 }
@@ -348,7 +384,7 @@ void Switch::check_connection(int connectionFD, int socketFD, Connection connect
  * @param line {@code std::string}
  * @return {@code std::string}
  */
-string &Switch::switchParseTrafficFileLine(int socketFD, string &line) {
+string &Switch::parseTrafficFileLine(int socketFD, string &line) {
     int trafficFileLineType = getTrafficFileLineType(line);
 
     if (trafficFileLineType == INVALID_LINE) {
@@ -684,36 +720,6 @@ void Switch::setDelay(milliseconds interval) {
     printf("DEBUG: setting delay interval: currentTime: %lims endTime: %lims\n", currentTime, endTime);
 }
 
-/**
- * Check the TCP socket connection to the controller.
- *
- * @param socketFD {@code int} file descriptor to the client TCP socket connected to the server controller.
- * @param tmpbuf  {@code char *} temporary buffer to store obtained messages.
- */
-void Switch::check_sock(int socketFD, char *tmpbuf) {
-    string msg = get_message(socketFD, tmpbuf);
-
-    Packet packet = Packet(msg);
-    if (errno == EINVAL) {
-        errno = 0;
-    } else {
-        if (packet.getType() == ACK) {
-            respondACKPacket();
-        } else if (packet.getType() == ADD) {
-            respondADDPacket(packet.getMessage());
-        } else {
-            // Switch has no other special behavior for other packets
-            if (packet.getType() == OPEN) {
-                rOpenCount++;
-            } else if (packet.getType() == RELAY) {
-                rRelayCount++;
-            } else if (packet.getType() == QUERY) {
-                rQueryCount++;
-            }
-            printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), msg.c_str());
-        }
-    }
-}
 
 /**
  * Getter for the {@code Switch}'s {@code SwitchID}.

@@ -79,7 +79,7 @@ private:
     vector<Connection> connections;
     vector<Packet> unsolvedPackets;
 
-    string &switchParseTrafficFileLine(int socketFD, string &line);
+    string &parseTrafficFileLine(int socketFD, string &line);
 
     int getFlowEntryIndex(uint srcIP, uint dstIP);
 
