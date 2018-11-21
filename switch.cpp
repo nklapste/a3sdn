@@ -188,14 +188,14 @@ void Switch::start() {
     ifstream trafficFileStream(trafficFile);
 
     // init client tcp connection
-    struct sockaddr_in serv_addr;
+    struct sockaddr_in serv_addr{};
 
     // Creating socket file descriptor
     if ((pfds[PDFS_SOCKET].fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
         perror("ERROR: socket file descriptor creation failed");
         exit(EXIT_FAILURE);
     }
-    memset(&serv_addr, '0', sizeof(serv_addr));
+    memset(&serv_addr, 0, sizeof(serv_addr));
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(getPort().getPortNum());
@@ -219,7 +219,6 @@ void Switch::start() {
 
     //TODO: dev
     char buf[BUFFER_SIZE];
-    int numbytes = 0;
 
 
     if(fcntl(pfds[PDFS_SOCKET].fd, F_SETFL, fcntl(pfds[PDFS_SOCKET].fd, F_GETFL) | O_NONBLOCK) < 0) {
@@ -593,7 +592,7 @@ int Switch::resolvePacket(uint srcIP, uint dstIP) {
            "\tsrcIP: %u dstIP: %u", srcIP, dstIP);
     int fi = getFlowEntryIndex(srcIP, dstIP);
     if (fi >= 0) { // found rule
-        FlowEntry flowEntry = flowTable.at(fi);
+        FlowEntry flowEntry = flowTable.at(static_cast<unsigned long>(fi));
         // we now have a valid rule that ap
         if (flowEntry.actionType == DELIVER) {
             // this packet is ours
