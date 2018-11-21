@@ -434,8 +434,10 @@ void Controller::respondOPENPacket(int socketfd, Message message) {
     if (switchID.getSwitchIDNum()>nSwitches ||
         leftSwitchID.getSwitchIDNum()>nSwitches ||
         rightSwitchID.getSwitchIDNum()>nSwitches){
-        printf("ERROR: switch contains switchid outside of the controllers max number of switches: %u not adding switch: %s\n",
-               nSwitches, switchID.getSwitchIDString().c_str());
+        printf("ERROR: shutting down controller: OPEN packet contains switchid outside of the controllers max number of switches: %u\n",
+               nSwitches);
+        // TODO: better way maybe?
+        exit(EINVAL);
     } else {
         // create the new switch from the parsed OPEN packet
         Switch newSwitch = Switch(switchID, leftSwitchID, rightSwitchID, switchIPLow, switchIPHigh, address, port);
