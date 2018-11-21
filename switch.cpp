@@ -485,6 +485,10 @@ void Switch::sendRELAYPacket(Connection connection, uint srcIP, uint dstIP) {
            connection.getSendFIFOName().c_str(), relayPacket.toString().c_str());
     write(connection.openSendFIFO(), relayPacket.toString().c_str(),
           strlen(relayPacket.toString().c_str()));
+    if (errno == EBADF) { // bad file likely due to other switch being down
+        printf("ERROR: failed sending RELAY packet: %s\n", relayPacket.toString().c_str());
+        errno = 0;
+    }
     tRelayCount++;
 }
 
