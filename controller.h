@@ -37,9 +37,6 @@ public:
 private:
     uint nSwitches;
     vector<Switch> switches;
-    vector<int> clientSockets;
-    vector<char *> clientBuffers;
-    vector<int> clientByteNo;
     vector<tuple<int, char *>> clientSocketConnections;
 
     FlowEntry makeFlowEntry(uint switchID, uint srcIP, uint dstIP);
