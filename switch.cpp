@@ -477,7 +477,9 @@ void Switch::sendOPENPacket(int socketFD) {
     openMessage.emplace_back(make_tuple("Port", to_string(getPort().getPortNum())));
     Packet openPacket = Packet(OPEN, openMessage);
     // TODO: fix log statement
-    printf("INFO: sending OPEN packet: packet: %s\n", openPacket.toString().c_str());
+    printf("INFO: (src= %s, dest= cont) sending OPEN packet: packet: %s\n",
+           getSwitchID().getSwitchIDString().c_str(),
+           openPacket.toString().c_str());
     send(socketFD, openPacket.toString().c_str(), strlen(openPacket.toString().c_str())+1, 0);
     tOpenCount++;
 }
@@ -496,7 +498,9 @@ void Switch::sendQUERYPacket(int socketFD, uint srcIP, uint dstIP) {
     queryMessage.emplace_back(MessageArg("dstIP", to_string(dstIP)));
     Packet queryPacket = Packet(QUERY, queryMessage);
     // TODO: update log statement
-    printf("INFO: sending QUERY packet: packet: %s\n", queryPacket.toString().c_str());
+    printf("INFO: (src= %s, dest= cont) sending QUERY packet: packet: %s\n",
+           getSwitchID().getSwitchIDString().c_str(),
+           queryPacket.toString().c_str());
     send(socketFD, queryPacket.toString().c_str(), strlen(queryPacket.toString().c_str())+1, 0);
     // set packet whether from the traffic file or from a relay into the unsolvedPackets vector
     // to be solved later
@@ -511,13 +515,15 @@ void Switch::sendQUERYPacket(int socketFD, uint srcIP, uint dstIP) {
  * @param srcIP {@code uint}
  * @param dstIP {@code uint}
  */
-void Switch::sendRELAYPacket(Connection connection, uint srcIP, uint dstIP) {
+void Switch::sendRELAYPacket(Connection connection, uint srcIP, uint dstIP, SwitchID dstSwitchID) {
     Message relayMessage;
     relayMessage.emplace_back(make_tuple("switchID", getSwitchID().getSwitchIDString()));
     relayMessage.emplace_back(make_tuple("srcIP", to_string(srcIP)));
     relayMessage.emplace_back(make_tuple("dstIP", to_string(dstIP)));
     Packet relayPacket = Packet(RELAY, relayMessage);
-    printf("INFO: sending RELAY packet: connection: %s packet: %s\n",
+    printf("INFO: (src= %s, dest= %s) sending RELAY packet: connection: %s packet: %s\n",
+           getSwitchID().getSwitchIDString().c_str(),
+
            connection.getSendFIFOName().c_str(), relayPacket.toString().c_str());
     write(connection.openSendFIFO(), relayPacket.toString().c_str(),
           strlen(relayPacket.toString().c_str()));
@@ -640,11 +646,11 @@ int Switch::resolvePacket(uint srcIP, uint dstIP) {
         } else if (flowEntry.actionType == FORWARD) {
             if (flowEntry.actionVal == PORT_1) {
                 // left switch port 1
-                sendRELAYPacket(connections[PORT_1 - 1], srcIP, dstIP);
+                sendRELAYPacket(connections[PORT_1 - 1], srcIP, dstIP, getLeftSwitchID());
 
             } else if (flowEntry.actionVal == PORT_2) {
                 // right switch port 2
-                sendRELAYPacket(connections[PORT_2 - 1], srcIP, dstIP);
+                sendRELAYPacket(connections[PORT_2 - 1], srcIP, dstIP, getRightSwitchID());
             } else if (flowEntry.actionVal == PORT_3) {  // FORWARD:3 == DELIVER
                 // this packet is ours
                 admitCount++;

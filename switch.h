@@ -87,7 +87,7 @@ private:
 
     void sendQUERYPacket(int socketFD, uint srcIP, uint dstIP);
 
-    void sendRELAYPacket(Connection connection, uint srcIP, uint dstIP);
+    void sendRELAYPacket(Connection connection, uint srcIP, uint dstIP, SwitchID dstSwitchID);
 
     void respondACKPacket();
 
