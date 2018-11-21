@@ -164,11 +164,15 @@ void Controller::start() {
                 // handle error
                 perror("ERROR: setting to non block socket\n");
             }
-            clientSockets.emplace_back(newsockfd);
+            clientSocketConnections.emplace_back(make_tuple(newsockfd, (char*)malloc ( BUFFER_SIZE * sizeof (char)), 0));
         }
-        // check all TCP client connections
-        for(auto const& clientSocket: clientSockets) {
-            check_sock(clientSocket,buf, numbytes);
+        for (tuple<int, char *, int> &tup : clientSocketConnections){
+            // TODO: sometime query packet is missed
+            check_sock(
+                    get<0>(tup),
+                    get<1>(tup),
+                    get<2>(tup)
+            );
         }
     }
 }
