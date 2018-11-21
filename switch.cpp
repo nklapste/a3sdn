@@ -107,7 +107,7 @@ Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
     }
     printf("INFO: created switch: sw%u trafficFile: %s swj: %u swk: %u IPLow: %u IPHigh: %u portNumber: %u\n",
            switchID.getSwitchIDNum(), trafficFile.c_str(), leftSwitchID.getSwitchIDNum(),
-           rightSwitchID.getSwitchIDNum(), IPLow, IPHigh, port.getPortNum());
+           rightSwitchID.getSwitchIDNum(), getIPLow(), getIPHigh(), port.getPortNum());
 }
 
 /**
@@ -436,8 +436,8 @@ void Switch::sendOPENPacket(int socketFD) {
     openMessage.emplace_back(make_tuple("switchID", getSwitchID().getSwitchIDString()));
     openMessage.emplace_back(make_tuple("leftSwitchID", getLeftSwitchID().getSwitchIDString()));
     openMessage.emplace_back(make_tuple("rightSwitchID", getRightSwitchID().getSwitchIDString()));
-    openMessage.emplace_back(make_tuple("IPLow", to_string(getIPHigh())));
-    openMessage.emplace_back(make_tuple("IPHigh", to_string(getIPLow())));
+    openMessage.emplace_back(make_tuple("IPLow", to_string(getIPLow())));
+    openMessage.emplace_back(make_tuple("IPHigh", to_string(getIPHigh())));
     openMessage.emplace_back(make_tuple("Address", getServerAddr().getSymbolicName()));
     openMessage.emplace_back(make_tuple("Port", to_string(getPort().getPortNum())));
     Packet openPacket = Packet(OPEN, openMessage);
