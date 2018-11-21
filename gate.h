@@ -75,7 +75,7 @@ protected:
 
     void check_stdin(int stdinFD);
 
-    virtual void check_sock(int socketFD) = 0;
+    virtual void check_sock(int socketFD, char* tmpbuf, int& numbytes) = 0;
 };
 
 

@@ -17,6 +17,7 @@
 #include <sys/signalfd.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 /* FIFO stuff */
 #include <poll.h>
@@ -27,6 +28,7 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <iostream>
 
 #include "controller.h"
 #include "switch.h"
@@ -211,6 +213,16 @@ void Switch::start() {
     // and the range of IP addresses served by the switch.
     sendOPENPacket(pfds[PDFS_SOCKET].fd);
 
+    //TODO: dev
+    char buf[BUFFER_SIZE];
+    int numbytes = 0;
+
+
+    if(fcntl(pfds[PDFS_SOCKET].fd, F_SETFL, fcntl(pfds[PDFS_SOCKET].fd, F_GETFL) | O_NONBLOCK) < 0) {
+        // handle error
+        perror("ERROR: setting to non block socket\n");
+    }
+
     /* This is the main loop */
     for (;;) {
         // setup for the next round of polling
@@ -257,9 +269,7 @@ void Switch::start() {
         /*
          * Check the TCP socket file descriptor
          */
-        if (pfds[PDFS_SOCKET].revents & POLLIN) {
-            check_sock(pfds[PDFS_SOCKET].fd);
-        }
+        check_sock(pfds[PDFS_SOCKET].fd, buf, numbytes);
     }
 }
 
@@ -417,7 +427,7 @@ void Switch::sendOPENPacket(int socketFD) {
     Packet openPacket = Packet(OPEN, openMessage);
     // TODO: fix log statement
     printf("INFO: sending OPEN packet: packet: %s\n", openPacket.toString().c_str());
-    send(socketFD, openPacket.toString().c_str(), strlen(openPacket.toString().c_str()), 0);
+    send(socketFD, openPacket.toString().c_str(), strlen(openPacket.toString().c_str())+1, 0);
     tOpenCount++;
 }
 
@@ -436,7 +446,7 @@ void Switch::sendQUERYPacket(int socketFD, uint srcIP, uint dstIP) {
     Packet queryPacket = Packet(QUERY, queryMessage);
     // TODO: update log statement
     printf("INFO: sending QUERY packet: packet: %s\n", queryPacket.toString().c_str());
-    send(socketFD, queryPacket.toString().c_str(), strlen(queryPacket.toString().c_str()), 0);
+    send(socketFD, queryPacket.toString().c_str(), strlen(queryPacket.toString().c_str())+1, 0);
     // set packet whether from the traffic file or from a relay into the unsolvedPackets vector
     // to be solved later
     unsolvedPackets.emplace_back(Packet(RELAY, queryMessage));
@@ -649,34 +659,54 @@ void Switch::setDelay(clock_t interval) {
            endTime);
 }
 
-void Switch::check_sock(int socketFD) {
-    char buf[BUFFER_SIZE] = "\0";
+void Switch::check_sock(int socketFD, char* tmpbuf, int& numbytes) {
+    int i = 0;
 
-    printf("DEBUG: TCP client socket has POLLIN event\n");
-    ssize_t r = read(socketFD, buf, BUFFER_SIZE);
-    if (!r) {
-        printf("WARNING: TCP client socket closed\n");
-    }
-    string cmd = string(buf);
-    printf("DEBUG: obtained raw: %s\n", cmd.c_str());
-    // TODO: ignore invalid packets
-    Packet packet = Packet(cmd);
+//    printf("DEBUG: recv TCP client socket\n");
+    // set socket to non block
 
-    if (packet.getType() == ACK) {
-        respondACKPacket();
-    } else if (packet.getType() == ADD) {
-        respondADDPacket(packet.getMessage());
-    } else {
-        // Switch has no other special behavior for other packets
-        if (packet.getType() == OPEN) {
-            rOpenCount++;
-        } else if (packet.getType() == RELAY) {
-            rRelayCount++;
-        } else if (packet.getType() == QUERY) {
-            rQueryCount++;
+
+    for( ; i < numbytes; i++ ) {
+        printf("DEBUG: reading socket: %d char:%c\n", socketFD, tmpbuf[i]);
+
+        if( tmpbuf[i] == '\0' ) {
+            // \0 indicate end of message! so we are done
+            printf("DEBUG: got null terminator: %d\n", socketFD);
+            string msg = string(tmpbuf);
+            printf("DEBUG: obtained raw message from server: %s\n", msg.c_str());
+
+            memset(tmpbuf, 0, sizeof &tmpbuf);
+            numbytes = 0;
+
+            // TODO: ignore invalid packets
+            Packet packet = Packet(msg);
+
+            if (packet.getType() == ACK) {
+                respondACKPacket();
+            } else if (packet.getType() == ADD) {
+                respondADDPacket(packet.getMessage());
+            } else {
+                // Switch has no other special behavior for other packets
+                if (packet.getType() == OPEN) {
+                    rOpenCount++;
+                } else if (packet.getType() == RELAY) {
+                    rRelayCount++;
+                } else if (packet.getType() == QUERY) {
+                    rQueryCount++;
+                }
+                printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), msg.c_str());
+            }
         }
-        printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
     }
+
+    int n = recv(socketFD, tmpbuf + numbytes, BUFFER_SIZE - numbytes, 0);
+    if( n == -1 ) {
+//        perror("ERROR: reading from server\n");
+        errno =0;
+        // TODO: error
+        n = 0;
+    }
+    numbytes += n;
 }
 
 /**

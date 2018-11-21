@@ -109,7 +109,7 @@ private:
 
     bool delayPassed();
 
-    void check_sock(int socketFD) override;
+    void check_sock(int socketFD, char* tmpbuf, int& numbytes) override;
 
     void check_connection(int connectionFD, int socketFD, Connection connection);
 

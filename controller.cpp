@@ -16,6 +16,7 @@
 #include <sys/types.h>
 #include <tuple>
 #include <unistd.h>
+#include <fcntl.h>
 
 /*FIFO stuff*/
 #include <poll.h>
@@ -41,6 +42,31 @@
 #define PDFS_SOCKET connections.size()+3
 
 using namespace std;
+
+
+// todo: dev
+#define  MAXDATASIZE 1000
+int receive_till_zero( int sock, char* tmpbuf, int& numbytes ) {
+    int i = 0;
+    do {
+//        printf("DEBUG: reading socket: %d\n", sock);
+        // Check if we have a complete message
+        for( ; i < numbytes; i++ ) {
+            printf("DEBUG: reading socket: %d char:%c\n", sock, tmpbuf[i]);
+
+            if( tmpbuf[i] == '\0' ) {
+                // \0 indicate end of message! so we are done
+                printf("DEBUG: got null terminator: %d\n", sock);
+                return i + 1; // return length of message
+            }
+        }
+        int n = recv( sock, tmpbuf + numbytes, BUFFER_SIZE - numbytes, 0 );
+        if( n == -1 ) {
+            return -1; // operation failed!
+        }
+        numbytes += n;
+    } while( true );
+}
 
 /**
  * Initialize a Controller.
@@ -118,6 +144,23 @@ void Controller::start() {
         exit(EXIT_FAILURE);
     }
 
+    //TODO: dev
+    char buf[BUFFER_SIZE];
+    int numbytes = 0;
+    int newsockfd;
+    int addrlen = sizeof(address);
+
+    if ((newsockfd = accept(pfds[PDFS_SOCKET].fd, (struct sockaddr *) &address, (socklen_t *) &addrlen)) < 0) {
+        perror("ERROR: calling server accept");
+        exit(EXIT_FAILURE);
+    }
+    printf("INFO: new client connection: socket fd:%d ip:%s port:%hu\n",
+           newsockfd, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+
+    if(fcntl(newsockfd, F_SETFL, fcntl(newsockfd, F_GETFL) | O_NONBLOCK) < 0) {
+        // handle error
+        perror("ERROR: setting to non block socket\n");
+    }
     // enter the controller loop
     for (;;) {
         // setup for the next round of polling
@@ -147,9 +190,7 @@ void Controller::start() {
         /*
          * Check the socket file descriptor for events
          */
-        if (pfds[PDFS_SOCKET].revents & POLLIN) {
-            check_sock(pfds[PDFS_SOCKET].fd);
-        }
+        check_sock(newsockfd, buf, numbytes);
     }
 }
 
@@ -157,46 +198,52 @@ void Controller::start() {
 /**
  * Check the socket file descriptor for events
  */
-void Controller::check_sock(int socketFD) {
-    printf("DEBUG: socket file descriptor has POLLIN event\n");
-    char buf[BUFFER_SIZE] = "\0";
+void Controller::check_sock(int socketFD, char* tmpbuf, int& numbytes) {
+    int i = 0;
 
-    int newsockfd;
-    struct sockaddr_in address;
-    int addrlen = sizeof(address);
+//    printf("DEBUG: recv TCP server socket\n");
 
-    if ((newsockfd = accept(socketFD, (struct sockaddr *) &address, (socklen_t *) &addrlen)) < 0) {
-        perror("ERROR: calling server accept");
-        exit(EXIT_FAILURE);
-    }
-    printf("INFO: new client connection: socket fd:%d ip:%s port:%hu\n",
-           newsockfd, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+    for( ; i < numbytes; i++ ) {
+        printf("DEBUG: reading socket: %d char:%c\n", socketFD, tmpbuf[i]);
 
-    ssize_t r = read(newsockfd, buf, BUFFER_SIZE);
-    if (!r) {
-        printf("WARNING: TCP socket client connection closed\n");
-    }
-    string cmd = string(buf);
+        if( tmpbuf[i] == '\0' ) {
+            // \0 indicate end of message! so we are done
+            printf("DEBUG: got null terminator: %d\n", socketFD);
+            // take the message and parse it into a packet
+            string msg = string(tmpbuf);
+            printf("DEBUG: obtained raw message from server: %s\n", msg.c_str());
 
-    // take the message and parse it into a packet
-    Packet packet = Packet(cmd);
-    printf("DEBUG: parsed packet: %s\n", packet.toString().c_str());
+            memset(tmpbuf, 0, sizeof &tmpbuf);
+            numbytes = 0;
 
-    if (packet.getType() == OPEN) {
-        respondOPENPacket(newsockfd, packet.getMessage());
-    } else if (packet.getType() == QUERY) {
-        respondQUERYPacket(newsockfd, packet.getMessage());
-    } else {
-        // Controller has no other special behavior for other packets
-        if (packet.getType() == ACK) {
-            rAckCount++;
-        } else if (packet.getType() == ADD) {
-            rAddCount++;
-        } else if (packet.getType() == RELAY) {
-            rRelayCount++;
+            // TODO: ignore invalid packets
+            Packet packet = Packet(msg);
+            printf("DEBUG: parsed packet: %s\n", packet.toString().c_str());
+            if (packet.getType() == OPEN) {
+                respondOPENPacket(socketFD, packet.getMessage());
+            } else if (packet.getType() == QUERY) {
+                respondQUERYPacket(socketFD, packet.getMessage());
+            } else {
+                // Controller has no other special behavior for other packets
+                if (packet.getType() == ACK) {
+                    rAckCount++;
+                } else if (packet.getType() == ADD) {
+                    rAddCount++;
+                } else if (packet.getType() == RELAY) {
+                    rRelayCount++;
+                }
+                printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), msg.c_str());
+            }
         }
-        printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), cmd.c_str());
     }
+
+    int n = recv(socketFD, tmpbuf + numbytes, BUFFER_SIZE - numbytes, 0);
+    if( n == -1 ) {
+//        printf("ERROR: reading from server\n");
+        errno = 0;
+//        exit(1);
+    }
+    numbytes += n;
 }
 
 
@@ -355,7 +402,7 @@ void Controller::sendACKPacket(int socketFD) {
     Packet ackPacket = Packet(ACK, Message());
     // TODO: fix log statement
     printf("INFO: sending ACK packet: packet: %s\n", ackPacket.toString().c_str());
-    send(socketFD, ackPacket.toString().c_str(), strlen(ackPacket.toString().c_str()), 0);
+    send(socketFD, ackPacket.toString().c_str(), strlen(ackPacket.toString().c_str())+1, 0);
     tAckCount++;
 }
 
@@ -379,7 +426,7 @@ void Controller::sendADDPacket(int socketFD, FlowEntry flowEntry) {
     Packet addPacket = Packet(ADD, addMessage);
     // TODO: fix this log statement
     printf("INFO: sending ADD packet: packet: %s\n", addPacket.toString().c_str());
-    send(socketFD, addPacket.toString().c_str(), strlen(addPacket.toString().c_str()), 0);
+    send(socketFD, addPacket.toString().c_str(), strlen(addPacket.toString().c_str())+1, 0);
     tAddCount++;
 }
 

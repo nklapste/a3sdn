@@ -52,7 +52,7 @@ private:
 
     void listControllerStats();
 
-    void check_sock(int socketFD) override;
+    void check_sock(int socketFD, char* tmpbuf, int& numbytes) override;
 };
 
 #endif //A2SDN_CONTROLLER_H
