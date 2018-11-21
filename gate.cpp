@@ -7,6 +7,8 @@
 
 #include <sys/signalfd.h>
 #include <unistd.h>
+#include <sys/socket.h>
+#include <cstring>
 #include "gate.h"
 
 
@@ -114,4 +116,21 @@ int Gate::getSignalFD() {
         exit(errno);
     }
     return signalfd(-1, &sigset, 0);
+}
+
+string Gate::get_message(int socketFD, char *tmpbuf) {
+    int num = recv(socketFD, tmpbuf, BUFFER_SIZE, 0);
+    if (num < 1) {
+        errno = 0;
+        if (errno == EAGAIN) {
+            errno = 0;
+        }
+        // TODO: error
+    };
+    tmpbuf[num] = '\0';
+    if (tmpbuf[num - 1] == '\n')
+        tmpbuf[num - 1] = '\0';
+    string msg = string(tmpbuf);
+    strcpy(tmpbuf, "");
+    return msg;
 }

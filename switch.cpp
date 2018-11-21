@@ -670,53 +670,29 @@ void Switch::setDelay(milliseconds interval) {
 }
 
 void Switch::check_sock(int socketFD, char* tmpbuf, int& numbytes) {
-    int i = 0;
+    string msg = get_message(socketFD, tmpbuf);
 
-//    printf("DEBUG: recv TCP client socket\n");
-    // set socket to non block
-
-
-    for( ; i < numbytes; i++ ) {
-        printf("DEBUG: reading socket: %d char:%c\n", socketFD, tmpbuf[i]);
-
-        if( tmpbuf[i] == '\0' ) {
-            // \0 indicate end of message! so we are done
-            printf("DEBUG: got null terminator: %d\n", socketFD);
-            string msg = string(tmpbuf);
-            printf("DEBUG: obtained raw message from server: %s\n", msg.c_str());
-
-            memset(tmpbuf, 0, sizeof &tmpbuf);
-            numbytes = 0;
-
-            // TODO: ignore invalid packets
-            Packet packet = Packet(msg);
-
-            if (packet.getType() == ACK) {
-                respondACKPacket();
-            } else if (packet.getType() == ADD) {
-                respondADDPacket(packet.getMessage());
-            } else {
-                // Switch has no other special behavior for other packets
-                if (packet.getType() == OPEN) {
-                    rOpenCount++;
-                } else if (packet.getType() == RELAY) {
-                    rRelayCount++;
-                } else if (packet.getType() == QUERY) {
-                    rQueryCount++;
-                }
-                printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), msg.c_str());
+    // TODO: ignore invalid packets
+    Packet packet = Packet(msg);
+    if (errno == EINVAL) {
+        errno = 0;
+    } else {
+        if (packet.getType() == ACK) {
+            respondACKPacket();
+        } else if (packet.getType() == ADD) {
+            respondADDPacket(packet.getMessage());
+        } else {
+            // Switch has no other special behavior for other packets
+            if (packet.getType() == OPEN) {
+                rOpenCount++;
+            } else if (packet.getType() == RELAY) {
+                rRelayCount++;
+            } else if (packet.getType() == QUERY) {
+                rQueryCount++;
             }
+            printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), msg.c_str());
         }
     }
-
-    int n = recv(socketFD, tmpbuf + numbytes, BUFFER_SIZE - numbytes, 0);
-    if( n == -1 ) {
-//        perror("ERROR: reading from server\n");
-        errno =0;
-        // TODO: error
-        n = 0;
-    }
-    numbytes += n;
 }
 
 /**

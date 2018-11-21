@@ -182,51 +182,32 @@ void Controller::start() {
  * Check the socket file descriptor for events
  */
 void Controller::check_sock(int socketFD, char* tmpbuf, int& numbytes) {
-    int i = 0;
+    string msg = get_message(socketFD, tmpbuf);
 
-//    printf("DEBUG: recv TCP server socket\n");
-
-    for( ; i < numbytes; i++ ) {
-        printf("DEBUG: reading socket: %d char:%c\n", socketFD, tmpbuf[i]);
-
-        if( tmpbuf[i] == '\0' ) {
-            // \0 indicate end of message! so we are done
-            printf("DEBUG: got null terminator: %d\n", socketFD);
-            // take the message and parse it into a packet
-            string msg = string(tmpbuf);
-            printf("DEBUG: obtained raw message from server: %s\n", msg.c_str());
-
-            memset(tmpbuf, 0, sizeof &tmpbuf);
-            numbytes = 0;
-
-            // TODO: ignore invalid packets
-            Packet packet = Packet(msg);
-            printf("DEBUG: parsed packet: %s\n", packet.toString().c_str());
-            if (packet.getType() == OPEN) {
-                respondOPENPacket(socketFD, packet.getMessage());
-            } else if (packet.getType() == QUERY) {
-                respondQUERYPacket(socketFD, packet.getMessage());
-            } else {
-                // Controller has no other special behavior for other packets
-                if (packet.getType() == ACK) {
-                    rAckCount++;
-                } else if (packet.getType() == ADD) {
-                    rAddCount++;
-                } else if (packet.getType() == RELAY) {
-                    rRelayCount++;
-                }
-                printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), msg.c_str());
+    // TODO: ignore invalid packets
+    Packet packet = Packet(msg);
+    if (errno == EINVAL) {
+        errno = 0;
+    } else {
+        printf("DEBUG: parsed packet: %s\n", packet.toString().c_str());
+        if (packet.getType() == OPEN) {
+            respondOPENPacket(socketFD, packet.getMessage());
+        } else if (packet.getType() == QUERY) {
+            respondQUERYPacket(socketFD, packet.getMessage());
+        } else {
+            // Controller has no other special behavior for other packets
+            if (packet.getType() == ACK) {
+                rAckCount++;
+            } else if (packet.getType() == ADD) {
+                rAddCount++;
+            } else if (packet.getType() == RELAY) {
+                rRelayCount++;
             }
+            printf("ERROR: unexpected %s packet received: %s\n", packet.getType().c_str(), msg.c_str());
         }
     }
 
-    int n = recv(socketFD, tmpbuf + numbytes, BUFFER_SIZE - numbytes, 0);
-    if( n == -1 ) {
-//        printf("ERROR: reading from server\n");
-        errno = 0;
-//        exit(1);
-    }
-    numbytes += n;
+
 }
 
 
