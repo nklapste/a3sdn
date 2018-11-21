@@ -509,8 +509,10 @@ void Controller::respondQUERYPacket(int socketFD, Message message) {
 void Controller::listControllerStats() {
     printf("Controller information:\n");
     for (auto &sw: switches) {
-        printf("[sw%u] port1= %i, port2= %i, port3= %u-%u\n",
-               sw.getGateID(), sw.getLeftSwitchID().getSwitchIDNum(), sw.getRightSwitchID().getSwitchIDNum(),
+        printf("[%s] port1= %s, port2= %s, port3= %u-%u\n",
+               sw.getSwitchID().getSwitchIDString().c_str(),
+               sw.getLeftSwitchID().getSwitchIDString().c_str(),
+               sw.getRightSwitchID().getSwitchIDString().c_str(),
                sw.getIPLow(), sw.getIPHigh());
     }
 }
