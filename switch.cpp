@@ -273,7 +273,7 @@ void Switch::start() {
         /*
          * Check the TCP socket file descriptor
          */
-        check_sock(pfds[PDFS_SOCKET].fd, buf, numbytes);
+        check_sock(pfds[PDFS_SOCKET].fd, buf);
     }
 }
 
@@ -669,7 +669,7 @@ void Switch::setDelay(milliseconds interval) {
     printf("DEBUG: setting delay interval: currentTime: %lims endTime: %lims\n", ms, endTime);
 }
 
-void Switch::check_sock(int socketFD, char* tmpbuf, int& numbytes) {
+void Switch::check_sock(int socketFD, char *tmpbuf) {
     string msg = get_message(socketFD, tmpbuf);
 
     // TODO: ignore invalid packets

@@ -77,8 +77,7 @@ protected:
 
     string get_message(int socketFD, char *tmpbuf);
 
-    virtual void check_sock(int socketFD, char* tmpbuf, int& numbytes) = 0;
+    virtual void check_sock(int socketFD, char *tmpbuf) = 0;
 };
-
 
 #endif //A2SDN_GATE_H

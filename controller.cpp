@@ -164,14 +164,13 @@ void Controller::start() {
                 // handle error
                 perror("ERROR: setting to non block socket\n");
             }
-            clientSocketConnections.emplace_back(make_tuple(newsockfd, (char*)malloc ( BUFFER_SIZE * sizeof (char)), 0));
+            clientSocketConnections.emplace_back(make_tuple(newsockfd, (char *) malloc(BUFFER_SIZE * sizeof(char))));
         }
-        for (tuple<int, char *, int> &tup : clientSocketConnections){
+        for (tuple<int, char *> &tup : clientSocketConnections) {
             // TODO: sometime query packet is missed
             check_sock(
                     get<0>(tup),
-                    get<1>(tup),
-                    get<2>(tup)
+                    get<1>(tup)
             );
         }
     }
@@ -181,7 +180,7 @@ void Controller::start() {
 /**
  * Check the socket file descriptor for events
  */
-void Controller::check_sock(int socketFD, char* tmpbuf, int& numbytes) {
+void Controller::check_sock(int socketFD, char *tmpbuf) {
     string msg = get_message(socketFD, tmpbuf);
 
     // TODO: ignore invalid packets

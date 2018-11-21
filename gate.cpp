@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <cstring>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "gate.h"
 
 
@@ -119,14 +121,14 @@ int Gate::getSignalFD() {
 }
 
 string Gate::get_message(int socketFD, char *tmpbuf) {
+    // TODO: check if socket closed
+
     int num = recv(socketFD, tmpbuf, BUFFER_SIZE, 0);
-    if (num < 1) {
+    if (errno != 0 && errno != EAGAIN) {
+        perror("ERROR: mes");
+    } else {
         errno = 0;
-        if (errno == EAGAIN) {
-            errno = 0;
-        }
-        // TODO: error
-    };
+    }
     tmpbuf[num] = '\0';
     if (tmpbuf[num - 1] == '\n')
         tmpbuf[num - 1] = '\0';

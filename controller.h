@@ -40,7 +40,7 @@ private:
     vector<int> clientSockets;
     vector<char *> clientBuffers;
     vector<int> clientByteNo;
-    vector<tuple<int, char *, int>> clientSocketConnections;
+    vector<tuple<int, char *>> clientSocketConnections;
 
     FlowEntry makeFlowEntry(uint switchID, uint srcIP, uint dstIP);
 
@@ -56,7 +56,7 @@ private:
 
     void listControllerStats();
 
-    void check_sock(int socketFD, char* tmpbuf, int& numbytes) override;
+    void check_sock(int socketFD, char *tmpbuf) override;
 };
 
 #endif //A2SDN_CONTROLLER_H
