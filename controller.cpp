@@ -274,6 +274,9 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                     if (it2 != switches.end()) {
                         auto index2 = std::distance(switches.begin(), it2);
                         Switch requestLeftSwitch = switches[index2];
+                        printf("DEBUG: found leftSwitch: %s ipLOW: %u ipHIGH: %u\n",
+                               requestLeftSwitch.getSwitchID().getSwitchIDString().c_str(),
+                               requestLeftSwitch.getIPLow(), requestLeftSwitch.getIPHigh());
                         if (dstIP < requestLeftSwitch.getIPLow() || dstIP > requestLeftSwitch.getIPHigh()) {
                         } else {
                             printf("DEBUG: left switch valid creating FORWARD FlowEntry\n");
@@ -306,6 +309,10 @@ FlowEntry Controller::makeFlowEntry(uint switchID, uint srcIP, uint dstIP) {
                         auto index3 = std::distance(switches.begin(), it3);
 
                         Switch requestRightSwitch = switches[index3];
+
+                        printf("DEBUG: found rightSwitch: %s ipLOW: %u ipHIGH: %u\n",
+                               requestRightSwitch.getSwitchID().getSwitchIDString().c_str(),
+                               requestRightSwitch.getIPLow(), requestRightSwitch.getIPHigh());
 
                         if (dstIP < requestRightSwitch.getIPLow() || dstIP > requestRightSwitch.getIPHigh()) {
 
