@@ -87,7 +87,7 @@ void Controller::start() {
 
     // TODO: init TCP socket connection
     // init TCP socket file descriptor
-    struct sockaddr_in address;
+    struct sockaddr_in address{};
     int opt = 1;
 
     // Creating socket file descriptor
@@ -201,7 +201,6 @@ void Controller::start() {
 void Controller::check_sock(int socketFD, char *tmpbuf) {
     string msg = get_message(socketFD, tmpbuf);
 
-    // TODO: ignore invalid packets
     Packet packet = Packet(msg);
     if (errno == EINVAL) {
         errno = 0;
@@ -363,7 +362,8 @@ FlowEntry Controller::makeFlowEntry(SwitchID switchID, uint srcIP, uint dstIP) {
             }
         }
     } else {
-        printf("ERROR: attempted to make FlowEntry for unexpected switch: sw%u creating DROP FlowEntry\n", switchID);
+        printf("ERROR: attempted to make FlowEntry for unexpected switch: %s creating DROP FlowEntry\n",
+               switchID.getSwitchIDString().c_str());
         // TODO: is this okay behavior
         FlowEntry drop_rule = {
                 .srcIPLow   = MIN_IP,
