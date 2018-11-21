@@ -174,8 +174,9 @@ void Controller::start() {
         for (tuple<int, char *> &tup : clientSocketConnections) {
             // TODO: sometime query packet is missed
             if (recv(get<0>(tup), get<1>(tup), sizeof(get<1>(tup)), MSG_PEEK | MSG_DONTWAIT) == 0) {
-                //Somebody disconnected , get his details and print
+                // A switch has disconnected
                 getpeername(get<0>(tup), (struct sockaddr *) &address, (socklen_t *) &addrlen);
+                // TODO: note what switch died
                 printf("INFO: switch disconnected: fd:%d ip:%s port:%d\n",
                        get<0>(tup), inet_ntoa(address.sin_addr), ntohs(address.sin_port));
                 close(get<0>(tup));
@@ -457,16 +458,20 @@ void Controller::respondOPENPacket(int socketfd, Message message) {
                    newSwitch.getGateID();
         });
         if (it != switches.end()) {
-            printf("DEBUG: updating existing switch: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
-                   newSwitch.getGateID(), newSwitch.getRightSwitchID().getSwitchIDNum(),
-                   newSwitch.getLeftSwitchID().getSwitchIDNum(), newSwitch.getIPLow(),
+            printf("DEBUG: updating existing switch: switchID: %s leftSwitchID: %s rightSwitchID: %s switchIPLow: %u switchIPHigh: %u\n",
+                   newSwitch.getSwitchID().getSwitchIDString().c_str(),
+                   newSwitch.getSwitchID().getSwitchIDString().c_str(),
+                   newSwitch.getSwitchID().getSwitchIDString().c_str(),
+                   newSwitch.getIPLow(),
                    newSwitch.getIPHigh());
             auto index = std::distance(switches.begin(), it);
             switches[index] = newSwitch;
         } else {
-            printf("DEBUG: adding new switch: switchID: %u leftSwitchID: %i rightSwitchID: %i switchIPLow: %u switchIPHigh: %u\n",
-                   newSwitch.getGateID(), newSwitch.getRightSwitchID().getSwitchIDNum(),
-                   newSwitch.getLeftSwitchID().getSwitchIDNum(), newSwitch.getIPLow(),
+            printf("DEBUG: adding new switch: switchID: %s leftSwitchID: %s rightSwitchID: %s switchIPLow: %u switchIPHigh: %u\n",
+                   newSwitch.getSwitchID().getSwitchIDString().c_str(),
+                   newSwitch.getSwitchID().getSwitchIDString().c_str(),
+                   newSwitch.getSwitchID().getSwitchIDString().c_str(),
+                   newSwitch.getIPLow(),
                    newSwitch.getIPHigh());
             // add the switch to the controllers list of known switches
             switches.emplace_back(newSwitch);
