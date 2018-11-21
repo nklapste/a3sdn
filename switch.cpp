@@ -187,7 +187,7 @@ void Switch::start() {
     // init the trafficfile
     ifstream trafficFileStream(trafficFile);
 
-    // TODO: init client tcp connection
+    // init client tcp connection
     struct sockaddr_in serv_addr;
 
     // Creating socket file descriptor
