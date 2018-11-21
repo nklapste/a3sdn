@@ -410,7 +410,6 @@ void Controller::sendADDPacket(int socketFD, FlowEntry flowEntry) {
     addMessage.emplace_back(MessageArg("pri", to_string(flowEntry.pri)));
     addMessage.emplace_back(MessageArg("pktCount", to_string(flowEntry.pktCount)));
     Packet addPacket = Packet(ADD, addMessage);
-    // TODO: fix this log statement
     printf("INFO: sending ADD packet: packet: %s\n", addPacket.toString().c_str());
     send(socketFD, addPacket.toString().c_str(), strlen(addPacket.toString().c_str())+1, 0);
     tAddCount++;
