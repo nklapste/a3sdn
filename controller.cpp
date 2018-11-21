@@ -148,7 +148,9 @@ void Controller::start() {
         }
 
         /*
-         * Check the socket file descriptor for events
+         * Check the socket file descriptor for events.
+         *
+         * This is how we add new TCP socket client connections.
          */
         if (pfds[PDFS_SOCKET].revents & POLLIN) {
             if ((newsockfd = accept(pfds[PDFS_SOCKET].fd, (struct sockaddr *) &address, (socklen_t *) &addrlen)) < 0) {
@@ -164,6 +166,7 @@ void Controller::start() {
             }
             clientSockets.emplace_back(newsockfd);
         }
+        // check all TCP client connections
         for(auto const& clientSocket: clientSockets) {
             check_sock(clientSocket,buf, numbytes);
         }
