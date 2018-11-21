@@ -176,10 +176,12 @@ void Controller::start() {
             if (recv(get<0>(tup), get<1>(tup), sizeof(get<1>(tup)), MSG_PEEK | MSG_DONTWAIT) == 0) {
                 //Somebody disconnected , get his details and print
                 getpeername(get<0>(tup), (struct sockaddr *) &address, (socklen_t *) &addrlen);
-                printf("INFO: switch disconnected , ip %s , port %d \n",
-                       inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+                printf("INFO: switch disconnected: fd:%d ip:%s port:%d\n",
+                       get<0>(tup), inet_ntoa(address.sin_addr), ntohs(address.sin_port));
                 close(get<0>(tup));
                 clientSocketConnections.erase(clientSocketConnections.begin() + i);
+                // TODO: remove switch from switches?
+
                 free(get<1>(tup));
             } else {
                 check_sock(
