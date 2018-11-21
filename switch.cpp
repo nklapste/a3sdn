@@ -601,11 +601,14 @@ int Switch::resolvePacket(uint srcIP, uint dstIP) {
         } else if (flowEntry.actionType == FORWARD) {
             if (flowEntry.actionVal == PORT_1) {
                 // left switch port 1
-                sendRELAYPacket(connections[PORT_1], srcIP, dstIP);
+                sendRELAYPacket(connections[PORT_1 - 1], srcIP, dstIP);
 
             } else if (flowEntry.actionVal == PORT_2) {
                 // right switch port 2
-                sendRELAYPacket(connections[PORT_2], srcIP, dstIP);
+                sendRELAYPacket(connections[PORT_2 - 1], srcIP, dstIP);
+            } else if (flowEntry.actionVal == PORT_3) {  // FORWARD:3 == DELIVER
+                // this packet is ours
+                admitCount++;
             } else {
                 printf("ERROR: given FORWARD to unsupported port: %u\n", flowEntry.actionVal);
             }
