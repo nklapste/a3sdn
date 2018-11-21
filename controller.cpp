@@ -44,30 +44,6 @@
 using namespace std;
 
 
-// todo: dev
-#define  MAXDATASIZE 1000
-int receive_till_zero( int sock, char* tmpbuf, int& numbytes ) {
-    int i = 0;
-    do {
-//        printf("DEBUG: reading socket: %d\n", sock);
-        // Check if we have a complete message
-        for( ; i < numbytes; i++ ) {
-            printf("DEBUG: reading socket: %d char:%c\n", sock, tmpbuf[i]);
-
-            if( tmpbuf[i] == '\0' ) {
-                // \0 indicate end of message! so we are done
-                printf("DEBUG: got null terminator: %d\n", sock);
-                return i + 1; // return length of message
-            }
-        }
-        int n = recv( sock, tmpbuf + numbytes, BUFFER_SIZE - numbytes, 0 );
-        if( n == -1 ) {
-            return -1; // operation failed!
-        }
-        numbytes += n;
-    } while( true );
-}
-
 /**
  * Initialize a Controller.
  *
@@ -86,11 +62,6 @@ Controller::Controller(uint nSwitches, Port port) : nSwitches(nSwitches), Gate(p
     }
     printf("DEBUG: creating controller: nSwitches: %u\n", nSwitches);
 
-    // init all potential switch connections for the controller
-    for (uint switch_i = 1; switch_i <= nSwitches; ++switch_i) {
-        connections.emplace_back(Connection());
-        // TODO: use TCP sockets for controller-switch connections
-    }
     printf("INFO: created controller: nSwitches: %u portNumber: %u\n", nSwitches, port.getPortNum());
 }
 
@@ -150,17 +121,6 @@ void Controller::start() {
     int newsockfd;
     int addrlen = sizeof(address);
 
-    if ((newsockfd = accept(pfds[PDFS_SOCKET].fd, (struct sockaddr *) &address, (socklen_t *) &addrlen)) < 0) {
-        perror("ERROR: calling server accept");
-        exit(EXIT_FAILURE);
-    }
-    printf("INFO: new client connection: socket fd:%d ip:%s port:%hu\n",
-           newsockfd, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
-
-    if(fcntl(newsockfd, F_SETFL, fcntl(newsockfd, F_GETFL) | O_NONBLOCK) < 0) {
-        // handle error
-        perror("ERROR: setting to non block socket\n");
-    }
     // enter the controller loop
     for (;;) {
         // setup for the next round of polling
@@ -190,7 +150,23 @@ void Controller::start() {
         /*
          * Check the socket file descriptor for events
          */
-        check_sock(newsockfd, buf, numbytes);
+        if (pfds[PDFS_SOCKET].revents & POLLIN) {
+            if ((newsockfd = accept(pfds[PDFS_SOCKET].fd, (struct sockaddr *) &address, (socklen_t *) &addrlen)) < 0) {
+                perror("ERROR: calling server accept");
+                exit(EXIT_FAILURE);
+            }
+            printf("INFO: new client connection: socket fd:%d ip:%s port:%hu\n",
+                   newsockfd, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+
+            if(fcntl(newsockfd, F_SETFL, fcntl(newsockfd, F_GETFL) | O_NONBLOCK) < 0) {
+                // handle error
+                perror("ERROR: setting to non block socket\n");
+            }
+            clientSockets.emplace_back(newsockfd);
+        }
+        for(auto const& clientSocket: clientSockets) {
+            check_sock(clientSocket,buf, numbytes);
+        }
     }
 }
 
