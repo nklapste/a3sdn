@@ -16,8 +16,6 @@ BINARY = a3sdn
 RM=rm -v -rf
 MKDIR = mkdir
 
-CC=gcc
-CXX=g++
 CPPFLAGS=-g -pthread -I/sw/include/root -std=c++17 -Wall
 
 BUILDDIR = build
