@@ -144,6 +144,10 @@ void Switch::start() {
 
     // init the trafficfile
     ifstream trafficFileStream(trafficFile);
+    if (errno) {
+        perror("ERROR: opening traffic file");
+        exit(errno);
+    }
 
     // init client tcp connection
     struct sockaddr_in serv_addr{};
