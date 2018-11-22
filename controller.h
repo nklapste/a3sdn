@@ -11,7 +11,6 @@
 #include <string>
 #include <tuple>
 #include <vector>
-#include <poll.h>
 
 #include "connection.h"
 #include "flow.h"
