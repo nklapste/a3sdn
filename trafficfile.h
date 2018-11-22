@@ -1,6 +1,9 @@
-//
-// Created by nklap on 2018-11-07.
-//
+/**
+ * trafficfile.h
+ *
+ * @author Nathan Klapstein (nklapste)
+ * @version 0.0.0
+ */
 
 #ifndef A3SDN_TRAFFICFILE_H
 #define A3SDN_TRAFFICFILE_H
@@ -12,8 +15,9 @@
 #define ROUTE_LINE 2
 
 #include <tuple>
-#include "switchid.h"
 #include <chrono>
+
+#include "switchid.h"
 
 using namespace std;
 using namespace chrono;

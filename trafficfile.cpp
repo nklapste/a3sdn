@@ -1,6 +1,9 @@
-//
-// Created by nklap on 2018-11-07.
-//
+/**
+ * trafficfile.cpp
+ *
+ * @author Nathan Klapstein (nklapste)
+ * @version 0.0.0
+ */
 
 #include <iterator>
 #include <vector>
