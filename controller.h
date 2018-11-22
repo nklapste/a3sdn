@@ -27,6 +27,8 @@
 
 using namespace std;
 
+typedef tuple<int, char *> ClientSocketConnection;
+
 class Controller : public Gate {
 public:
     explicit Controller(uint nSwitches, Port port);
@@ -35,8 +37,10 @@ public:
 
 private:
     uint nSwitches;
+
     vector<Switch> switches;
-    vector<tuple<int, char *>> clientSocketConnections;
+
+    vector<ClientSocketConnection> clientSocketConnections;
 
     FlowEntry makeFlowEntry(SwitchID switchID, uint srcIP, uint dstIP);
 
