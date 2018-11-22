@@ -55,16 +55,6 @@ uint SwitchID::validateSwitchIDNum(uint switchIDNum) {
 }
 
 /**
- * Constructor for a {@code SwitchID} from a {@code uint}.
- *
- * @param switchIDNum {@code uint}
- */
-SwitchID::SwitchID(uint switchIDNum) {
-    SwitchID::switchIDNum = validateSwitchIDNum(switchIDNum);
-    SwitchID::switchIDString = "sw" + to_string(SwitchID::switchIDNum);
-}
-
-/**
  * Constructor for a {@code SwitchID} from a {@code std::string}.
  *
  * @param switchIDString {@code std::string}
@@ -72,10 +62,11 @@ SwitchID::SwitchID(uint switchIDNum) {
 SwitchID::SwitchID(string switchIDString) {
     if (switchIDString == NULL_SWITCH_ID_FLAG) {
         SwitchID::switchIDNum = NULL_SWITCH_ID_NUM;
+        SwitchID::switchIDString = NULL_SWITCH_ID_FLAG;
     } else {
         SwitchID::switchIDNum = parseSwitchID(switchIDString);
+        SwitchID::switchIDString = "sw" + to_string(SwitchID::switchIDNum);
     }
-    SwitchID::switchIDString = "sw" + to_string(SwitchID::switchIDNum);
 }
 
 /**
@@ -95,7 +86,7 @@ string SwitchID::getSwitchIDString() {
  *
  * @return {@code uint}
  */
-uint SwitchID::getSwitchIDNum() {
+uint SwitchID::getSwitchIDNum() const {
     return switchIDNum;
 }
 

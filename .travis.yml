@@ -29,4 +29,8 @@ jobs:
     script:
       - cmake .
       - cmake --build .
-
+  - name: "cppcheck"
+    install:
+      - sudo apt-get install -qq cppcheck
+    script:
+      - cppcheck --error-exitcode=1 .

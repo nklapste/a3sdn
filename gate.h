@@ -11,6 +11,7 @@
 
 #include <sys/param.h>
 #include <vector>
+
 #include "connection.h"
 #include "port.h"
 
@@ -40,8 +41,6 @@ private:
 protected:
     Port port;
 
-    vector<Connection> connections;
-
     /**
      * Counts of {@code Packets} received.
      */
@@ -66,7 +65,16 @@ protected:
     void listPacketStats();
 
     uint gateID;
-};
 
+    int getSignalFD();
+
+    void checkSignal(int signalFD);
+
+    void checkStdin(int stdinFD);
+
+    string getMessage(int socketFD, char *tmpbuf);
+
+    virtual void check_sock(int socketFD, char *tmpbuf) = 0;
+};
 
 #endif //A2SDN_GATE_H

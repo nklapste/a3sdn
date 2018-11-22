@@ -47,24 +47,6 @@ Connection::Connection() {
 }
 
 /**
- * Getter for the ReceiveFIFO filename.
- *
- * @return {@code std::string}
- */
-string Connection::getReceiveFIFOName() {
-    return receiveFIFOName;
-}
-
-/**
- * Getter for the SendFIFO filename.
- *
- * @return {@code std::string}
- */
-string Connection::getSendFIFOName() {
-    return sendFIFOName;
-}
-
-/**
  * Opens a Connection for reading a switch with id.
  *
  * @return {@code int} the file description of the ReceiveFIFO.
@@ -74,8 +56,13 @@ int Connection::openReceiveFIFO() {
     printf("DEBUG: opening receiveFIFO: %s\n", getReceiveFIFOName().c_str());
     int fd = open(getReceiveFIFOName().c_str(), O_RDONLY | O_NONBLOCK);
     if (errno || fd == -1) {
-        perror("ERROR: opening receiveFIFO");
-        exit(errno);
+        perror("ERROR: opening receiveFIFO\n");
+        if (errno != ENXIO) {
+            printf("ERROR: unexpected error opening receiveFIFO\n");
+            exit(errno);
+        } else {
+            printf("WARNING: failed to open receiveFIFO\n");
+        }
     }
     return fd;
 }
@@ -90,8 +77,13 @@ int Connection::openSendFIFO() {
     printf("DEBUG: opening sendFIFO: %s\n", getSendFIFOName().c_str());
     int fd = open(getSendFIFOName().c_str(), O_WRONLY | O_NONBLOCK);
     if (errno || fd == -1) {
-        perror("ERROR: opening sendFIFO");
-        exit(errno);
+        perror("ERROR: opening sendFIFO\n");
+        if (errno != ENXIO) {
+            printf("ERROR: unexpected error opening sendFIFO\n");
+            exit(errno);
+        } else {
+            printf("WARNING: failed to open sendFIFO\n");
+        }
     }
     return fd;
 }
@@ -130,3 +122,20 @@ void Connection::makeFIFO(string &FIFOName) {
     }
 }
 
+/**
+ * Getter for the ReceiveFIFO filename.
+ *
+ * @return {@code std::string}
+ */
+string Connection::getReceiveFIFOName() {
+    return receiveFIFOName;
+}
+
+/**
+ * Getter for the SendFIFO filename.
+ *
+ * @return {@code std::string}
+ */
+string Connection::getSendFIFOName() {
+    return sendFIFOName;
+}

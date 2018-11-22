@@ -1,6 +1,9 @@
-//
-// Created by nklap on 2018-11-07.
-//
+/**
+ * trafficfile.h
+ *
+ * @author Nathan Klapstein (nklapste)
+ * @version 0.0.0
+ */
 
 #ifndef A3SDN_TRAFFICFILE_H
 #define A3SDN_TRAFFICFILE_H
@@ -12,20 +15,23 @@
 #define ROUTE_LINE 2
 
 #include <tuple>
+#include <chrono>
+
+#include "switchid.h"
 
 using namespace std;
-
+using namespace chrono;
 
 /**
  * Traffic file line type formatted as "swi delay interval"
  * where interval is an integer in milliseconds.
  */
-typedef tuple<uint, string, uint> trafficFileDelayItem;
+typedef tuple<SwitchID, string, milliseconds> trafficFileDelayItem;
 
 /**
  * Traffic file line type formatted as "swi srcIP dstIP"
  */
-typedef tuple<uint, uint, uint> trafficFileRouteItem;
+typedef tuple<SwitchID, uint, uint> trafficFileRouteItem;
 
 int getTrafficFileLineType(string &line);
 

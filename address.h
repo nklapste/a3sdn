@@ -22,6 +22,7 @@ public:
 
 private:
     string ipAddr;
+
     string symbolicName;
 };
 

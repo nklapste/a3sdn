@@ -1,6 +1,9 @@
-//
-// Created by nklap on 2018-11-07.
-//
+/**
+ * trafficfile.cpp
+ *
+ * @author Nathan Klapstein (nklapste)
+ * @version 0.0.0
+ */
 
 #include <iterator>
 #include <vector>
@@ -48,13 +51,12 @@ int getTrafficFileLineType(string &line) {
 trafficFileRouteItem parseTrafficRouteItem(string &line) {
     istringstream iss(line);
     vector<string> trafficFileItems((istream_iterator<string>(iss)), istream_iterator<string>());
-    uint switchID = SwitchID::parseSwitchID(trafficFileItems.at(0));
+    SwitchID switchID = SwitchID(trafficFileItems.at(0));
     uint srcIP = static_cast<uint>(stoi(trafficFileItems.at(1)));
     uint dstIP = static_cast<uint>(stoi(trafficFileItems.at(2)));
-    printf("DEBUG: parsed trafficFileRouteItem: switchID: %u srcIP: %u dstIP: %u\n",
-           switchID, srcIP, dstIP);
+    printf("DEBUG: parsed trafficFileRouteItem: switchID: %s srcIP: %u dstIP: %u\n",
+           switchID.getSwitchIDString().c_str(), srcIP, dstIP);
     return make_tuple(switchID, srcIP, dstIP);
-
 }
 
 /**
@@ -66,10 +68,10 @@ trafficFileRouteItem parseTrafficRouteItem(string &line) {
 trafficFileDelayItem parseTrafficDelayItem(string &line) {
     istringstream iss(line);
     vector<string> trafficFileItems((istream_iterator<string>(iss)), istream_iterator<string>());
-    uint switchID = SwitchID::parseSwitchID(trafficFileItems.at(0));
+    SwitchID switchID = SwitchID(trafficFileItems.at(0));
     string flag = trafficFileItems.at(1);
-    uint interval = static_cast<uint>(stoi(trafficFileItems.at(2)));
-    printf("DEBUG: parsed trafficFileDelayItem: switchID: %u %s interval: %ums\n",
-           switchID, flag.c_str(), interval);
+    milliseconds interval = static_cast<milliseconds>(stoi(trafficFileItems.at(2)));
+    printf("DEBUG: parsed trafficFileDelayItem: switchID: %s %s interval: %lims\n",
+           switchID.getSwitchIDString().c_str(), flag.c_str(), interval.count());
     return make_tuple(switchID, flag, interval);
 }

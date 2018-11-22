@@ -11,6 +11,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <map>
 
 #include "connection.h"
 #include "flow.h"
@@ -22,10 +23,13 @@
 #define MIN_SWITCHES 1
 #define MAX_SWITCHES 7
 
-#define CONTROLLER_ID 0
 #define CONTROLLER_MODE "cont"
 
 using namespace std;
+
+typedef tuple<int, char *> ClientSocketConnection;
+typedef map<int, string> SwitchFDMap;
+
 
 class Controller : public Gate {
 public:
@@ -35,21 +39,28 @@ public:
 
 private:
     uint nSwitches;
+
     vector<Switch> switches;
 
-    FlowEntry makeFlowEntry(uint switchID, uint srcIP, uint dstIP);
+    vector<ClientSocketConnection> clientSocketConnections;
 
-    void sendACKPacket(Connection connection);
+    SwitchFDMap switchFDMap;
 
-    void sendADDPacket(Connection connection, FlowEntry flowEntry);
+    FlowEntry makeFlowEntry(SwitchID switchID, uint srcIP, uint dstIP, SwitchID lastSwitchID);
 
-    void respondOPENPacket(Connection connection, Message message);
+    void sendACKPacket(int socketFD, SwitchID switchID);
 
-    void respondQUERYPacket(Connection connection, Message message);
+    void sendADDPacket(int socketFD, FlowEntry flowEntry, SwitchID switchID);
+
+    void respondOPENPacket(int socketFD, Message message);
+
+    void respondQUERYPacket(int socketFD, Message message);
 
     void list() override;
 
     void listControllerStats();
+
+    void check_sock(int socketFD, char *tmpbuf) override;
 };
 
 #endif //A2SDN_CONTROLLER_H

@@ -8,6 +8,8 @@
 #ifndef A2SDN_SWITCH_H
 #define A2SDN_SWITCH_H
 
+#include <chrono>
+#include <ctime>
 #include <string>
 #include <vector>
 
@@ -20,7 +22,7 @@
 #include "address.h"
 
 using namespace std;
-
+using namespace chrono;
 
 /**
  * Definitions of the various ports used by the switches.
@@ -44,6 +46,8 @@ public:
 
     uint getIPHigh() const;
 
+    SwitchID getSwitchID() const;
+
     SwitchID getLeftSwitchID() const;
 
     SwitchID getRightSwitchID() const;
@@ -51,6 +55,15 @@ public:
     void start() override;
 
 private:
+    /**
+     * ID of this switch. (e.g. sw1)
+     *
+     * Built from the {@code gateID} of this switch.
+     */
+    SwitchID switchID;
+
+    string trafficFile;
+
     /**
      * ID of the "left" switch to connect to. (Port 1)
      */
@@ -61,30 +74,33 @@ private:
      */
     SwitchID rightSwitchID;
 
-    Address address;
-    string trafficFile;
+    uint IPLow;
 
     uint IPHigh;
-    uint IPLow;
+
+    Address address;
+
     FlowTable flowTable;
+
     vector<Connection> connections;
+
     vector<Packet> unsolvedPackets;
 
-    string &switchParseTrafficFileLine(string &line);
+    string &parseTrafficFileLine(int socketFD, string &line);
 
     int getFlowEntryIndex(uint srcIP, uint dstIP);
 
-    void sendOPENPacket(Connection connection);
+    void sendOPENPacket(int socketFD);
 
-    void sendQUERYPacket(Connection connection, uint srcIP, uint dstIP);
+    void sendQUERYPacket(int socketFD, uint srcIP, uint dstIP);
 
-    void sendRELAYPacket(Connection connection, uint srcIP, uint dstIP);
+    void sendRELAYPacket(Connection connection, uint srcIP, uint dstIP, SwitchID dstSwitchID);
 
     void respondACKPacket();
 
     void respondADDPacket(Message message);
 
-    void respondRELAYPacket(Message message);
+    void respondRELAYPacket(int socketFD, Message message);
 
     void resolveUnsolvedPackets();
 
@@ -94,7 +110,20 @@ private:
 
     void listSwitchStats();
 
-    void handleDelay(uint interval);
+    /* functionality for handling trafficFile delays */
+    milliseconds endTime = duration_cast<milliseconds>(
+            system_clock::now().time_since_epoch()
+    );
+
+    void setDelay(milliseconds interval);
+
+    bool delayPassed();
+
+    void check_sock(int socketFD, char *tmpbuf) override;
+
+    void check_connection(int connectionFD, int socketFD, Connection connection);
+
+    void check_trafficFile(int socketFD, ifstream &trafficFileStream);
 };
 
 #endif //A2SDN_SWITCH_H
