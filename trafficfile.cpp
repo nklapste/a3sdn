@@ -69,6 +69,6 @@ trafficFileDelayItem parseTrafficDelayItem(string &line) {
     string flag = trafficFileItems.at(1);
     milliseconds interval = static_cast<milliseconds>(stoi(trafficFileItems.at(2)));
     printf("DEBUG: parsed trafficFileDelayItem: switchID: %s %s interval: %lims\n",
-           switchID.getSwitchIDString().c_str(), flag.c_str(), interval);
+           switchID.getSwitchIDString().c_str(), flag.c_str(), interval.count());
     return make_tuple(switchID, flag, interval);
 }

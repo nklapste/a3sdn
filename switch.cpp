@@ -669,7 +669,7 @@ void Switch::setDelay(milliseconds interval) {
     } else {
         endTime = interval + currentTime;
     }
-    printf("DEBUG: setting delay interval: currentTime: %lims endTime: %lims\n", currentTime, endTime);
+    printf("DEBUG: setting delay interval: currentTime: %lims endTime: %lims\n", currentTime.count(), endTime.count());
 }
 
 /**
