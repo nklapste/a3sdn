@@ -86,7 +86,7 @@ string SwitchID::getSwitchIDString() {
  *
  * @return {@code uint}
  */
-uint SwitchID::getSwitchIDNum() {
+uint SwitchID::getSwitchIDNum() const {
     return switchIDNum;
 }
 

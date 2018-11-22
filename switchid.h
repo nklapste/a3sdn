@@ -27,7 +27,23 @@ public:
 
     string getSwitchIDString();
 
-    uint getSwitchIDNum();
+    uint getSwitchIDNum() const;
+
+    bool operator==(const SwitchID &s) {
+        return getSwitchIDNum() == s.getSwitchIDNum();
+    }
+
+    bool operator!=(const SwitchID &s) {
+        return getSwitchIDNum() != s.getSwitchIDNum();
+    }
+
+    bool operator>(const SwitchID &s) {
+        return getSwitchIDNum() > s.getSwitchIDNum();
+    }
+
+    bool operator<(const SwitchID &s) {
+        return getSwitchIDNum() < s.getSwitchIDNum();
+    }
 
 private:
     string switchIDString;
