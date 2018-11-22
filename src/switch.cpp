@@ -584,7 +584,7 @@ void Switch::respondRELAYPacket(int socketFD, Message message) {
     uint dstIP = static_cast<uint>(stoi(get<1>(message[2])));
 
     printf("INFO: (src= %s, dst= %s) parsed RELAY packet:\n"
-           "\tswitchID: %s srcIP: %u dstIP: %u",
+           "\tswitchID: %s srcIP: %u dstIP: %u\n",
            rSwitchID.getSwitchIDString().c_str(),
            getSwitchID().getSwitchIDString().c_str(),
            rSwitchID.getSwitchIDString().c_str(), srcIP, dstIP);
