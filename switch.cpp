@@ -64,9 +64,11 @@ using namespace chrono;
 Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
                string &trafficFile, uint IPLow, uint IPHigh, Address address, Port port) : Gate(port),
                                                                                            switchID(switchID),
+                                                                                           trafficFile(trafficFile),
                                                                                            leftSwitchID(leftSwitchID),
                                                                                            rightSwitchID(rightSwitchID),
-                                                                                           IPLow(IPLow), IPHigh(IPHigh),
+                                                                                           IPLow(IPLow),
+                                                                                           IPHigh(IPHigh),
                                                                                            address(address) {
 
     // create and add the Switch's initial FLowEntry rule
@@ -82,8 +84,6 @@ Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
     };
 
     flowTable.push_back(init_rule);
-
-    Switch::trafficFile = trafficFile;
 
     // create Connection to controller
     // TODO: needs to be changed to TCP sockets
@@ -119,8 +119,14 @@ Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
  */
 Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID, uint IPLow, uint IPHigh,
                Address address, Port port) :
-        switchID(switchID), leftSwitchID(leftSwitchID), rightSwitchID(rightSwitchID),
-        IPLow(IPLow), IPHigh(IPHigh), address(address), Gate(port) {
+        Gate(port),
+        switchID(switchID),
+        trafficFile("/dev/null"),
+        leftSwitchID(leftSwitchID),
+        rightSwitchID(rightSwitchID),
+        IPLow(IPLow),
+        IPHigh(IPHigh),
+        address(address) {
     gateID = switchID.getSwitchIDNum();
 }
 

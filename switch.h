@@ -56,6 +56,15 @@ public:
 
 private:
     /**
+     * ID of this switch. (e.g. sw1)
+     *
+     * Built from the {@code gateID} of this switch.
+     */
+    SwitchID switchID;
+
+    string trafficFile;
+
+    /**
      * ID of the "left" switch to connect to. (Port 1)
      */
     SwitchID leftSwitchID;
@@ -65,16 +74,12 @@ private:
      */
     SwitchID rightSwitchID;
 
-    /**
-     * ID of this switch.
-     */
-    SwitchID switchID;
-
-    Address address;
-    string trafficFile;
+    uint IPLow;
 
     uint IPHigh;
-    uint IPLow;
+
+    Address address;
+
     FlowTable flowTable;
     vector<Connection> connections;
     vector<Packet> unsolvedPackets;
