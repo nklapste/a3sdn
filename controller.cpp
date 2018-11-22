@@ -222,6 +222,7 @@ void Controller::check_sock(int socketFD, char *tmpbuf) {
     }
 }
 
+
 /**
  * Calculate a new flow entry rule.
  *
@@ -232,7 +233,7 @@ void Controller::check_sock(int socketFD, char *tmpbuf) {
  * @param dstIP {@code uint}
  * @return {@code FlowEntry}
  */
-FlowEntry Controller::makeFlowEntry(SwitchID switchID, uint srcIP, uint dstIP) {
+FlowEntry Controller::makeFlowEntry(SwitchID switchID, uint srcIP, uint dstIP, SwitchID lastSwitchID) {
     printf("DEBUG: making FlowEntry for: switchID: %s srcIP: %u dstIP: %u\n",
            switchID.getSwitchIDString().c_str(), srcIP, dstIP);
     auto it = find_if(switches.begin(), switches.end(),
@@ -266,7 +267,7 @@ FlowEntry Controller::makeFlowEntry(SwitchID switchID, uint srcIP, uint dstIP) {
                 // get and test left switch
                 SwitchID leftSwitchID = requestSwitch.getLeftSwitchID();
                 printf("DEBUG: checking leftSwitch: %s\n", leftSwitchID.getSwitchIDString().c_str());
-                if (!leftSwitchID.isNullSwitchID()) {
+                if (!leftSwitchID.isNullSwitchID() && leftSwitchID != lastSwitchID) {
                     auto it2 = find_if(switches.begin(), switches.end(),
                                        [&leftSwitchID](Switch &sw) {
                                            return sw.getGateID() == leftSwitchID.getSwitchIDNum();
@@ -278,6 +279,23 @@ FlowEntry Controller::makeFlowEntry(SwitchID switchID, uint srcIP, uint dstIP) {
                                requestLeftSwitch.getSwitchID().getSwitchIDString().c_str(),
                                requestLeftSwitch.getIPLow(), requestLeftSwitch.getIPHigh());
                         if (dstIP < requestLeftSwitch.getIPLow() || dstIP > requestLeftSwitch.getIPHigh()) {
+                            // check to see if left switches neighbor can take it if so we need to forward
+                            FlowEntry leftRecuseFlowEntry = makeFlowEntry(requestLeftSwitch.getSwitchID(), srcIP, dstIP,
+                                                                          switchID);
+                            if (leftRecuseFlowEntry.actionType != DROP) {
+                                printf("DEBUG: left switch neighbors valid creating FORWARD FlowEntry\n");
+                                FlowEntry forwardLeftRule = {
+                                        .srcIPLow   = MIN_IP,
+                                        .srcIPHigh   = MAX_IP,
+                                        .dstIPLow   = leftRecuseFlowEntry.dstIPLow,
+                                        .dstIPHigh   = leftRecuseFlowEntry.dstIPHigh,
+                                        .actionType = FORWARD,
+                                        .actionVal  = PORT_1,
+                                        .pri        = MIN_PRI,
+                                        .pktCount   = 0,
+                                };
+                                return forwardLeftRule;
+                            }
                         } else {
                             printf("DEBUG: left switch valid creating FORWARD FlowEntry\n");
                             FlowEntry forwardLeftRule = {
@@ -297,7 +315,7 @@ FlowEntry Controller::makeFlowEntry(SwitchID switchID, uint srcIP, uint dstIP) {
                 // get and test the right switch
                 SwitchID rightSwitchID = requestSwitch.getRightSwitchID();
                 printf("DEBUG: checking rightSwitch: %s\n", rightSwitchID.getSwitchIDString().c_str());
-                if (!rightSwitchID.isNullSwitchID()) {
+                if (!rightSwitchID.isNullSwitchID() && rightSwitchID != lastSwitchID) {
 
                     auto it3 = find_if(switches.begin(), switches.end(),
                                        [&rightSwitchID](Switch &sw) {
@@ -315,7 +333,22 @@ FlowEntry Controller::makeFlowEntry(SwitchID switchID, uint srcIP, uint dstIP) {
                                requestRightSwitch.getIPLow(), requestRightSwitch.getIPHigh());
 
                         if (dstIP < requestRightSwitch.getIPLow() || dstIP > requestRightSwitch.getIPHigh()) {
-
+                            FlowEntry rightRecuseFlowEntry = makeFlowEntry(requestRightSwitch.getSwitchID(), srcIP,
+                                                                           dstIP, switchID);
+                            if (rightRecuseFlowEntry.actionType != DROP) {
+                                printf("DEBUG: right switch neighbors valid creating FORWARD FlowEntry\n");
+                                FlowEntry forwardRightRule = {
+                                        .srcIPLow   = MIN_IP,
+                                        .srcIPHigh   = MAX_IP,
+                                        .dstIPLow   = rightRecuseFlowEntry.dstIPLow,
+                                        .dstIPHigh   = rightRecuseFlowEntry.dstIPHigh,
+                                        .actionType = FORWARD,
+                                        .actionVal  = PORT_2,
+                                        .pri        = MIN_PRI,
+                                        .pktCount   = 0,
+                                };
+                                return forwardRightRule;
+                            }
                         } else {
                             printf("DEBUG: right switch valid creating FORWARD FlowEntry\n");
                             FlowEntry forwardRightRule = {
@@ -504,7 +537,7 @@ void Controller::respondQUERYPacket(int socketFD, Message message) {
            switchID.getSwitchIDString().c_str(), srcIP, dstIP);
 
     // calculate new flow entry
-    FlowEntry flowEntry = makeFlowEntry(switchID, srcIP, dstIP);
+    FlowEntry flowEntry = makeFlowEntry(switchID, srcIP, dstIP, switchID);
 
     // create and send new add packet
     sendADDPacket(socketFD, flowEntry, switchID);

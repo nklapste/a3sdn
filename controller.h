@@ -41,7 +41,7 @@ private:
 
     vector<ClientSocketConnection> clientSocketConnections;
 
-    FlowEntry makeFlowEntry(SwitchID switchID, uint srcIP, uint dstIP);
+    FlowEntry makeFlowEntry(SwitchID switchID, uint srcIP, uint dstIP, SwitchID lastSwitchID);
 
     void sendACKPacket(int socketFD, SwitchID switchID);
 
