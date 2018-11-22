@@ -556,11 +556,14 @@ void Switch::respondADDPacket(Message message) {
             .pri        = pri,
             .pktCount   = pktCount
     };
-    flowTable.emplace_back(newRule);
-
-    // sort and dedupe the flowTable
-    sort(flowTable.begin(), flowTable.end());
-    flowTable.erase(unique(flowTable.begin(), flowTable.end()), flowTable.end());
+    // adding a new rule
+    if (std::find(flowTable.begin(), flowTable.end(), newRule) != flowTable.end()) {
+        /* v contains x */
+        printf("DEBUG: flowTable rule already exists for switch not adding\n");
+    } else {
+        flowTable.emplace_back(newRule);
+        /* v does not contain x */
+    }
     resolveUnsolvedPackets();
 }
 
