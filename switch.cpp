@@ -5,7 +5,6 @@
  * @version 0.0.0
  */
 
-
 #include <chrono>
 #include <ctime>
 #include <assert.h>
@@ -52,7 +51,6 @@
 
 using namespace std;
 using namespace chrono;
-
 
 /**
  * Initialize a switch.
@@ -342,7 +340,6 @@ void Switch::check_connection(int connectionFD, int socketFD, Connection connect
         }
     }
 }
-
 
 /**
  * Check the TCP socket connection to the controller.
@@ -642,7 +639,6 @@ void Switch::resolveUnsolvedPackets() {
     }
 }
 
-
 /**
  * Resolve a packet's routing via lookup in the {@code FlowTable}.
  *
@@ -727,7 +723,6 @@ void Switch::setDelay(milliseconds interval) {
 Address Switch::getServerAddr() {
     return address;
 }
-
 
 /**
  * Getter for the {@code Switch}'s {@code SwitchID}.
