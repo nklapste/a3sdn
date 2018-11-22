@@ -125,46 +125,6 @@ Switch::Switch(SwitchID switchID, SwitchID leftSwitchID, SwitchID rightSwitchID,
 }
 
 /**
- * Getter for a switch's {@code IPLow}.
- *
- * @return {@code uint}
- */
-uint Switch::getIPLow() const {
-    return IPLow;
-}
-
-/**
- * Getter for a switch's {@code IPHigh}.
- *
- * @return {@code uint}
- */
-uint Switch::getIPHigh() const {
-    return IPHigh;
-}
-
-/**
- * Getter for a switch's {@code leftSwitchID}.
- *
- * Note: if the switch does not have a left neighboring switch {@code -1} will be returned.
- *
- * @return {@code SwitchID}
- */
-SwitchID Switch::getLeftSwitchID() const {
-    return leftSwitchID;
-}
-
-/**
- * Getter for a switch's {@code rightSwitchID}.
- *
- * Note: if the switch does not have a right neighboring switch {@code -1} will be returned.
- *
- * @return {@code SwitchID}
- */
-SwitchID Switch::getRightSwitchID() const {
-    return rightSwitchID;
-}
-
-/**
  * Start the {@code Switch} loop.
  */
 void Switch::start() {
@@ -549,7 +509,7 @@ void Switch::sendRELAYPacket(Connection connection, uint srcIP, uint dstIP, Swit
  */
 void Switch::respondACKPacket() {
     rAckCount++;
-    printf("INFO: ACK packet received:\n");
+    printf("INFO: (src= cont, dst= %s) ACK packet received:\n", getSwitchID().getSwitchIDString().c_str());
 }
 
 /**
@@ -731,4 +691,44 @@ Address Switch::getServerAddr() {
  */
 SwitchID Switch::getSwitchID() const {
     return switchID;
+}
+
+/**
+ * Getter for a switch's {@code IPLow}.
+ *
+ * @return {@code uint}
+ */
+uint Switch::getIPLow() const {
+    return IPLow;
+}
+
+/**
+ * Getter for a switch's {@code IPHigh}.
+ *
+ * @return {@code uint}
+ */
+uint Switch::getIPHigh() const {
+    return IPHigh;
+}
+
+/**
+ * Getter for a switch's {@code leftSwitchID}.
+ *
+ * Note: if the switch does not have a left neighboring switch {@code -1} will be returned.
+ *
+ * @return {@code SwitchID}
+ */
+SwitchID Switch::getLeftSwitchID() const {
+    return leftSwitchID;
+}
+
+/**
+ * Getter for a switch's {@code rightSwitchID}.
+ *
+ * Note: if the switch does not have a right neighboring switch {@code -1} will be returned.
+ *
+ * @return {@code SwitchID}
+ */
+SwitchID Switch::getRightSwitchID() const {
+    return rightSwitchID;
 }
