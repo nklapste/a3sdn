@@ -81,7 +81,9 @@ private:
     Address address;
 
     FlowTable flowTable;
+
     vector<Connection> connections;
+
     vector<Packet> unsolvedPackets;
 
     string &parseTrafficFileLine(int socketFD, string &line);

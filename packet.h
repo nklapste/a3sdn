@@ -43,6 +43,7 @@ public:
 
 private:
     string type;
+
     Message message;
 };
 

@@ -11,7 +11,6 @@
 
 #include <sys/param.h>
 #include <vector>
-#include <poll.h>
 
 #include "connection.h"
 #include "port.h"
@@ -41,8 +40,6 @@ public:
 private:
 protected:
     Port port;
-
-    vector<Connection> connections;
 
     /**
      * Counts of {@code Packets} received.
