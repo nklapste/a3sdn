@@ -9,20 +9,68 @@
 #        make clean // remove unneeded files
 # ------------------------------------------------------------
 
-target = submit
-sourceCode =  iprange.cpp iprange.h port.cpp port.h switchid.cpp switchid.h address.cpp address.h trafficfile.cpp \
-                trafficfile.h gate.cpp gate.h connection.cpp connection.h controller.cpp controller.h flow.h flow.cpp \
-                packet.cpp packet.h switch.cpp switch.h a3sdn.cpp
-allFiles = README.md LICENSE Makefile  tf1.txt tf2.txt tf3.txt tf4.txt $(sourceCode)
 
-compile:
-	g++-7 -std=c++11 -Wall $(sourceCode) -o a3sdn
+# name of the executable to build
+BINARY = a3sdn
+
+RM=rm -v -rf
+MKDIR = mkdir
+
+CC=gcc
+CXX=g++-7
+CPPFLAGS=-g -pthread -I/sw/include/root -std=c++11 -Wall
+
+BUILDDIR = build
+SOURCEDIR = src
+HEADERDIR = src
+TESTDIR = test
+
+SOURCES := $(shell find $(SOURCEDIR) -name '*.cpp')
+SOURCESFILES = $(shell find $(SOURCEDIR) -name '*')
+TESTFILES = $(shell find $(TESTDIR) -name '*.txt')
+OBJECTS := $(addprefix $(BUILDDIR)/,$(SOURCES:%.cpp=%.o))
+
+
+.PHONY: all setup clean help tar
+
+
+# compile a3sdn
+all: setup $(BINARY)
+
+$(BINARY): $(OBJECTS)
+	$(CXX) $(CPPFLAGS) $(OBJECTS) -o $(BINARY)
+
+$(BUILDDIR)/%.o: %.cpp
+	$(CXX) $(CPPFLAGS) -I$(HEADERDIR) -I$(dir $<) -c $< -o $@
+
+setup:
+	$(MKDIR) -p $(BUILDDIR)/$(SOURCEDIR)
+
+
+# make the submission tar file
+ALLFILES = README.md LICENSE Makefile $(SOURCESFILES) $(TESTFILES)
+TARTARGET = submit
 
 tar:
-	touch $(target).tar.gz
-	mv $(target).tar.gz  x$(target).tar.gz
-	tar -cvf $(target).tar $(allFiles)
-	gzip $(target).tar
+	touch $(TARTARGET).tar.gz
+	mv $(TARTARGET).tar.gz  x$(TARTARGET).tar.gz
+	tar -cvf $(TARTARGET).tar $(ALLFILES)
+	gzip $(TARTARGET).tar
 
+
+# clean up make outputs
 clean:
-	rm -f *~ out.* *.o
+	$(RM) $(BUILDDIR)
+	$(RM) $(BINARY)
+
+distclean: clean
+
+
+# Help Target
+help:
+	@echo "The following are some of the valid targets for this Makefile:"
+	@echo "... all (the default if no target is provided)"
+	@echo "... clean"
+	@echo "... depend"
+	@echo "... $(EXECNAME)"
+	@echo "... tar (generate the submission tar)"
