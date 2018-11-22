@@ -55,20 +55,6 @@ uint SwitchID::validateSwitchIDNum(uint switchIDNum) {
 }
 
 /**
- * Constructor for a {@code SwitchID} from a {@code uint}.
- *
- * @param switchIDNum {@code uint}
- */
-SwitchID::SwitchID(uint switchIDNum) {
-    SwitchID::switchIDNum = validateSwitchIDNum(switchIDNum);
-    if (SwitchID::switchIDNum == NULL_SWITCH_ID_NUM) {
-        SwitchID::switchIDString = NULL_SWITCH_ID_FLAG;
-    } else {
-        SwitchID::switchIDString = "sw" + to_string(SwitchID::switchIDNum);
-    }
-}
-
-/**
  * Constructor for a {@code SwitchID} from a {@code std::string}.
  *
  * @param switchIDString {@code std::string}

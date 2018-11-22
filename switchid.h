@@ -19,8 +19,6 @@ class SwitchID {
 public:
     explicit SwitchID(string switchIDString);
 
-    explicit SwitchID(uint switchIDNum);
-
     static uint parseSwitchID(const string &switchIDString);
 
     static uint validateSwitchIDNum(uint switchIDNum);
