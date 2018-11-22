@@ -36,10 +36,10 @@
 
 #define BUFFER_SIZE 1024
 
-#define PDFS_SIZE connections.size()+4
+#define PDFS_SIZE nSwitches+4
 #define PDFS_STDIN 0
-#define PDFS_SIGNAL connections.size()+2
-#define PDFS_SOCKET connections.size()+3
+#define PDFS_SIGNAL nSwitches+2
+#define PDFS_SOCKET nSwitches+3
 
 using namespace std;
 
@@ -60,8 +60,6 @@ Controller::Controller(uint nSwitches, Port port) : Gate(port), nSwitches(nSwitc
                "\tMIN_SWITCHES=%u\n", nSwitches, MIN_SWITCHES);
         exit(EINVAL);
     }
-    printf("DEBUG: creating controller: nSwitches: %u\n", nSwitches);
-
     printf("INFO: created controller: nSwitches: %u portNumber: %u\n", nSwitches, port.getPortNum());
 }
 
