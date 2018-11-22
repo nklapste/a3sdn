@@ -1,8 +1,8 @@
 # t3.dat: traffic file for a3sdn
-#     a2sdn cont 3 8989
-#     a2sdn sw1  tf4.txt  null sw2  100-110 localhost 8989
-#     a2sdn sw2  tf4.txt  sw1  sw3  500-550 localhost 8989
-#     a2sdn sw3  tf4.txt  sw2  null 200-220 localhost 8989
+#     a3sdn cont 3 9982
+#     a3sdn sw1  tf4.txt  null sw2  100-110 localhost 9982
+#     a3sdn sw2  tf4.txt  sw1  sw3  500-550 localhost 9982
+#     a3sdn sw3  tf4.txt  sw2  null 200-220 localhost 9982
 
 sw1 delay 2000
 sw1  100  100
