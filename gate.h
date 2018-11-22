@@ -71,11 +71,11 @@ protected:
 
     int getSignalFD();
 
-    void check_signal(int signalFD);
+    void checkSignal(int signalFD);
 
-    void check_stdin(int stdinFD);
+    void checkStdin(int stdinFD);
 
-    string get_message(int socketFD, char *tmpbuf);
+    string getMessage(int socketFD, char *tmpbuf);
 
     virtual void check_sock(int socketFD, char *tmpbuf) = 0;
 };

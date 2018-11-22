@@ -205,7 +205,7 @@ void Switch::start() {
          * Check stdin
          */
         if (pfds[PDFS_STDIN].revents & POLLIN) {
-            check_stdin(pfds[PDFS_STDIN].fd);
+            checkStdin(pfds[PDFS_STDIN].fd);
         }
 
         /*
@@ -222,7 +222,7 @@ void Switch::start() {
          * Check signal
          */
         if (pfds[PDFS_SIGNAL].revents & POLLIN) {
-            check_signal(pfds[PDFS_SIGNAL].fd);
+            checkSignal(pfds[PDFS_SIGNAL].fd);
         }
 
         /*
@@ -308,7 +308,7 @@ void Switch::check_connection(int connectionFD, int socketFD, Connection connect
  * @param tmpbuf  {@code char *} temporary buffer to store obtained messages.
  */
 void Switch::check_sock(int socketFD, char *tmpbuf) {
-    string msg = get_message(socketFD, tmpbuf);
+    string msg = getMessage(socketFD, tmpbuf);
 
     Packet packet = Packet(msg);
     if (errno == EINVAL) {

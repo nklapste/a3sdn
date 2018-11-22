@@ -13,21 +13,15 @@
 #include <arpa/inet.h>
 #include "gate.h"
 
-
 #define LIST_CMD "list"
 #define EXIT_CMD "exit"
 
 #define BUFFER_SIZE 1024
 
-/**
- * Getter for a {@code Gate}'s ID.
- *
- * @return {@code unit} the ID number of the Gate.
- */
-uint Gate::getGateID() const {
-    return gateID;
-}
+using namespace std;
 
+Gate::Gate(Port port) : port(port) {
+}
 
 /**
  * Print statistics on the packets sent and received by the {@code Gate}.
@@ -41,26 +35,13 @@ void Gate::listPacketStats() {
 }
 
 /**
- * Getter for a {@code Gate}'s port number.
- *
- * @return {@code Port} the port of the Gate.
- */
-Port Gate::getPort() const {
-    return port;
-}
-
-Gate::Gate(Port port) : port(port) {
-}
-
-
-/**
  * 1. Poll the keyboard for a user command. The user can issue one of the following commands.
  *       list: The program writes all entries in the flow table, and for each transmitted or received
  *             packet type, the program writes an aggregate count of handled packets of this
  *             type.
  *       exit: The program writes the above information and exits.
  */
-void Gate::check_stdin(int stdinFD) {
+void Gate::checkStdin(int stdinFD) {
     char buf[BUFFER_SIZE] = "\0";
     ssize_t r = read(stdinFD, buf, BUFFER_SIZE);
     if (!r) {
@@ -86,7 +67,7 @@ void Gate::check_stdin(int stdinFD) {
  * In addition, upon receiving signal USER1, the Gate (Controller/Switch) displays the information
  * specified by the list command.
  */
-void Gate::check_signal(int signalFD) {
+void Gate::checkSignal(int signalFD) {
     struct signalfd_siginfo info{};
     /* We have a valid signal, read the info from the fd */
     ssize_t r = read(signalFD, &info, sizeof(info));
@@ -129,10 +110,10 @@ int Gate::getSignalFD() {
  * @param tmpbuf {@code char *} temporary buffer to read from
  * @return {@code std::string} the read message
  */
-string Gate::get_message(int socketFD, char *tmpbuf) {
+string Gate::getMessage(int socketFD, char *tmpbuf) {
     ssize_t num = recv(socketFD, tmpbuf, BUFFER_SIZE, 0);
     if (errno != 0 && errno != EAGAIN) {
-        perror("ERROR: mes");
+        perror("ERROR: mes");  // TODO: remove
     } else {
         errno = 0;
     }
@@ -142,4 +123,22 @@ string Gate::get_message(int socketFD, char *tmpbuf) {
     string msg = string(tmpbuf);
     strcpy(tmpbuf, "");
     return msg;
+}
+
+/**
+ * Getter for a {@code Gate}'s port number.
+ *
+ * @return {@code Port} the port of the Gate.
+ */
+Port Gate::getPort() const {
+    return port;
+}
+
+/**
+ * Getter for a {@code Gate}'s ID.
+ *
+ * @return {@code unit} the ID number of the Gate.
+ */
+uint Gate::getGateID() const {
+    return gateID;
 }
