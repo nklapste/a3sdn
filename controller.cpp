@@ -85,8 +85,7 @@ void Controller::start() {
 
     pfds[PDFS_SIGNAL].fd = getSignalFD();
 
-    // TODO: init TCP socket connection
-    // init TCP socket file descriptor
+    // init TCP socket
     struct sockaddr_in address{};
     int opt = 1;
 
