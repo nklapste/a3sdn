@@ -1,6 +1,9 @@
-//
-// Created by nklap on 2018-11-09.
-//
+/**
+ * port.h
+ *
+ * @author Nathan Klapstein (nklapste)
+ * @version 0.0.0
+ */
 
 #ifndef A3SDN_PORT_H
 #define A3SDN_PORT_H
