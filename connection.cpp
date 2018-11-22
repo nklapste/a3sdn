@@ -47,24 +47,6 @@ Connection::Connection() {
 }
 
 /**
- * Getter for the ReceiveFIFO filename.
- *
- * @return {@code std::string}
- */
-string Connection::getReceiveFIFOName() {
-    return receiveFIFOName;
-}
-
-/**
- * Getter for the SendFIFO filename.
- *
- * @return {@code std::string}
- */
-string Connection::getSendFIFOName() {
-    return sendFIFOName;
-}
-
-/**
  * Opens a Connection for reading a switch with id.
  *
  * @return {@code int} the file description of the ReceiveFIFO.
@@ -140,3 +122,20 @@ void Connection::makeFIFO(string &FIFOName) {
     }
 }
 
+/**
+ * Getter for the ReceiveFIFO filename.
+ *
+ * @return {@code std::string}
+ */
+string Connection::getReceiveFIFOName() {
+    return receiveFIFOName;
+}
+
+/**
+ * Getter for the SendFIFO filename.
+ *
+ * @return {@code std::string}
+ */
+string Connection::getSendFIFOName() {
+    return sendFIFOName;
+}
