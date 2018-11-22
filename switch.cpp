@@ -172,7 +172,7 @@ SwitchID Switch::getRightSwitchID() const {
 void Switch::start() {
     struct pollfd pfds[PDFS_SIZE];
 
-    // setup file descriptiors for all interswitch connection FIFOs
+    // setup file descriptions for all inter-switch connection FIFOs
     pfds[PDFS_STDIN].fd = STDIN_FILENO;
     if (!leftSwitchID.isNullSwitchID()) {
         pfds[PDFS_LEFT_SWITCH].fd = connections[CONNECTION_LEFT_SWITCH].openReceiveFIFO();
@@ -181,7 +181,7 @@ void Switch::start() {
         pfds[PDFS_RIGHT_SWITCH].fd = connections[CONNECTION_RIGHT_SWITCH].openReceiveFIFO();
     }
 
-
+    // setup signal file descriptors
     pfds[PDFS_SIGNAL].fd = getSignalFD();
 
     // init the trafficfile
@@ -217,9 +217,7 @@ void Switch::start() {
     // and the range of IP addresses served by the switch.
     sendOPENPacket(pfds[PDFS_SOCKET].fd);
 
-    //TODO: dev
     char buf[BUFFER_SIZE];
-
 
     if(fcntl(pfds[PDFS_SOCKET].fd, F_SETFL, fcntl(pfds[PDFS_SOCKET].fd, F_GETFL) | O_NONBLOCK) < 0) {
         // handle error
@@ -424,6 +422,21 @@ void Switch::list() {
 }
 
 /**
+ * Print {@code Switch} specific statistics.
+ */
+void Switch::listSwitchStats() {
+    uint counter = 0;
+    printf("%s FlowTable:\n", getSwitchID().getSwitchIDString().c_str());
+    for (auto const &flowEntry: flowTable) {
+        printf("[%u] (srcIP= %u-%u dstIP %u-%u action=%s:%u pri= %u pktCount= %u)\n",
+               counter,
+               flowEntry.srcIPLow, flowEntry.srcIPHigh, flowEntry.dstIPLow, flowEntry.dstIPHigh,
+               toActionName(flowEntry.actionType).c_str(), flowEntry.actionVal, flowEntry.pri, flowEntry.pktCount);
+        counter++;
+    }
+}
+
+/**
  * Attempt to get the index to a matching FlowEntry rule within the Switch's FlowTable for a given traffic packet item.
  *
  * @param srcIP {@code uint}
@@ -523,7 +536,7 @@ void Switch::sendRELAYPacket(Connection connection, uint srcIP, uint dstIP, Swit
     Packet relayPacket = Packet(RELAY, relayMessage);
     printf("INFO: (src= %s, dest= %s) sending RELAY packet: connection: %s packet: %s\n",
            getSwitchID().getSwitchIDString().c_str(),
-
+           dstSwitchID.getSwitchIDString().c_str(),
            connection.getSendFIFOName().c_str(), relayPacket.toString().c_str());
     write(connection.openSendFIFO(), relayPacket.toString().c_str(),
           strlen(relayPacket.toString().c_str()));
@@ -560,9 +573,10 @@ void Switch::respondADDPacket(Message message) {
     uint pri = static_cast<uint>(stoi(get<1>(message[6])));
     uint pktCount = static_cast<uint>(stoi(get<1>(message[7])));
 
-    printf("INFO: parsed ADD packet:\n"
+    printf("INFO: (src= cont, dst= %s) parsed ADD packet:\n"
            "\tAdding new flowTable rule:\n"
            "\t\tsrcIP_lo: %u srcIPHigh: %u dstIPLow: %u dstIPHigh: %u actionType: %s actionVal: %u pri: %u pktCount: %u\n",
+           getSwitchID().getSwitchIDString().c_str(),
            srcIP_lo, srcIP_hi, dstIP_lo, dstIP_hi, toActionName(actionType).c_str(), actionVal, pri, pktCount);
 
     FlowEntry newRule = {
@@ -584,6 +598,33 @@ void Switch::respondADDPacket(Message message) {
 }
 
 /**
+ * Respond to a RELAY packet.
+ *
+ * A switch may forward a received packet header to a neighbour (as instructed by a
+ * matching rule in the flow table). This information is passed to the neighbour in a
+ * RELAY packet.
+ *
+ * @param socketFD {@code int}
+ * @param message {@code Message}
+ */
+void Switch::respondRELAYPacket(int socketFD, Message message) {
+    rRelayCount++;
+    SwitchID rSwitchID = SwitchID(get<1>(message[0]));
+    uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
+    uint dstIP = static_cast<uint>(stoi(get<1>(message[2])));
+
+    printf("INFO: (src= %s, dst= %s) parsed RELAY packet:\n"
+           "\tswitchID: %s srcIP: %u dstIP: %u",
+           rSwitchID.getSwitchIDString().c_str(),
+           getSwitchID().getSwitchIDString().c_str(),
+           rSwitchID.getSwitchIDString().c_str(), srcIP, dstIP);
+
+    if (resolvePacket(srcIP, dstIP) <= 0) { // did not find rule
+        sendQUERYPacket(socketFD, srcIP, dstIP);
+    }
+}
+
+/**
  * Attempt to resolve any unsolved {@code packet}s.
  *
  * Note: this should be done after responding to a ADD packet.
@@ -601,30 +642,6 @@ void Switch::resolveUnsolvedPackets() {
     }
 }
 
-/**
- * Respond to a RELAY packet.
- *
- * A switch may forward a received packet header to a neighbour (as instructed by a
- * matching rule in the flow table). This information is passed to the neighbour in a
- * RELAY packet.
- *
- * @param socketFD {@code int}
- * @param message {@code Message}
- */
-void Switch::respondRELAYPacket(int socketFD, Message message) {
-    rRelayCount++;
-    SwitchID rSwitchID = SwitchID(get<1>(message[0]));
-    uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
-    uint dstIP = static_cast<uint>(stoi(get<1>(message[2])));
-
-    printf("INFO: parsed RELAY packet:\n"
-           "\tswitchID: %s srcIP: %u dstIP: %u",
-           rSwitchID.getSwitchIDString().c_str(), srcIP, dstIP);
-
-    if (resolvePacket(srcIP, dstIP) <= 0) { // did not find rule
-        sendQUERYPacket(socketFD, srcIP, dstIP);
-    }
-}
 
 /**
  * Resolve a packet's routing via lookup in the {@code FlowTable}.
@@ -669,33 +686,6 @@ int Switch::resolvePacket(uint srcIP, uint dstIP) {
 }
 
 /**
- * Getter for the {@code Switch}'s {@code serverAddr} the IP address of the server's host.
- *
- * Can be either a symbolic name (e.g. util.cs.ualberta.ca, or localhost)
- * or in dotted-decimal format (e.g. 127.0.0.1).
- *
- * @return {@code Address}
- */
-Address Switch::getServerAddr() {
-    return address;
-}
-
-/**
- * Print {@code Switch} specific statistics.
- */
-void Switch::listSwitchStats() {
-    uint counter = 0;
-    printf("%s FlowTable:\n", getSwitchID().getSwitchIDString().c_str());
-    for (auto const &flowEntry: flowTable) {
-        printf("[%u] (srcIP= %u-%u dstIP %u-%u action=%s:%u pri= %u pktCount= %u)\n",
-               counter,
-               flowEntry.srcIPLow, flowEntry.srcIPHigh, flowEntry.dstIPLow, flowEntry.dstIPHigh,
-               toActionName(flowEntry.actionType).c_str(), flowEntry.actionVal, flowEntry.pri, flowEntry.pktCount);
-        counter++;
-    }
-}
-
-/**
  * Check if the current clock time is greater than or equal to the current delay's {@code endTime}.
  *
  * @return {@code bool}
@@ -724,6 +714,18 @@ void Switch::setDelay(milliseconds interval) {
         endTime = interval + currentTime;
     }
     printf("DEBUG: setting delay interval: currentTime: %lims endTime: %lims\n", currentTime, endTime);
+}
+
+/**
+ * Getter for the {@code Switch}'s {@code serverAddr} the IP address of the server's host.
+ *
+ * Can be either a symbolic name (e.g. util.cs.ualberta.ca, or localhost)
+ * or in dotted-decimal format (e.g. 127.0.0.1).
+ *
+ * @return {@code Address}
+ */
+Address Switch::getServerAddr() {
+    return address;
 }
 
 
