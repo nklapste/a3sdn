@@ -661,6 +661,7 @@ bool Switch::delayPassed() {
  * @param interval {@code clock_t}
  */
 void Switch::setDelay(milliseconds interval) {
+    printf("DEBUG: adding delay interval: %li\n", interval.count());
     milliseconds currentTime = duration_cast<milliseconds>(
             system_clock::now().time_since_epoch()
     );
