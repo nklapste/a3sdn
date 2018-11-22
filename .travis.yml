@@ -8,14 +8,14 @@ addons:
     sources:
       - ubuntu-toolchain-r-test
     packages:
-      - g++-7
+      - g++-5
 
 stages:
   - test
 
 before_script:
-  - export CC=gcc-7
-  - export CXX=g++-7
+  - export CC=gcc-5
+  - export CXX=g++-5
 
 jobs:
   include:
