@@ -11,6 +11,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <map>
 
 #include "connection.h"
 #include "flow.h"
@@ -27,6 +28,8 @@
 using namespace std;
 
 typedef tuple<int, char *> ClientSocketConnection;
+typedef map<int, string> SwitchFDMap;
+
 
 class Controller : public Gate {
 public:
@@ -40,6 +43,8 @@ private:
     vector<Switch> switches;
 
     vector<ClientSocketConnection> clientSocketConnections;
+
+    SwitchFDMap switchFDMap;
 
     FlowEntry makeFlowEntry(SwitchID switchID, uint srcIP, uint dstIP, SwitchID lastSwitchID);
 

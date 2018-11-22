@@ -173,13 +173,19 @@ void Controller::start() {
             if (recv(get<0>(tup), get<1>(tup), sizeof(get<1>(tup)), MSG_PEEK | MSG_DONTWAIT) == 0) {
                 // A switch has disconnected
                 getpeername(get<0>(tup), (struct sockaddr *) &address, (socklen_t *) &addrlen);
-                // TODO: note what switch died
-                printf("INFO: switch disconnected: fd:%d ip:%s port:%d\n",
-                       get<0>(tup), inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+
+                auto it = switchFDMap.find(get<0>(tup));
+                if (it != switchFDMap.end()) {
+                    printf("INFO: switch: %s disconnected: fd:%d ip:%s port:%d\n",
+                           switchFDMap.find(get<0>(tup))->second.c_str(),
+                           get<0>(tup), inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+                    switchFDMap.erase(it);
+                } else {
+                    printf("WARNING: unknown switch disconnected: fd:%d ip:%s port:%d\n",
+                           get<0>(tup), inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+                }
                 close(get<0>(tup));
                 clientSocketConnections.erase(clientSocketConnections.begin() + i);
-                // TODO: remove switch from switches?
-
                 free(get<1>(tup));
             } else {
                 check_sock(
@@ -511,6 +517,8 @@ void Controller::respondOPENPacket(int socketfd, Message message) {
             // add the switch to the controllers list of known switches
             switches.emplace_back(newSwitch);
         }
+
+        switchFDMap[socketfd] = newSwitch.getSwitchID().getSwitchIDString();
 
         // sort and dedupe the list of switches
         sort(switches.begin(), switches.end());
