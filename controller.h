@@ -40,9 +40,9 @@ private:
 
     FlowEntry makeFlowEntry(SwitchID switchID, uint srcIP, uint dstIP);
 
-    void sendACKPacket(int socketFD);
+    void sendACKPacket(int socketFD, SwitchID switchID);
 
-    void sendADDPacket(int socketFD, FlowEntry flowEntry);
+    void sendADDPacket(int socketFD, FlowEntry flowEntry, SwitchID switchID);
 
     void respondOPENPacket(int socketFD, Message message);
 

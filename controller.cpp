@@ -385,10 +385,11 @@ FlowEntry Controller::makeFlowEntry(SwitchID switchID, uint srcIP, uint dstIP) {
  *
  * @param socketFD {@code int}
  */
-void Controller::sendACKPacket(int socketFD) {
+void Controller::sendACKPacket(int socketFD, SwitchID switchID) {
     Packet ackPacket = Packet(ACK, Message());
-    // TODO: fix log statement
-    printf("INFO: sending ACK packet: packet: %s\n", ackPacket.toString().c_str());
+    printf("INFO: (src= cont, dst= %s) sending ACK packet: packet: %s\n",
+            switchID.getSwitchIDString().c_str(),
+            ackPacket.toString().c_str());
     send(socketFD, ackPacket.toString().c_str(), strlen(ackPacket.toString().c_str())+1, 0);
     tAckCount++;
 }
@@ -400,7 +401,7 @@ void Controller::sendACKPacket(int socketFD) {
  * @param socketFD {@code int}
  * @param flowEntry {@code FlowEntry}
  */
-void Controller::sendADDPacket(int socketFD, FlowEntry flowEntry) {
+void Controller::sendADDPacket(int socketFD, FlowEntry flowEntry, SwitchID switchID) {
     Message addMessage;
     addMessage.emplace_back(MessageArg("srcIPLow", to_string(flowEntry.srcIPLow)));
     addMessage.emplace_back(MessageArg("srcIPHigh", to_string(flowEntry.srcIPHigh)));
@@ -411,7 +412,9 @@ void Controller::sendADDPacket(int socketFD, FlowEntry flowEntry) {
     addMessage.emplace_back(MessageArg("pri", to_string(flowEntry.pri)));
     addMessage.emplace_back(MessageArg("pktCount", to_string(flowEntry.pktCount)));
     Packet addPacket = Packet(ADD, addMessage);
-    printf("INFO: sending ADD packet: packet: %s\n", addPacket.toString().c_str());
+    printf("INFO: (src= cont, dst= %s) sending ADD packet: packet: %s\n",
+            switchID.getSwitchIDString().c_str(),
+            addPacket.toString().c_str());
     send(socketFD, addPacket.toString().c_str(), strlen(addPacket.toString().c_str())+1, 0);
     tAddCount++;
 }
@@ -434,8 +437,10 @@ void Controller::respondOPENPacket(int socketfd, Message message) {
     uint switchIPHigh = static_cast<uint>(stoi(get<1>(message[4])));
     Address address = Address(get<1>(message[5]));
     Port port = Port(static_cast<u_int16_t>(stoi(get<1>(message[6]))));
-    printf("DEBUG: parsed OPEN packet: switchID: %s leftSwitchID: %s rightSwitchID: %s switchIPLow: %u switchIPHigh: %u address: %s port: %u\n",
-           switchID.getSwitchIDString().c_str(), leftSwitchID.getSwitchIDString().c_str(),
+    printf("DEBUG: (src= %s, dst= cont) parsed OPEN packet: switchID: %s leftSwitchID: %s rightSwitchID: %s switchIPLow: %u switchIPHigh: %u address: %s port: %u\n",
+           switchID.getSwitchIDString().c_str(),
+           switchID.getSwitchIDString().c_str(),
+           leftSwitchID.getSwitchIDString().c_str(),
            rightSwitchID.getSwitchIDString().c_str(),
            switchIPLow, switchIPHigh, address.getSymbolicName().c_str(),
            port.getPortNum());
@@ -482,7 +487,7 @@ void Controller::respondOPENPacket(int socketfd, Message message) {
         switches.erase(unique(switches.begin(), switches.end()), switches.end());
 
         // send ack back to switch
-        sendACKPacket(socketfd);
+        sendACKPacket(socketfd, newSwitch.getSwitchID());
     }
 }
 
@@ -497,14 +502,15 @@ void Controller::respondQUERYPacket(int socketFD, Message message) {
     SwitchID switchID = SwitchID(get<1>(message[0]));
     uint srcIP = static_cast<uint>(stoi(get<1>(message[1])));
     uint dstIP = static_cast<uint>(stoi(get<1>(message[2])));
-    printf("DEBUG: parsed QUERY packet: switchID: %s srcIP: %u dstIP: %u\n",
+    printf("DEBUG: (src= %s, dst= cont) parsed QUERY packet: switchID: %s srcIP: %u dstIP: %u\n",
+           switchID.getSwitchIDString().c_str(),
            switchID.getSwitchIDString().c_str(), srcIP, dstIP);
 
     // calculate new flow entry
     FlowEntry flowEntry = makeFlowEntry(switchID, srcIP, dstIP);
 
     // create and send new add packet
-    sendADDPacket(socketFD, flowEntry);
+    sendADDPacket(socketFD, flowEntry, switchID);
 }
 
 /**
