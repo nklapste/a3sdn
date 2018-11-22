@@ -1,6 +1,9 @@
-//
-// Created by nklap on 2018-11-09.
-//
+/**
+ * a3sdn iprange.cpp
+ *
+ * @author Nathan Klapstein (nklapste)
+ * @version 0.0.0
+ */
 
 #include "iprange.h"
 #include "flow.h"
