@@ -18,7 +18,7 @@ MKDIR = mkdir
 
 CC=gcc
 CXX=g++
-CPPFLAGS=-g -pthread -I/sw/include/root -std=c++11 -Wall
+CPPFLAGS=-g -pthread -I/sw/include/root -std=c++17 -Wall
 
 BUILDDIR = build
 SOURCEDIR = src
