@@ -17,7 +17,7 @@ RM=rm -v -rf
 MKDIR = mkdir
 
 CC=gcc
-CXX=g++-7
+CXX=g++
 CPPFLAGS=-g -pthread -I/sw/include/root -std=c++11 -Wall
 
 BUILDDIR = build
