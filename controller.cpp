@@ -49,7 +49,7 @@ using namespace std;
  *
  * @param nSwitches {@code uint} the number of switches to potentially be connected to the controller.
  */
-Controller::Controller(uint nSwitches, Port port) : nSwitches(nSwitches), Gate(port) {
+Controller::Controller(uint nSwitches, Port port) : Gate(port), nSwitches(nSwitches) {
     if (nSwitches > MAX_SWITCHES) {
         printf("ERROR: too many switches for controller: %u\n"
                "\tMAX_SWITCHES=%u\n", nSwitches, MAX_SWITCHES);
