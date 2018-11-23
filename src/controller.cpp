@@ -186,7 +186,6 @@ void Controller::start() {
                 }
                 close(get<0>(tup));
                 clientSocketConnections.erase(clientSocketConnections.begin() + i);
-                free(get<1>(tup));
             } else {
                 check_sock(
                         get<0>(tup),

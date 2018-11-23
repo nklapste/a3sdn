@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+# build artifacts
+build/
+a3sdn
